@@ -1,0 +1,6 @@
+Strategie,Mittelwert,Standardabw.,Minimum,Maximum
+MA(10),10000.23,22.43,9805.07,10039.63
+Crossover,10000.68,42.64,9861.12,10270.39
+RSI,10000.01,4.42,9904.58,10027.16
+Random,9999.84,15.13,9923.64,10071.0
+Selective Combo,10000.0,0.0,10000.0,10000.0
