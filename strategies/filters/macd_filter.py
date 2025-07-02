@@ -1,48 +1,21 @@
 import pandas as pd
 
 class MACDFilter:
-    """
-    Gibt 'buy'-Signal, wenn MACD-Linie die Signal-Linie von unten nach oben kreuzt.
-    Kein 'sell'-Signal enthalten (zur optionalen Erweiterung).
-    """
-    def __init__(self, fast=12, slow=26, signal=9):
-        self.fast = fast
-        self.slow = slow
-        self.signal = signal
-        self.closes = []
-        self.prev_macd = None
-        self.prev_signal = None
+    def __init__(self, df, short_window=12, long_window=26, signal_window=9):
+        self.df = df.copy()
+        self.short_window = short_window
+        self.long_window = long_window
+        self.signal_window = signal_window
+        self._calculate_macd()
 
-    def update(self, candle):
-        self.closes.append(candle['close'])
+    def _calculate_macd(self):
+        self.df['ema_short'] = self.df['close'].ewm(span=self.short_window, adjust=False).mean()
+        self.df['ema_long'] = self.df['close'].ewm(span=self.long_window, adjust=False).mean()
+        self.df['macd'] = self.df['ema_short'] - self.df['ema_long']
+        self.df['signal_line'] = self.df['macd'].ewm(span=self.signal_window, adjust=False).mean()
 
-        if len(self.closes) < self.slow + self.signal:
-            return None, None, False  # ❗ Rückgabe auf 3 Werte erweitert
+    def get_signal(self):
+        signal = self.df['macd'] > self.df['signal_line']
+        return signal.fillna(False)
 
-        series = pd.Series(self.closes)
-        ema_fast = series.ewm(span=self.fast).mean()
-        ema_slow = series.ewm(span=self.slow).mean()
-        macd_line = ema_fast - ema_slow
-        signal_line = macd_line.ewm(span=self.signal).mean()
 
-        macd_now = macd_line.iloc[-1]
-        signal_now = signal_line.iloc[-1]
-
-        macd_cross = (
-            self.prev_macd is not None and
-            self.prev_signal is not None and
-            self.prev_macd < self.prev_signal and
-            macd_now > signal_now
-        )
-
-        self.prev_macd = macd_now
-        self.prev_signal = signal_now
-
-        return macd_line, signal_line, macd_cross
-
-    def should_buy(self, candle):
-        _, _, macd_cross = self.update(candle)
-        return macd_cross
-
-    def should_sell(self, candle):
-        return False  # optional später erweiterbar

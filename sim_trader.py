@@ -1,72 +1,58 @@
 class SimTrader:
-    """
-    Einfache Simulation eines Trading-Bots mit Long-only-Strategien.
-    Arbeitet mit einem PriceFeed und einer Strategie.
-    """
+    def __init__(self, initial_balance=10000.0, fee=0.001, slippage=0.0005):
+        self.balance = initial_balance
+        self.fee = fee
+        self.slippage = slippage
+        self.position = None  # None, "long", "short"
+        self.entry_price = None
+        self.num_trades = 0
+        self.history = []
 
-    def __init__(self, price_feed, strategy, starting_balance=10000):
-        self.feed = price_feed
-        self.strategy = strategy
-        self.balance = starting_balance
-        self.position = None  # {'entry_price': ..., 'timestamp': ...}
-        self.trades = []
+    def buy(self, candle):
+        if self.position == "long":
+            return
+        self.close_position(candle, "close-before-buy")
+        price = candle['close'] * (1 + self.slippage)
+        self.position = "long"
+        self.entry_price = price
+        self.num_trades += 1
+        self._log_trade(candle, "buy", price)
 
-    def run(self):
-        """
-        Führt die Simulation aus, indem Kerzen vom Feed geholt und an die Strategie weitergegeben werden.
-        """
-        while self.feed.has_next():
-            candle = self.feed.get_next()
-            if candle is None:
-                break
+    def sell(self, candle):
+        if self.position == "short":
+            return
+        self.close_position(candle, "close-before-sell")
+        price = candle['close'] * (1 - self.slippage)
+        self.position = "short"
+        self.entry_price = price
+        self.num_trades += 1
+        self._log_trade(candle, "sell", price)
 
-            signal = self.strategy.generate_signal(candle)
-
-            # Kaufsignal
-            if signal == 'buy' and self.position is None:
-                self._buy(candle)
-
-            # Verkaufssignal
-            elif signal == 'sell' and self.position is not None:
-                self._sell(candle)
-
-        # Schließe offene Position am Ende
-        if self.position is not None:
-            self._sell(self.feed.data.iloc[-1].to_dict())
-
-    def _buy(self, candle):
-        amount = self.balance / candle['close']
-        self.position = {
-            'entry_price': candle['close'],
-            'timestamp': candle['timestamp'],
-            'amount': amount
-        }
-        self.balance = 0  # alles investiert
-
-    def _sell(self, candle):
-        exit_price = candle['close']
-        proceeds = self.position['amount'] * exit_price
-        pnl = proceeds - (self.position['amount'] * self.position['entry_price'])
-
-        trade = {
-            'entry_time': self.position['timestamp'],
-            'exit_time': candle['timestamp'],
-            'entry_price': self.position['entry_price'],
-            'exit_price': exit_price,
-            'pnl': pnl
-        }
-
-        self.trades.append(trade)
-        self.balance = proceeds
+    def close_position(self, candle, reason="close"):
+        if self.position is None:
+            return
+        price = candle['close']
+        if self.position == "long":
+            profit = (price - self.entry_price) * (1 - self.fee)
+        else:  # short
+            profit = (self.entry_price - price) * (1 - self.fee)
+        self.balance += profit
+        self._log_trade(candle, reason, price)
         self.position = None
+        self.entry_price = None
 
-    def get_balance(self):
-        """Aktueller Kontostand (Cash + ggf. offene Position)."""
-        if self.position:
-            current_price = self.feed.data.iloc[self.feed.pointer - 1]['close']
-            return self.position['amount'] * current_price
-        return self.balance
+    def _log_trade(self, candle, action, price):
+        self.history.append({
+            "timestamp": candle["timestamp"],
+            "price": price,
+            "action": action,
+            "position": self.position,
+            "balance": round(self.balance, 2)
+        })
 
-    def get_trades(self):
-        """Gibt die Liste der abgeschlossenen Trades zurück."""
-        return self.trades
+    def get_history(self):
+        return self.history
+
+
+
+
