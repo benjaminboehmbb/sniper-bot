@@ -1,2 +1,25 @@
+# Python Bytecode
 __pycache__/
-*.pyc
+*.py[cod]
+
+# VSCode Einstellungen
+.vscode/
+
+# Temporäre Daten und Logfiles
+*.log
+*.tmp
+
+# Ergebnis- und Testdaten
+*.csv
+
+# Datenverzeichnisse
+data/
+results/
+spot/
+
+# Jupyter Notebooks
+*.ipynb_checkpoints
+
+# Betriebssystem- und versteckte Dateien
+.DS_Store
+Thumbs.db
