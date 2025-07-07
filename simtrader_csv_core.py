@@ -1,54 +1,82 @@
 import pandas as pd
-from filters import rsi_filter, macd_filter, ma200_filter, bollinger_filter
 
 class SimTrader:
-    def __init__(self, df, filters):
+    def __init__(self, df, initial_balance=10000):
+        """
+        df: DataFrame mit Kursdaten und Indikatoren (inkl. Signalspalte)
+        initial_balance: Startkapital in USD
+        """
         self.df = df.copy()
-        self.initial_balance = 10000
-        self.balance = self.initial_balance
-        self.position = None
-        self.entry_price = None
-        self.trades = []
-        
-        # Mapping von Filternamen (Strings) auf Funktionen aus filters.py
-        filter_map = {
-            "RSI": rsi_filter,
-            "MACD": macd_filter,
-            "MA200": ma200_filter,
-            "Bollinger": bollinger_filter,
-        }
-        
-        # Ersetze String-Namen durch Filterfunktionen
-        self.filters = [filter_map[f] for f in filters]
+        self.balance = initial_balance
+        self.position = 0  # Menge BTC im Bestand
+        self.trades = []  # Liste für Trade-Daten
+        self.initial_balance = initial_balance
 
-    def _apply_filters(self, df):
-        for f in self.filters:
-            df = f(df)
-        return df
+    def run(self, signal_column="combined_signal", threshold_entry=0.7, threshold_exit=0.3):
+        """
+        signal_column: Name der Spalte mit Signalwerten [0..1]
+        threshold_entry: Signal ab dem ein Kauf ausgelöst wird
+        threshold_exit: Signal unter dem verkauft wird
+        """
+        for i, row in self.df.iterrows():
+            signal = row.get(signal_column, 0)
 
-    def run(self):
-        df = self._apply_filters(self.df)
-        for i, row in df.iterrows():
-            if self.position is None and row.get("entry_signal"):
-                self.position = "LONG"
-                self.entry_price = row["close"]
-                self.entry_time = row["timestamp"]
-            elif self.position == "LONG" and row.get("exit_signal"):
-                exit_price = row["close"]
-                profit = (exit_price - self.entry_price) / self.entry_price * self.balance
-                self.balance += profit
+            # Kaufbedingung: keine Position, Signal hoch genug
+            if self.position == 0 and signal >= threshold_entry:
+                # Kaufe BTC mit gesamtem Kapital
+                btc_amount = self.balance / row["close"]
+                self.position = btc_amount
+                self.balance = 0
                 self.trades.append({
-                    "entry_time": self.entry_time,
-                    "exit_time": row["timestamp"],
-                    "entry_price": self.entry_price,
-                    "exit_price": exit_price,
-                    "profit": profit
+                    "entry_idx": i,
+                    "entry_price": row["close"],
+                    "entry_time": row["open_time"],
+                    "exit_idx": None,
+                    "exit_price": None,
+                    "exit_time": None,
+                    "profit": None,
                 })
-                self.position = None
-                self.entry_price = None
+
+            # Verkaufbedingung: Position gehalten, Signal zu schwach
+            elif self.position > 0 and signal <= threshold_exit:
+                btc_amount = self.position
+                sell_price = row["close"]
+                self.balance = btc_amount * sell_price
+                self.position = 0
+
+                # Trade schließen
+                last_trade = self.trades[-1]
+                last_trade["exit_idx"] = i
+                last_trade["exit_price"] = sell_price
+                last_trade["exit_time"] = row["open_time"]
+                last_trade["profit"] = (sell_price - last_trade["entry_price"]) / last_trade["entry_price"]
+
+        # Am Ende Position schließen (wenn noch offen)
+        if self.position > 0:
+            last_row = self.df.iloc[-1]
+            sell_price = last_row["close"]
+            self.balance = self.position * sell_price
+            self.position = 0
+
+            last_trade = self.trades[-1]
+            if last_trade["exit_idx"] is None:
+                last_trade["exit_idx"] = self.df.index[-1]
+                last_trade["exit_price"] = sell_price
+                last_trade["exit_time"] = last_row["open_time"]
+                last_trade["profit"] = (sell_price - last_trade["entry_price"]) / last_trade["entry_price"]
+
+    def export_results(self, filename="results/trades.csv"):
+        df_trades = pd.DataFrame(self.trades)
+        df_trades.to_csv(filename, index=False)
+        return filename
+
+    def get_balance(self):
+        return self.balance
 
     def get_trade_history(self):
-        return self.trades
+        return pd.DataFrame(self.trades)
 
-    def get_total_return(self):
-        return (self.balance - self.initial_balance) / self.initial_balance * 100
+
+
+
+
