@@ -1,4 +1,3 @@
-
 # Sniper-Bot Projektstruktur
 Stand: 2025-09-02
 
@@ -49,60 +48,29 @@ Stand: 2025-09-02
 ---
 
 ### 📂 Clean-Ordner
-#### 🔸 `2er_clean`
-- **analyze_strategies_2er_v2.py** – Analyse 2er-Kombinationen.  
-- **price_data_with_signals.csv** – Kursdaten für 2er-Analyse.  
-- **simtrader.py** – Simulationsengine.  
-- **strategies_2er_all.csv** – Alle 2er-Kombinationen.  
-- **analysis_output_2er** – Ergebnisordner für 2er.
-
-#### 🔸 `3er_clean`
-- **analyze_strategies_3er.py** – Analyse 3er-Kombinationen.  
-- **generate_strategies_3er.py** – CSV-Generator für 3er-Strategien.  
-- **strategies_3er_full.csv** – Vollständige 3er-Kombis.  
-- **strategy_analysis_output_3er** – Ergebnisse.
-
-#### 🔸 `4er_clean`
-- **analyze_strategies_4er_mp_v2.py** – Multiprocessing-Analyse 4er.  
-- **analyze_strategies_4er_sequential.py** – Sequentielle 4er-Analyse.  
-- **strategies_4er_10k.csv** – Test-Subset 10k Strategien.  
-- **strategies_4er_fine.csv** – Feinkombis für 4er.
-
-#### 🔸 `5er_clean`
-- **analyze_strategies_5er_mp_v2.py** – Multiprocessing-Analyse 5er.  
-- **generate_strategies_5er_fine.py** – Generator für Feinkombis.  
-- **strategies_5er_10k.csv** – 10k Teststrategie-Subset.  
-- **strategies_5er_fine.csv** – Feinkombis für 5er.
-
-#### 🔸 `6er_clean`
-- **analyze_strategies_6er_mp_v2.py** – Multiprocessing-Analyse 6er.  
-- **generate_strategies_6er_fine.py** – Generator für Feinkombis.  
-- **strategies_6er_10k.csv** – 10k Teststrategie-Subset.  
-- **strategies_6er_fine.csv** – Feinkombis für 6er.
-
-#### 🔸 `7er_clean`
-- **analyze_strategies_7er_mp_v2.py** – Multiprocessing 7er-Analyse.  
-- **analyze_strategies_restartable_mp_v2.py** – Neustartbare Version.  
-- **generate_strategies_7er_finetune_from_top.py** – Generator für Fine-Tuning Top-Strategien.  
-- **generate_strategies_7er_coarse.py** – Grobkombinationen.  
-- **strategies_7er_10k.csv** – 10k Subset.  
-- **strategies_7er_coarse.csv** – Grobkombis.  
-- **strategies_7er_finetune_A/B.csv** – Feintuning-Kombis A & B.
+(… wie bisher …)
 
 ---
 
 ### 📂 Beispiel Ergebnisordner `deep_out_7A`
-- **combined_clean.csv** – Vorverarbeitete kombinierte Ergebnisse.  
-- **combined_fixed.csv** – Gefixte Datei für Deep-Dive.  
-- **combined_recomputed.csv** – Neu berechnete Ergebnisse.  
-- **metrics.csv** – Berechnete Kennzahlen.  
-- **metrics_backup_*.csv** – Backups.  
-- **strategy_results.csv** – Hauptresultate.  
-- **strategy_results_backup_*.csv** – Backups der Hauptresultate.  
-- **errors_backup_*.csv** – Fehlerlogs.
+(… wie bisher …)
 
 ---
 
 ### 📂 Systemordner
 - **.venv** – Virtuelle Python-Umgebung.  
-- **__pycache__** – Automatischer Python-Cache.
+- **__pycache__** – Automatischer Python-Cache.  
+
+---
+
+## 🔹 Best-Practice Routine (Backup & Checks)
+
+Um Datenverlust und Fehler zu vermeiden, **immer folgende Schritte** durchführen:
+
+1. **Vor jedem großen Skript-Run (Deep-Dive, 2er–7er, ML-Export):**
+   - `python check_csv_structure.py` ausführen → prüft alle CSVs.  
+   - Bei **CRITICAL/WARN** sofort handeln.
+
+2. **Danach Backup erstellen:**
+   ```bash
+   python backup_project.py --dest "D:\sniper-bot-backups"
