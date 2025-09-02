@@ -1,25 +1,27 @@
-# Python Bytecode
+# Ignore Python Cache
 __pycache__/
-*.py[cod]
+*.pyc
 
-# VSCode Einstellungen
-.vscode/
+# Ignore virtual environment
+.venv/
 
-# Temporäre Daten und Logfiles
-*.log
-*.tmp
+# Ignore large output folders
+out_*/
+deep_out_*/
+summary_out/
+*_clean/*/strategy_analysis_output_*/
 
-# Ergebnis- und Testdaten
-*.csv
+# Ignore CSV result files
+strategy_results*.csv
+combined*.csv
+metrics*.csv
+errors_backup*.csv
 
-# Datenverzeichnisse
-data/
-results/
-spot/
+# Ignore Plots & Backups
+*.png
+*.jpg
+*_backup_*/
 
-# Jupyter Notebooks
-*.ipynb_checkpoints
-
-# Betriebssystem- und versteckte Dateien
+# Ignore system files
 .DS_Store
 Thumbs.db
