@@ -1,0 +1,43 @@
+#bei num-procs 0 (wegen derzeitigem Skript lauf) - auf z.b. 14 (G15 5520) und dann denke ich 32 bei Workstation hochsetzen
+
+# 2er
+python analyze_unified.py --n 2 --tier full --data price_data_with_signals.csv \
+  --strategies 2er_clean/strategies_2er_all.csv --outdir analysis_output_2er \
+  --num-procs 0 --chunksize 256 --batch-write 5000 --progress-step 2 \
+  --fees 0.0005 --slippage 0.0002 --sim default --save-trades 0
+
+# 3er
+python analyze_unified.py --n 3 --tier full --data price_data_with_signals.csv \
+  --strategies 3er_clean/strategies_3er_full.csv --outdir analysis_output_3er \
+  --num-procs 0 --chunksize 256 --batch-write 5000 --progress-step 2 \
+  --fees 0.0005 --slippage 0.0002 --sim default --save-trades 0
+
+# 4er
+python analyze_unified.py --n 4 --tier fine --data price_data_with_signals.csv \
+  --strategies 4er_clean/strategies_4er_fine.csv --outdir analysis_output_4er \
+  --num-procs 0 --chunksize 256 --batch-write 5000 --progress-step 2 \
+  --fees 0.0005 --slippage 0.0002 --sim default --save-trades 0
+
+# 5er
+python analyze_unified.py --n 5 --tier fine --data price_data_with_signals.csv \
+  --strategies 5er_clean/strategies_5er_fine.csv --outdir analysis_output_5er \
+  --num-procs 0 --chunksize 256 --batch-write 5000 --progress-step 2 \
+  --fees 0.0005 --slippage 0.0002 --sim default --save-trades 0
+
+# 6er
+python analyze_unified.py --n 6 --tier fine --data price_data_with_signals.csv \
+  --strategies 6er_clean/strategies_6er_fine.csv --outdir analysis_output_6er \
+  --num-procs 0 --chunksize 256 --batch-write 5000 --progress-step 2 \
+  --fees 0.0005 --slippage 0.0002 --sim default --save-trades 0
+
+# 7er - Fine A
+python analyze_unified.py --n 7 --tier fineA --data price_data_with_signals.csv \
+  --strategies 7er_clean/strategies_7er_finetune_A.csv --outdir analysis_output_7er \
+  --num-procs 0 --chunksize 256 --batch-write 5000 --progress-step 2 \
+  --fees 0.0005 --slippage 0.0002 --sim default --save-trades 0
+
+# 7er - Fine B
+python analyze_unified.py --n 7 --tier fineB --data price_data_with_signals.csv \
+  --strategies 7er_clean/strategies_7er_finetune_B.csv --outdir analysis_output_7er \
+  --num-procs 0 --chunksize 256 --batch-write 5000 --progress-step 2 \
+  --fees 0.0005 --slippage 0.0002 --sim default --save-trades 0
