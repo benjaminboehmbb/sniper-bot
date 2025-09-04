@@ -25,3 +25,7 @@ errors_backup*.csv
 # Ignore system files
 .DS_Store
 Thumbs.db
+price_data_with_signals*.csv
+price_data_with_features.csv
+*.csv
+*.parquet
