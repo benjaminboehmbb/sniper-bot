@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.pyc
+
+# große Daten/Ergebnisse nicht versionieren
+data/
+out/
+results/
+
+# logs / artefakte
+*.log
+*.csv
+*.json
+
+# editor / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
