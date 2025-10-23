@@ -1,0 +1,354 @@
+# -*- coding: utf-8 -*-
+"""
+Analyse-Template (2–12er Strategien) – Threads, Trend-/Regime-Filter
+• Config: configs/base_config.yaml
+• Ergebnisse: results/<Xer>_run_YYYY-MM-DD_HH-MM/
+• Modi: aus Config (z. B. ["short"])
+• Threads (kein Pickling großer DataFrames)
+• Korrekte Zählung von Trade-Paaren & Winrate
+• Regime-Filter: Preis vs. MA200 (robust), ADX/ATR aus Signals
+"""
+import os, sys, csv, json, yaml, time, ast, re, platform
+import pandas as pd
+import numpy as np
+from datetime import datetime
+from typing import Dict, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# ------------------------------------------------------------
+# Setup & Config
+# ------------------------------------------------------------
+ROOT = os.path.dirname(os.path.dirname(__file__))
+CONFIG_PATH = os.path.join(ROOT, "configs", "base_config.yaml")
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+    CFG = yaml.safe_load(f)
+
+RESULTS_BASE = os.path.join(ROOT, CFG["general"]["results_dir"])
+os.makedirs(RESULTS_BASE, exist_ok=True)
+
+def now_ts():
+    return datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+def infer_k_label(strat_path: str) -> str:
+    m = re.search(r"(\d+)\s*er", os.path.basename(strat_path), flags=re.I)
+    return f"{m.group(1)}er" if m else "Xer"
+
+RUN_DIR = None
+LOG_FH = None
+
+def log(msg: str):
+    line = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
+    print(line, flush=True)
+    if LOG_FH:
+        LOG_FH.write(line + "\n"); LOG_FH.flush()
+
+def backup_if_exists(path):
+    if not CFG["general"]["backup_existing_results"]:
+        return
+    if os.path.exists(path):
+        ts = now_ts()
+        base, ext = os.path.splitext(path)
+        dst = f"{base}_backup_{ts}{ext}"
+        os.replace(path, dst)
+        log(f"[backup] {os.path.basename(path)} -> {os.path.basename(dst)}")
+
+# ------------------------------------------------------------
+# Daten laden (RAM-schonend)
+# ------------------------------------------------------------
+def load_price_data():
+    csv_path = os.path.join(ROOT, CFG["data"]["csv_path"])
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"CSV not found: {csv_path}")
+    df = pd.read_csv(csv_path)
+
+    # sort by time if available
+    for c in ("timestamp","open_time","time","date","datetime"):
+        if c in df.columns:
+            df = df.sort_values(by=c).reset_index(drop=True)
+            break
+
+    # only keep needed columns (close + signals), float32
+    keep = ["close"] + [s for s in CFG["signals"]["available"] if s in df.columns]
+    missing = [s for s in CFG["signals"]["available"] if s not in df.columns]
+    if missing:
+        raise ValueError(f"Fehlende Signalsäulen im Datenfile: {missing}")
+    df = df[keep].astype(np.float32, copy=False)
+    return df
+
+def load_strategies(strat_csv):
+    if not os.path.exists(strat_csv):
+        raise FileNotFoundError(f"Strategy CSV not found: {strat_csv}")
+    df = pd.read_csv(strat_csv)
+    if "Combination" not in df.columns:
+        raise ValueError("Strategy CSV must contain column 'Combination'")
+    return df
+
+# ------------------------------------------------------------
+# Globale (shared) Daten
+# ------------------------------------------------------------
+_GLOBAL_CLOSE: np.ndarray = None
+_GLOBAL_SIGNALS: Dict[str, np.ndarray] = {}
+_GLOBAL_MA200: np.ndarray = None  # neu: echter MA200 aus close
+
+def _set_global_data(df: pd.DataFrame):
+    global _GLOBAL_CLOSE, _GLOBAL_SIGNALS, _GLOBAL_MA200
+    _GLOBAL_CLOSE = df["close"].to_numpy(dtype=np.float32, copy=False)
+    _GLOBAL_SIGNALS = {c: df[c].to_numpy(dtype=np.float32, copy=False) for c in df.columns if c != "close"}
+
+    # MA200 robust aus close berechnen (rolling mean)
+    s = pd.Series(_GLOBAL_CLOSE, copy=False)
+    ma = s.rolling(window=200, min_periods=100).mean().to_numpy(dtype=np.float32)
+    # Frühe NaNs mit erstem gültigen Wert füllen (konservativ)
+    first_valid = np.argmax(~np.isnan(ma))
+    if first_valid > 0:
+        ma[:first_valid] = ma[first_valid]
+    ma = np.nan_to_num(ma, nan=ma[first_valid])
+    _GLOBAL_MA200 = ma
+
+# ------------------------------------------------------------
+# Regime-/Trend-Filter
+# ------------------------------------------------------------
+class RegimeFilter:
+    def __init__(self, direction: str):
+        self.dir = direction
+        self.enabled = bool(CFG.get("filters", {}).get("enabled", False))
+        self.cfg = CFG.get("filters", {}).get(direction, {})
+        self.req_ma200 = bool(self.cfg.get("require_ma200_trend", False))
+        self.adx_min  = float(self.cfg.get("require_adx_min", 0.0))
+        self.atr_min  = float(self.cfg.get("require_atr_min", 0.0))
+
+    def allow(self, i: int) -> bool:
+        if not self.enabled:
+            return True
+        # 1) Trend (Preis vs. echter MA200)
+        if self.req_ma200 and _GLOBAL_MA200 is not None:
+            if self.dir == "long":
+                if not (_GLOBAL_CLOSE[i] > _GLOBAL_MA200[i]):
+                    return False
+            else:  # short
+                if not (_GLOBAL_CLOSE[i] < _GLOBAL_MA200[i]):
+                    return False
+        # 2) ADX-Min
+        if self.adx_min > 0 and "adx_signal" in _GLOBAL_SIGNALS:
+            if abs(_GLOBAL_SIGNALS["adx_signal"][i]) < self.adx_min:
+                return False
+        # 3) ATR-Min
+        if self.atr_min > 0 and "atr_signal" in _GLOBAL_SIGNALS:
+            if _GLOBAL_SIGNALS["atr_signal"][i] < self.atr_min:
+                return False
+        return True
+
+# ------------------------------------------------------------
+# SimTrader
+# ------------------------------------------------------------
+class SimTrader:
+    def __init__(self, direction: str):
+        self.direction = direction
+        self.balance = 10_000.0
+        self.position = 0.0
+        self.entry_px = 0.0
+        self.fee = CFG["fees_slippage"]["taker_fee_pct"] / 100.0
+        self.slip = CFG["fees_slippage"]["slippage_pct"] / 100.0
+        self.min_space = int(CFG["strategy"]["min_trade_spacing"])
+        self.buy_th = float(CFG["strategy"]["score_buy_threshold"])
+        self.sell_th = float(CFG["strategy"]["score_sell_threshold"])
+        self.trade_pairs = 0
+        self.win_pairs = 0
+        self.last_trade_i = -10**9
+        self.regime = RegimeFilter(direction)
+
+    def _score_series(self, combo: Dict[str, float]) -> np.ndarray:
+        s = np.zeros_like(_GLOBAL_CLOSE, dtype=np.float32)
+        for k, w in combo.items():
+            arr = _GLOBAL_SIGNALS.get(k)
+            if arr is None:
+                continue
+            s += np.float32(w) * arr
+        return s
+
+    def _enter_long(self, px, i):
+        exec_px = px * (1 + self.slip)
+        self.position = (self.balance * (1 - self.fee)) / exec_px
+        self.entry_px = exec_px
+        self.balance = 0.0
+        self.last_trade_i = i
+
+    def _exit_long(self, px, i):
+        exec_px = px * (1 - self.slip)
+        new_bal = (self.position * exec_px) * (1 - self.fee)
+        if new_bal > 10_000.0:
+            self.win_pairs += 1
+        self.balance = new_bal
+        self.position = 0.0
+        self.trade_pairs += 1
+        self.last_trade_i = i
+
+    def _enter_short(self, px, i):
+        exec_px = px * (1 - self.slip)
+        units = (self.balance * (1 - self.fee)) / exec_px
+        self.position = -units
+        self.entry_px = exec_px
+        self.last_trade_i = i
+
+    def _exit_short(self, px, i):
+        exec_px = px * (1 + self.slip)
+        pnl = (self.entry_px - exec_px) * abs(self.position)
+        new_bal = (self.balance + pnl) * (1 - self.fee)
+        if pnl > 0:
+            self.win_pairs += 1
+        self.balance = new_bal
+        self.position = 0.0
+        self.trade_pairs += 1
+        self.last_trade_i = i
+
+    def run(self, combo: Dict[str, float]):
+        s = self._score_series(combo)
+        if self.direction == "side":
+            return {"roi": 0.0, "num_trades": 0, "winrate": 0.0}
+
+        for i in range(len(_GLOBAL_CLOSE)):
+            px = float(_GLOBAL_CLOSE[i])
+            score = float(s[i])
+            allowed = self.regime.allow(i)
+
+            if self.direction == "long":
+                if score > self.buy_th and self.position == 0 and allowed and i - self.last_trade_i >= self.min_space:
+                    self._enter_long(px, i)
+                elif score < self.sell_th and self.position > 0:
+                    self._exit_long(px, i)
+
+            elif self.direction == "short":
+                if score < self.sell_th and self.position == 0 and allowed and i - self.last_trade_i >= self.min_space:
+                    self._enter_short(px, i)
+                elif score > self.buy_th and self.position < 0:
+                    self._exit_short(px, i)
+
+        # Glattstellen
+        if self.position != 0:
+            px = float(_GLOBAL_CLOSE[-1])
+            if self.direction == "long":
+                self._exit_long(px, len(_GLOBAL_CLOSE)-1)
+            else:
+                self._exit_short(px, len(_GLOBAL_CLOSE)-1)
+
+        roi = (self.balance - 10_000.0) / 10_000.0 * 100.0
+        winrate = (self.win_pairs / self.trade_pairs * 100.0) if self.trade_pairs > 0 else 0.0
+        return {"roi": roi, "num_trades": int(self.trade_pairs), "winrate": winrate}
+
+# ------------------------------------------------------------
+# Orchestrierung
+# ------------------------------------------------------------
+def write_json(path, obj):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, ensure_ascii=False, indent=2)
+
+def prepare_run_folder(strategies_csv: str):
+    global RUN_DIR, LOG_FH
+    k_label = infer_k_label(strategies_csv)
+    RUN_DIR = os.path.join(RESULTS_BASE, f"{k_label}_run_{now_ts()}")
+    os.makedirs(RUN_DIR, exist_ok=True)
+    os.makedirs(os.path.join(RUN_DIR, "logs"), exist_ok=True)
+    sysinfo = {
+        "config_path": os.path.relpath(CONFIG_PATH, ROOT),
+        "strategies_csv": os.path.relpath(strategies_csv, ROOT),
+        "data_csv": CFG["data"]["csv_path"],
+        "modes": CFG["strategy"]["direction_modes"],
+        "threads": CFG["engine"]["processes"],
+        "machine": platform.platform(),
+        "python": platform.python_version(),
+        "start": datetime.now().isoformat(timespec="seconds"),
+    }
+    write_json(os.path.join(RUN_DIR, "logs", "system_info.json"), sysinfo)
+    LOG_FH = open(os.path.join(RUN_DIR, "logs", "runtime.log"), "a", encoding="utf-8")
+    log(f"Run-Ordner: {os.path.relpath(RUN_DIR, ROOT)}")
+    return RUN_DIR
+
+def _safe_threads(n_rows: int) -> int:
+    cfg_n = int(CFG["engine"]["processes"])
+    if cfg_n == 0:
+        base = os.cpu_count() or 8
+        return max(6, min(12, base))
+    return max(2, min(cfg_n, 16))  # G15 cap 16
+
+def write_batch(path, header, rows):
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=header)
+        if f.tell() == 0: w.writeheader()
+        w.writerows(rows)
+
+def run_mode(df: pd.DataFrame, strategies_df: pd.DataFrame, direction: str):
+    out_csv = os.path.join(RUN_DIR, f"strategy_results_{direction}.csv")
+    err_csv = os.path.join(RUN_DIR, f"errors_{direction}.csv")
+    backup_if_exists(out_csv); backup_if_exists(err_csv)
+
+    header = ["index", "direction", "roi", "num_trades", "winrate", "combination"]
+    buffer_rows: List[dict] = []
+    errors: List[dict] = []
+
+    n_threads = _safe_threads(len(df))
+    log(f"{direction.upper()}: starte mit {n_threads} Threads …")
+    start = time.time()
+
+    _set_global_data(df)
+
+    with ThreadPoolExecutor(max_workers=n_threads) as ex:
+        futures = []
+        for i in range(len(strategies_df)):
+            comb_str = strategies_df.iloc[i]["Combination"]
+            futures.append(ex.submit(evaluate_strategy, i, comb_str, direction))
+
+        batch = int(CFG["engine"]["batch_write"])
+        for fut in as_completed(futures):
+            status, out = fut.result()
+            if status == "ok":
+                buffer_rows.append(out)
+            else:
+                errors.append(out)
+            if len(buffer_rows) >= batch:
+                write_batch(out_csv, header, buffer_rows)
+                buffer_rows.clear()
+
+    if buffer_rows:
+        write_batch(out_csv, header, buffer_rows)
+    if errors:
+        with open(err_csv, "a", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=["index","direction","error","combination"])
+            if f.tell() == 0: w.writeheader()
+            w.writerows(errors)
+
+    elapsed = (time.time() - start) / 60.0
+    log(f"{direction.upper()}: fertig in {elapsed:.1f} Min – {len(strategies_df)} Strategien")
+
+# ------------------------------------------------------------
+# Entry
+# ------------------------------------------------------------
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python -m scripts.analyze_template <strategies_csv>")
+        sys.exit(1)
+    strategies_csv = os.path.abspath(sys.argv[1])
+    prepare_run_folder(strategies_csv)
+
+    log("📈 Lade Kursdaten …")
+    df = load_price_data()
+    log(f"✅ Daten: {len(df):,} Zeilen")
+
+    log("📋 Lade Strategien …")
+    strategies_df = load_strategies(strategies_csv)
+    log(f"✅ Strategien: {len(strategies_df):,}")
+
+    modes = CFG["strategy"]["direction_modes"]
+    log(f"🚀 Starte Modi: {modes}")
+
+    for m in modes:
+        run_mode(df, strategies_df, m)
+
+    log("🏁 Alle Modi abgeschlossen.")
+    LOG_FH.close()
+
+if __name__ == "__main__":
+    main()
+
+
+
+
