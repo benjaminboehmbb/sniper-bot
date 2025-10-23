@@ -1,0 +1,105 @@
+# ===========================================
+# Base Configuration — Sniper-Bot
+# Stand: 2025-10-21
+# Zweck: Einheitliche, robuste Grundlage für alle Runs
+# ===========================================
+
+general:
+  results_dir: out              # Zielordner für Runs
+  tmp_dir: tmp
+  backup_existing_results: true # vorhandene Ergebnisdateien automatisch sichern
+  seed: 42
+
+data:
+  csv_path: data/btcusdt_1m_spot.csv  # Preisdaten (1m)
+  timestamp_col: open_time
+  timeframe: 1m
+  timezone: UTC
+  max_rows: null                # null = volle Historie verwenden
+
+runtime:
+  timezone: Europe/Berlin
+  save_trades: true
+  verbose: true
+
+engine:
+  processes: 16                 # Threads/Kerne (Laptop); Workstation später z.B. 32
+  batch_write: 5000             # Zwischenschreib-Intervall (höher = weniger I/O)
+
+signals:
+  # verfügbare Signalspalten in der CSV (für Kombinationen)
+  available: [rsi, macd, bollinger, ma200, stoch, atr, ema50, adx, cci, mfi, obv, roc]
+  # Gewichtungsstufen für Generator (grobes Raster; feines Raster im dedizierten Generator)
+  weights: [0.1, 0.3, 0.6, 0.9]
+
+# ------------------------------
+# Strategie-Block (symmetrisch)
+# ------------------------------
+strategy:
+  # Welche Modi in einem Run bewertet werden
+  direction_modes: [short]      # Optionen: [long], [short], [long, short], [long, short, both]
+
+  # Z-Score-Schwellen (symmetrisch interpretiert)
+  # Short: Entry wenn score > enter_z; Exit wenn score < exit_z
+  # Long:  Entry wenn score < -enter_z; Exit wenn score > -exit_z
+  enter_z: 2.0
+  exit_z: 0.5
+
+  # Haltedauer/Stops
+  max_hold_bars: 720            # z.B. 12h bei 1m-Bars
+  risk:
+    stop_loss_pct: 0.02         # 2 %
+    take_profit_pct: 0.04       # 4 %
+
+  # Mindestanforderung an Strategien für Auswertung/Reporting
+  min_trades: 30
+
+  # Optional: Regime-Filter (Seitwärtsmarkt / Range)
+  regime_filter: none           # 'none' | 'range'
+  range:
+    use_adx: true
+    adx_period: 14
+    adx_max: 18.0               # kleiner = weniger Trend
+
+    use_bbw: true
+    bb_period: 20
+    bb_mult: 2.0
+    bbw_max: 0.08               # (upper-lower)/middle
+
+    use_ma_slope: true
+    ma_period: 200
+    ma_slope_max_pct: 0.0002    # |ΔMA/MA|
+
+    use_atr: true
+    atr_period: 14
+    atr_pct_max: 0.015          # ATR/Close
+
+  # Optional: Mean-Reversion-Trigger innerhalb Range
+  mr:
+    rsi_period: 14
+    rsi_long_enter: 30
+    rsi_short_enter: 70
+    stoch_k_period: 14
+    stoch_d_period: 3
+    stoch_long_enter: 20
+    stoch_short_enter: 80
+    exit_to_midband: true       # Exit am Mittelband der Bollinger, falls aktiv
+
+output:
+  results_dir: out
+  strategy_results_csv: out/strategy_results.csv
+  save_trade_history: true
+
+logging:
+  level: INFO
+  progress_step: 1000           # Fortschritt alle N ausgewerteten Strategien
+
+# ===========================================
+# Hinweise:
+# - Alle Schlüssel haben Defaults in analyze_template.py; diese Datei ist jedoch vollständig,
+#   sodass keine KeyErrors auftreten.
+# - Für Long/Short-Umschaltung nur strategy.direction_modes anpassen.
+# - Range-Filter ist vorbereitet; Aktivierung: strategy.regime_filter: range
+# ===========================================
+
+

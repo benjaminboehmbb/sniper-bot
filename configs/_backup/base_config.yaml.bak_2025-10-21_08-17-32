@@ -1,0 +1,75 @@
+project:
+  name: sniper-bot
+  author: benjamin
+  version: '0.1'
+general:
+  results_dir: out
+  tmp_dir: tmp
+  seed: 42
+data:
+  price_csv: data/btcusdt_1m_spot.csv
+  timeframe: 1m
+  max_rows: null
+  timestamp_col: open_time
+  timezone: UTC
+  csv_path: data/btcusdt_1m_spot.csv
+runtime:
+  timezone: Europe/Berlin
+  save_trades: true
+  verbose: true
+strategy:
+  mode: short
+  min_hold_bars: 1
+  max_hold_bars: 1440
+  risk:
+    stop_loss_pct: 0.02
+    take_profit_pct: 0.04
+  direction_modes:
+  - long
+  - short
+  - both
+signals:
+  available:
+  - rsi
+  - macd
+  - bollinger
+  - ma200
+  - stoch
+  - atr
+  - ema50
+  params:
+    rsi:
+      period: 14
+      overbought: 70
+      oversold: 30
+    macd:
+      fast: 12
+      slow: 26
+      signal: 9
+    bollinger:
+      period: 20
+      stddev: 2
+    ma200:
+      period: 200
+    stoch:
+      k: 14
+      d: 3
+    atr:
+      period: 14
+    ema50:
+      period: 50
+  weights:
+  - 0.0
+  - 0.5
+  - 1.0
+filters:
+  min_volume: 0
+  require_regime: true
+  regime_type: short_fix
+output:
+  results_dir: out
+  strategy_results_csv: out/strategy_results.csv
+  save_trade_history: true
+logging:
+  level: INFO
+  progress_step: 1
