@@ -1,31 +1,23 @@
-# Ignore Python Cache
+.venv/
 __pycache__/
 *.pyc
 
-# Ignore virtual environment
-.venv/
+# große Daten/Ergebnisse nicht versionieren
+data/
+out/
+results/
 
-# Ignore large output folders
-out_*/
-deep_out_*/
-summary_out/
-*_clean/*/strategy_analysis_output_*/
+# logs / artefakte
+*.log
+*.csv
+*.json
 
-# Ignore CSV result files
-strategy_results*.csv
-combined*.csv
-metrics*.csv
-errors_backup*.csv
-
-# Ignore Plots & Backups
-*.png
-*.jpg
-*_backup_*/
-
-# Ignore system files
+# editor / os
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
-price_data_with_signals*.csv
-price_data_with_features.csv
+
+# Large data files
 *.csv
-*.parquet
+
