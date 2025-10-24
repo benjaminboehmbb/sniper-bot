@@ -1,23 +1,28 @@
-.venv/
-__pycache__/
-*.pyc
-
-# große Daten/Ergebnisse nicht versionieren
+# Data & large files
 data/
+*.csv
+*.zip
+
+# Results / logs / outputs
 out/
 results/
+logs/
+tmp/
+artifacts/
 
-# logs / artefakte
-*.log
-*.csv
-*.json
+# Python & envs
+__pycache__/
+.venv/
+venv/
+*.pyc
 
-# editor / os
+# IDE / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# Large data files
-*.csv
-
+# local archives
+sniper-bot_archiv/
+_archive_OLD/
+archive/
