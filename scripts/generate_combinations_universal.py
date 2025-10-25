@@ -1,100 +1,177 @@
-# scripts/generate_combinations_universal.py
-# Erzeugt universelle Kombinationsdateien für k=2..12 Signale (Shards)
-# Unterstützt beliebige Signalanzahl (z. B. 12) und Gewichtsraster
-# Kompatibel mit analyze_template.py
+#!/usr/bin/env python3
+"""
+Erzeugt Strategiekombinationen für k=Kmin..Kmax aus einer Signalliste mit Gewichtungsraster.
+Schreibt CSV-Shards mit Spalte 'Combination' (Dictionary-String), kompatibel mit deiner Pipeline.
 
-import os, csv, argparse, yaml
-from itertools import combinations, product
-from math import comb
+Beispiele:
+  python -m scripts.generate_combinations_universal --kmin 2 --kmax 12 --shard_size 200000
+  python -m scripts.generate_combinations_universal --kmin 2 --kmax 4 --weights 0.1,0.3,0.6,0.9 --shard_size 150000
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-CFG_PATH = os.path.join(ROOT, "configs", "base_config.yaml")
-OUT_DIR = os.path.join(ROOT, "data")
+Wichtig:
+- Spaltenname exakt: Combination (kein 'strategy')
+- Keine tqdm, klare Prints
+- Sharding, damit riesige Kandidatenmengen speicherarm erzeugt werden
+- Deterministische Reihenfolge
+"""
 
-def load_signals_weights():
-    """Lädt Signale und Gewichtsraster aus base_config.yaml"""
-    with open(CFG_PATH, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f) or {}
-    signals = cfg.get("signals", {}).get("available", [])
-    weights = cfg.get("signals", {}).get("weights", [])
-    if not signals or not weights:
-        raise ValueError("Fehlende signals.available oder signals.weights in base_config.yaml")
-    return signals, [float(w) for w in weights]
+import os
+import sys
+import csv
+import math
+import argparse
+import itertools
+from datetime import datetime
 
-def ensure_out():
-    os.makedirs(OUT_DIR, exist_ok=True)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(ROOT, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
 
-def estimate_total(signals, weights, kmin, kmax):
+DEFAULT_SIGNALS = [
+    "rsi", "macd", "bollinger", "ma200", "stoch", "atr",
+    "ema50", "adx", "cci", "mfi", "obv", "roc"
+]
+
+def parse_weights(s: str):
+    if not s:
+        # Standardraster 0.1..1.0 (exhaustive)
+        return [round(x/10, 1) for x in range(1, 11)]
+    ws = []
+    for part in s.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            v = float(part)
+        except ValueError:
+            raise ValueError(f"Ungültiges Gewicht: {part}")
+        if v <= 0.0 or v > 1.0:
+            raise ValueError(f"Gewicht außerhalb (0,1]: {v}")
+        ws.append(round(v, 10))
+    return ws
+
+def combinations_count(n, k):
+    # nCk
+    if k < 0 or k > n:
+        return 0
+    k = min(k, n-k)
+    if k == 0:
+        return 1
+    numer = 1
+    denom = 1
+    for i in range(1, k+1):
+        numer *= (n - (k - i))
+        denom *= i
+    return numer // denom
+
+def estimate_total(signals, kmin, kmax, weight_grid):
+    n = len(signals)
     total = 0
-    for k in range(kmin, kmax + 1):
-        total += comb(len(signals), k) * (len(weights) ** k)
+    for k in range(kmin, kmax+1):
+        total += combinations_count(n, k) * (len(weight_grid) ** k)
     return total
 
-def stream_k(signals, weights, k, shard_size):
-    """Erzeugt Shards mit Kombis der Ordnung k"""
-    ensure_out()
-    combos_written_total = 0
-    part = 1
-    rows_in_part = 0
-    writer = None
-    f = None
-    filename = None
+def shard_writer(basepath_prefix, k, shard_idx):
+    # data/strategies_k{K}_shard{N}.csv
+    fn = f"{basepath_prefix}_k{k}_shard{shard_idx}.csv"
+    fpath = os.path.join(DATA_DIR, fn)
+    f = open(fpath, "w", newline="", encoding="utf-8")
+    w = csv.writer(f)
+    w.writerow(["Combination"])  # exakt so
+    return f, w, fpath
 
-    def open_new_part():
-        nonlocal writer, f, filename, rows_in_part, part
-        if f:
-            f.close()
-        filename = os.path.join(OUT_DIR, f"strategies_universal_k{k}_part{part}.csv")
-        f = open(filename, "w", newline="", encoding="utf-8")
-        writer = csv.writer(f)
-        writer.writerow(["Combination"])
-        rows_in_part = 0
-        part += 1
-        return f, writer, filename
-
-    f, writer, filename = open_new_part()
-
-    for sig_subset in combinations(signals, k):
-        for ws in product(weights, repeat=k):
-            if all(w == 0.0 for w in ws):
-                continue
-            combo = "{" + ", ".join(f"'{s}': {w}" for s, w in zip(sig_subset, ws)) + "}"
-            writer.writerow([combo])
-            rows_in_part += 1
-            combos_written_total += 1
-            if rows_in_part >= shard_size:
-                f, writer, filename = open_new_part()
-
-    if f:
-        f.close()
-    return combos_written_total
+def format_combination_dict(sig_names, weights):
+    # Dictionary-String im gewünschten Format: "{'rsi': 0.5, 'macd': 0.3, ...}"
+    items = []
+    for s, w in zip(sig_names, weights):
+        # floats kompakt, max 10 Nachkommastellen
+        items.append(f"'{s}': {w:.10g}")
+    return "{"+", ".join(items)+"}"
 
 def main():
-    ap = argparse.ArgumentParser(description="Universeller Kombinationsgenerator (2–12er Shards)")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--signals", type=str, default=",".join(DEFAULT_SIGNALS),
+                    help="Kommagetrennte Liste der Signalnamen")
     ap.add_argument("--kmin", type=int, default=2)
     ap.add_argument("--kmax", type=int, default=12)
-    ap.add_argument("--shard_size", type=int, default=200_000, help="max Zeilen pro Shard")
+    ap.add_argument("--weights", type=str, default="", help="Gewichte, z.B. '0.1,0.3,0.6,0.9' (leer = 0.1..1.0)")
+    ap.add_argument("--shard_size", type=int, default=200000, help="Zeilen pro CSV-Shard")
+    ap.add_argument("--prefix", type=str, default="strategies",
+                    help="Dateipräfix der Ausgabedateien (Standard: strategies)")
     args = ap.parse_args()
 
-    signals, weights = load_signals_weights()
-    kmin, kmax = args.kmin, args.kmax
+    signals = [s.strip() for s in args.signals.split(",") if s.strip()]
+    if len(signals) < 2:
+        print("❌ Mindestens 2 Signale erforderlich.")
+        sys.exit(1)
+    if args.kmin < 2 or args.kmin > args.kmax:
+        print("❌ Ungültiger Bereich: kmin..kmax")
+        sys.exit(1)
+    weight_grid = parse_weights(args.weights)
+    if len(weight_grid) == 0:
+        print("❌ Keine Gewichte definiert.")
+        sys.exit(1)
 
     print(f"➡️ Signale ({len(signals)}): {signals}")
-    print(f"➡️ Gewichtsraster: {weights}")
-    print(f"➡️ Kombinationsbereich: {kmin}–{kmax}")
+    print(f"➡️ Gewichtsraster: {weight_grid}")
+    print(f"➡️ Kombinationsbereich: {args.kmin}–{args.kmax}")
 
-    total_est = estimate_total(signals, weights, kmin, kmax)
+    total_est = estimate_total(signals, args.kmin, args.kmax, weight_grid)
     print(f"🧮 Geschätzte Gesamtanzahl Strategien: {total_est:,}")
-    ensure_out()
 
-    grand_total = 0
-    for k in range(kmin, kmax + 1):
-        print(f"[k={k}] → Erzeuge Shards …")
-        written_k = stream_k(signals, weights, k, args.shard_size)
-        grand_total += written_k
-        print(f"[k={k}] Geschrieben: {written_k:,}")
+    baseprefix = args.prefix.strip()
+    if not baseprefix:
+        baseprefix = "strategies"
+    baseprefix = baseprefix.replace(" ", "_")
 
-    print(f"✅ Fertig. Gesamt: {grand_total:,} Strategien über k={kmin}–{kmax}")
+    start_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"⏱ Start: {start_ts}")
+    written_total = 0
+
+    # Für jede K-Kombination: alle Signalkombis und alle Gewichtskreuze
+    for k in range(args.kmin, args.kmax+1):
+        comb_count = combinations_count(len(signals), k)
+        print(f"[k={k}] → {comb_count} Signal-Kombinationen")
+
+        # Shard-Writer vorbereiten
+        shard_idx = 1
+        rows_in_shard = 0
+        f, w, current_path = shard_writer(baseprefix, k, shard_idx)
+        print(f"[k={k}] Schreibe in: {os.path.basename(current_path)} (shard_size={args.shard_size})")
+
+        # alle Signal-Kombinationen
+        for sig_tuple in itertools.combinations(signals, k):
+            # alle Gewichtskartesierprodukte
+            for weights in itertools.product(weight_grid, repeat=k):
+                row_str = format_combination_dict(sig_tuple, weights)
+                w.writerow([row_str])
+                rows_in_shard += 1
+                written_total += 1
+
+                if rows_in_shard >= args.shard_size:
+                    f.close()
+                    print(f"[k={k}] Shard abgeschlossen: {os.path.basename(current_path)}  (+{rows_in_shard} Zeilen)")
+                    shard_idx += 1
+                    rows_in_shard = 0
+                    f, w, current_path = shard_writer(baseprefix, k, shard_idx)
+
+        # Rest schließen
+        if rows_in_shard > 0:
+            f.close()
+            print(f"[k={k}] Shard abgeschlossen: {os.path.basename(current_path)}  (+{rows_in_shard} Zeilen)")
+        else:
+            # Leere Datei nicht liegen lassen
+            try:
+                f.close()
+                os.remove(current_path)
+            except Exception:
+                pass
+
+        print(f"[k={k}] ✅ Fertig.")
+
+    end_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"✅ Gesamt fertig. Geschrieben: {written_total:,} Zeilen")
+    print(f"⏱ Ende: {end_ts}")
 
 if __name__ == "__main__":
     main()
+
