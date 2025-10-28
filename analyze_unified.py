@@ -127,7 +127,7 @@ def main():
     ap.add_argument("--num-procs", type=int, default=0, help="Anzahl Prozesse (0/1 = sequentiell)")
     ap.add_argument("--chunksize", type=int, default=256, help="Chunksize für Multiprocessing")
     ap.add_argument("--batch-write", type=int, default=5000, help="Ergebnisse alle N Items flushen")
-    ap.add_argument("--progress-step", type=int, default=2, help="Fortschritt in %")
+    ap.add_argument("--progress-step", type=int, default=2, help="Fortschritt in %%")
     ap.add_argument("--fees", type=float, default=0.0005, help="Gebühren")
     ap.add_argument("--slippage", type=float, default=0.0002, help="Slippage")
     ap.add_argument("--n", type=int, required=True, help="N der Kombination (2..7)")

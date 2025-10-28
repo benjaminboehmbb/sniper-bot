@@ -111,12 +111,12 @@ def main():
         print("❌ Keine Gewichte definiert.")
         sys.exit(1)
 
-    print(f"➡️ Signale ({len(signals)}): {signals}")
-    print(f"➡️ Gewichtsraster: {weight_grid}")
-    print(f"➡️ Kombinationsbereich: {args.kmin}–{args.kmax}")
+    print(f"-> Signale ({len(signals)}): {signals}")
+    print(f"-> Gewichtsraster: {weight_grid}")
+    print(f"-> Kombinationsbereich: {args.kmin}–{args.kmax}")
 
     total_est = estimate_total(signals, args.kmin, args.kmax, weight_grid)
-    print(f"🧮 Geschätzte Gesamtanzahl Strategien: {total_est:,}")
+    print(f"CALC Geschätzte Gesamtanzahl Strategien: {total_est:,}")
 
     baseprefix = args.prefix.strip()
     if not baseprefix:
@@ -124,7 +124,7 @@ def main():
     baseprefix = baseprefix.replace(" ", "_")
 
     start_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"⏱ Start: {start_ts}")
+    print(f"TIME Start: {start_ts}")
     written_total = 0
 
     # Für jede K-Kombination: alle Signalkombis und alle Gewichtskreuze
@@ -166,11 +166,11 @@ def main():
             except Exception:
                 pass
 
-        print(f"[k={k}] ✅ Fertig.")
+        print(f"[k={k}] OK Fertig.")
 
     end_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"✅ Gesamt fertig. Geschrieben: {written_total:,} Zeilen")
-    print(f"⏱ Ende: {end_ts}")
+    print(f"OK Gesamt fertig. Geschrieben: {written_total:,} Zeilen")
+    print(f"TIME Ende: {end_ts}")
 
 if __name__ == "__main__":
     main()
