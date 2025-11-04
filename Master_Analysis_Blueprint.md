@@ -418,7 +418,44 @@ Die Klassifizierung basiert auf folgenden Kriterien:
 
 ---
 
-### 5.2 Volumen-Features (erweitert)
+#### 5.2 Mehrdimensionale Regime-Analyse (Kurz-, Mittel-, Langfrist)
+
+Um kurzfristige Impulse mit längerfristigen Trends zu verbinden, bewertet der Bot künftig **mehrere Zeitebenen parallel**:
+
+| Zeitebene | Zeitraum | Bedeutung | Beispiel-Nutzung |
+|------------|-----------|------------|------------------|
+| **Kurzfristig** | 1 Minute – 1 Stunde | Mikro-Trend / Entry-Timing | Momentum-Erkennung für präzise Einstiege |
+| **Mittelfristig** | 4 Stunden – 1 Tag | Trendrichtung / Filter | Tagestrend bärisch → Long-Signale abwerten |
+| **Langfristig** | 1 – 30 Tage | Makro-Regime / Kapitalsteuerung | Bullmarkt → höhere Long-Allokation |
+
+Jede Ebene erzeugt ein eigenes Label (`+1 = Bull`, `0 = Side`, `–1 = Bear`).  
+Daraus entsteht ein kombinierter **Regime-Score**:
+
+\[
+R = \sum_i w_i \times r_i
+\]
+
+wobei \(r_i\) das Label und \(w_i\) das Gewicht der Zeitebene ist  
+(z. B. w₁ = 0.5 für kurzfristig, w₂ = 0.3 für mittelfristig, w₃ = 0.2 für langfristig).
+
+**Interpretation:**
+- **R ≫ 0 → Bullisch:** Long-Trades bevorzugen.  
+- **R ≈ 0 → Neutral:** Positionsgröße reduzieren.  
+- **R ≪ 0 → Bärisch:** Short-Trades bevorzugen oder Longs früh schließen.
+
+Dieser Mechanismus erlaubt z. B.:
+- kurzfristig bullische, aber langfristig bärische Phasen zu erkennen,  
+- Long-Positionen bei bärischem Tagestrend früh zu beenden,  
+- Kapitalgewichtungen dynamisch an den kombinierten Regime-Score anzupassen.
+
+Die Werte können zusätzlich in den **Trade-Historien** gespeichert werden  
+(`market_regime_short`, `market_regime_mid`, `market_regime_long`, `regime_score`),  
+um spätere ML-Analysen über Regime-Wechsel und Trade-Performance zu ermöglichen.
+
+
+---
+
+### 5.3 Volumen-Features (erweitert)
 
 #### Datenquellen
 - **Kurzfristig (jetzt):**  
@@ -459,7 +496,7 @@ Die Klassifizierung basiert auf folgenden Kriterien:
 
 ---
 
-### 5.3 Fazit
+### 5.4 Fazit
 Durch Marktregime-Labels und Volumen-Features entsteht ein **dynamisches Steuerungssystem**:  
 - **Makro bestimmt die Kapitalrichtung (Bull/Bear/Seitwärts).**  
 - **Volumen entscheidet über Stärke und Gewichtung einzelner Trades.**  
@@ -467,7 +504,7 @@ Durch Marktregime-Labels und Volumen-Features entsteht ein **dynamisches Steueru
 
 ---
 
-### 5.4 Multi-Coin-Analyse (Cross-Market Confirmation)
+### 5.5 Multi-Coin-Analyse (Cross-Market Confirmation)
 
 #### Idee
 Neben Bitcoin (BTC/USDT) sollen langfristig auch **weitere Kryptowährungen** (z. B. ETH, SOL, LTC) parallel analysiert werden.  
@@ -495,7 +532,7 @@ Die Multi-Coin-Analyse dient als **Signal-Bestätigungsschicht**.
 Sie reduziert Fehlsignale, verbessert das Timing und schafft die Möglichkeit, Trends über den gesamten Markt hinweg zuverlässiger auszunutzen.  
 
 
-### 5.5 Spezifische Kennzahlen für Marktregime & Volumen
+### 5.6 Spezifische Kennzahlen für Marktregime & Volumen
 
 #### Marktregime-Kennzahlen
 - **Regime-angepasster ROI**: ROI getrennt nach Bull-, Bear- und Seitwärtsphasen → zeigt, ob eine Strategie in allen Märkten stabil ist.  
@@ -513,7 +550,7 @@ Sie reduziert Fehlsignale, verbessert das Timing und schafft die Möglichkeit, T
 
 ---
 
-### 5.6 Extreme-Volatility-Regime
+### 5.7 Extreme-Volatility-Regime
 
 #### Definition
 - Tritt auf, wenn ATR oder Realisierte Volatilität > 3 × Langfristdurchschnitt.  
@@ -531,7 +568,7 @@ Sie reduziert Fehlsignale, verbessert das Timing und schafft die Möglichkeit, T
 - Separate Auswertung von Strategien in „Normal“ vs. „Extreme-Volatility“-Umgebungen.
 
 
-### 5.7 Übersicht: Regime-Entscheidungslogik
+### 5.8 Übersicht: Regime-Entscheidungslogik
 
 Die Marktregime werden durch Kombination von **Trendindikator** (z. B. MA200, MACD) und **Volatilitätsindikator** (z. B. ATR, Bollinger-Bandbreite) definiert.
 
@@ -847,17 +884,86 @@ Damit ist sichergestellt, dass die Analysen sowohl kurzfristig handhabbar als au
 - Keine Engpässe bei Langläufen durch Daten-Chaos.  
 - Reibungslose Nutzung lokaler und externer Ressourcen.
 
+---
+
+
+
+### 9 Sicherheit, Überwachung, Logging & Backup-Mechanismen
+
+**Ziel:**  
+Stabilen und sicheren 24/7-Live-Betrieb gewährleisten, Datenverlust vermeiden und sämtliche Trades, Signale sowie Systemereignisse reproduzierbar nachvollziehen.
 
 ---
 
-## 9. Fazit
+#### 9.1 Sicherheit
+- Verwende separate **API-Keys** für Trading und Datenzugriff (nur minimale Berechtigungen).  
+- Lagere **Secrets** in `.env` oder verschlüsselten Config-Dateien, niemals im Git-Repo.  
+- Aktiviere **IP-Whitelist** und **2FA** bei allen Exchanges und Cloud-Accounts.  
+- Nutze **Read-Only-Keys** für Backtests, Analyse- und Logging-Prozesse.  
+- Implementiere Fail-Safe-Mechanismen:  
+  - automatisches **Order-Cancel**, wenn Bot unerwartet stoppt.  
+  - **Max-Loss-Limit** pro Tag/Woche als Notbremse.  
+
+---
+
+#### 9.2 Überwachung
+- Integriere ein **Monitoring-Modul**, das regelmäßig prüft:
+  - Bot-Status (laufend / stopped / error)  
+  - API-Verfügbarkeit & Latenz  
+  - Konto-Balance, offene Positionen  
+  - CPU-, RAM- und Festplattenauslastung  
+- Benachrichtigungen via **E-Mail, Telegram oder Discord-Webhook**, falls:
+  - ein Modul abstürzt,
+  - zu viele Fehlversuche auftreten,
+  - ungewöhnlich hohe Latenzen auftreten.
+- Optional: Dashboard mit Echtzeit-KPIs (ROI, Sharpe-Ratio, aktuelle Trades).
+
+---
+
+#### 9.3 Logging
+- **Zentrale Logdateien** im JSON- oder CSV-Format:
+  - `system_log.csv` → Start/Stop, Warnungen, Ausnahmen  
+  - `trade_log.csv` → Zeitpunkt, Symbol, Richtung, Preis, Profit/Loss, Fees  
+  - `signal_log.csv` → Indikatorwerte, Entscheidung, Gewichtung  
+- Strukturierte Logs (z. B. `logging`-Modul in Python mit `RotatingFileHandler`).  
+- Alle Logs enthalten Timestamp (UTC ISO-Format) + Modulkennung.  
+- Optional: separate **error_log.csv** zur späteren Fehleranalyse.  
+
+---
+
+#### 9.4 Backup-Mechanismen
+- **Automatische tägliche Backups** für:
+  - Datenfeeds (`price_data_with_signals.csv`, Feature-Files)
+  - Ergebnisse (`strategy_results.csv`, Trade-Logs)
+  - Konfigurationen (`config.yaml`, `.env`)
+- Versions-Schema: `YYYY-MM-DD_HH-MM_description.ext`  
+- Speicherung auf getrenntem Laufwerk oder Cloud (z. B. `D:/sniper-backups/` oder S3).  
+- Monatliche Voll-Backups aller relevanten Projektverzeichnisse (`data/`, `results/`, `scripts/`).  
+- Optional: Git-Commit-Hook, der vor jedem Run automatisch ein Backup-Tag erzeugt.  
+
+---
+
+#### 9.5 Best Practice
+- Jeder **Analyse- oder Live-Run** startet mit:
+  - `backup_current_results()`
+  - `init_logger(run_id)`
+  - `verify_api_status()`
+- Kein Run überschreibt existierende Dateien.  
+- Alle Ergebnisse eindeutig identifizierbar über `run_id` und Timestamp.  
+- Logs und Backups dienen zugleich als Grundlage für Audits und Machine-Learning-Datenaufbereitung.
+
+
+
+---
+
+## 10. Fazit
 
 Dieses Dokument ist die **Master-Blaupause** des Sniper-Bot Projekts.  
 Es bildet die Grundlage für alle aktuellen und zukünftigen Entwicklungen – von klassischen Filter-Strategien über Marktregime & Volumen bis hin zu Machine Learning und Live-Betrieb.  
 
 ---
 
-### 9.1 Zentrale Prinzipien
+### 10.1 Zentrale Prinzipien
 - **Baukasten-System:** modular, flexibel, jederzeit erweiterbar.  
 - **Selektivität:** ca. 200 Trades pro Jahr (±100) – Qualität vor Quantität.  
 - **Backups & Versionierung:** jede Analyse wird reproduzierbar und nachvollziehbar gespeichert.  
@@ -866,7 +972,7 @@ Es bildet die Grundlage für alle aktuellen und zukünftigen Entwicklungen – v
 
 ---
 
-### 9.2 Erweiterte Schwerpunkte
+### 10.2 Erweiterte Schwerpunkte
 - **Marktregime & Volumen:** zentrale Filter- und Bewertungsdimensionen.  
 - **Multi-Coin-Analyse:** Cross-Market Confirmation als Signalverstärkung.  
 - **Erweiterte Metriken:** Sharpe, Sortino, Calmar, Profit Factor, Omega, Ulcer, Skew/Kurtosis.  
@@ -877,7 +983,7 @@ Es bildet die Grundlage für alle aktuellen und zukünftigen Entwicklungen – v
 
 ---
 
-### 9.3 Endziel
+### 10.3 Endziel
 Ein **vollständig adaptiver Trading-Bot**, der:  
 1. **Marktregime erkennt** und Kapital dynamisch allokiert.  
 2. **Volumenbewegungen als Signalverstärker** nutzt.  
@@ -888,7 +994,7 @@ Ein **vollständig adaptiver Trading-Bot**, der:
 
 ---
 
-### 9.4 Fazit in einem Satz
+### 10.4 Fazit in einem Satz
 Der Sniper-Bot ist kein starres System, sondern ein **modularer, adaptiver Baukasten**, der mit jedem Schritt präziser, robuster und intelligenter wird – bis hin zum vollständig autonomen, marktintelligenten Live-Bot.
  
 
