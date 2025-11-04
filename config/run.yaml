@@ -1,0 +1,21 @@
+run_name: k3_long_raster_test
+price:
+  path: data/price_data_with_signals.csv
+  time_col: open_time
+strategies:
+  k: 3
+  shards_glob: "data/strategies/k3/strategies_k3_*.csv"
+sim:
+  mode: long
+engine:
+  num_procs: 20
+  chunksize: 512
+  progress_step: 2
+  save_trades: 0
+output:
+  results_dir: results/k3/long
+  logs_dir: logs
+  archive_dir: archive
+# optional override:
+# runner_template: "python -u scripts/analyze_3er_mp.py --data {price} --strategies {shard} --sim {sim} --num-procs {num_procs} --chunksize {chunksize} --progress_step {progress_step} --save-trades {save_trades} --output-dir {results_dir}"
+

@@ -30,3 +30,7 @@ _archive_OLD/
 archive/
 _archive_2025-10-24/
 \!data/.gitkeep
+
+# allow finalized result drops
+*/final/*.csv
+*/final/*.json
