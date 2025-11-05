@@ -34,3 +34,4 @@ _archive_2025-10-24/
 # allow finalized result drops
 */final/*.csv
 */final/*.json
+cache_np/
