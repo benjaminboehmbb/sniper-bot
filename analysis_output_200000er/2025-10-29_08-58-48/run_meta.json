@@ -1,0 +1,21 @@
+{
+  "run_id": "2025-10-29_08-58-48",
+  "n": 20000,
+  "data": "C:\\Users\\workstation\\desktop\\sniper-bot\\data\\price_data_with_signals.csv",
+  "strategies": "C:\\Users\\workstation\\desktop\\sniper-bot\\data\\strategies_k4_shard1.csv",
+  "params": {
+    "data": "data/price_data_with_signals.csv",
+    "strategies": "data/strategies_k4_shard1.csv",
+    "num_procs": 4,
+    "n": 20000,
+    "sim": "long",
+    "batch_write": 5000,
+    "chunksize": 16,
+    "progress_step": 1,
+    "fees": 0.0005,
+    "slippage": 0.0002,
+    "save_trades": 1,
+    "outdir": "analysis_output_200000er"
+  },
+  "started_at": "2025-10-29T08:58:48.525068"
+}

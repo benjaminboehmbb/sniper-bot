@@ -1,0 +1,14 @@
+{
+  "run_id": "2025-10-30_17-23-29",
+  "k": 3,
+  "data": "C:\\Users\\workstation\\Desktop\\sniper-bot\\data\\price_data_with_signals.csv",
+  "strategies": "C:\\Users\\workstation\\Desktop\\sniper-bot\\data\\strategies_k3_shard1.csv",
+  "params": {
+    "num_procs": 20,
+    "chunksize": 512,
+    "progress_step": 2,
+    "sim": "long",
+    "save_trades": 0
+  },
+  "started_at": "2025-10-30T16:23:29.122345+00:00"
+}

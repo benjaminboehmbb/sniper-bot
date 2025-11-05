@@ -1,0 +1,14 @@
+{
+  "started_at": "2025-10-30T18:55:13.991420",
+  "data_csv": "C:\\Users\\workstation\\Desktop\\sniper-bot\\data\\price_data_with_signals.csv",
+  "strategies_csv": "C:\\Users\\workstation\\Desktop\\sniper-bot\\data\\strategies_k3_shard1.csv",
+  "n": 20000,
+  "num_procs": 20,
+  "chunksize": 512,
+  "progress_step": 2,
+  "threshold": 0.3,
+  "cooldown": 60,
+  "persist_k": 1,
+  "require_ma200": 0,
+  "cache_dir": "C:\\Users\\workstation\\Desktop\\sniper-bot\\cache_np"
+}

@@ -1,0 +1,21 @@
+{
+  "run_id": "2025-10-29_09-01-38",
+  "n": 1000,
+  "data": "C:\\Users\\workstation\\desktop\\sniper-bot\\data\\price_data_with_signals.csv",
+  "strategies": "C:\\Users\\workstation\\desktop\\sniper-bot\\data\\tmp_strats_1k.csv",
+  "params": {
+    "data": "data/price_data_with_signals.csv",
+    "strategies": "data/tmp_strats_1k.csv",
+    "num_procs": 1,
+    "n": 1000,
+    "sim": "long",
+    "batch_write": 5000,
+    "chunksize": 1,
+    "progress_step": 1,
+    "fees": 0.0005,
+    "slippage": 0.0002,
+    "save_trades": 1,
+    "outdir": "analysis_output_200000er"
+  },
+  "started_at": "2025-10-29T09:01:38.276553"
+}
