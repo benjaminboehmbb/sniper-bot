@@ -1,0 +1,15 @@
+{
+  "run_name": "k3_short_wsparams",
+  "data": "data/price_data_with_signals.csv",
+  "strategies": "data/strategies/k3/strategies_k3_shard1.csv",
+  "sim": "short",
+  "k": 3,
+  "threshold": 0.6,
+  "cooldown": 0,
+  "require_ma200": 1,
+  "min_trades": 50,
+  "max_trades": 50000,
+  "num_procs": 8,
+  "engine": "engine/analyze_template.py (safe-all-cols, sanitize nan/inf)",
+  "created_at": "2025-11-05 08:49:23"
+}
