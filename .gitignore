@@ -37,3 +37,4 @@ _archive_2025-10-24/
 cache_np/
 cache_np/
 cache_np/
+*.npy
