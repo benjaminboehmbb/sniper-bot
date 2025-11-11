@@ -2,11 +2,44 @@
 # -*- coding: utf-8 -*-
 """
 analyze_template.py
-Analyzer mit Hold-Time-Filter und effizientem Multiprocessing (kein DF in jedem Task).
+Analyzer mit Hold-Time-Filter und Regime-Filter, effizientes Multiprocessing
+(DataFrame nur einmal per Pool-Initializer geteilt).
 
-ASCII-only Ausgaben. Erwartet:
+ASCII-only Ausgaben.
+
+Erwartet:
 - Daten-CSV mit 'open_time' oder 'timestamp' oder 'time'
 - Strategien-CSV mit Spalte 'Combination' (Dict-String)
+
+Regime-Filter:
+--regime-filter 1 aktiviert Filter.
+--regime-col gibt die Spalte an (z. B. 'regime' oder 'regime_signal').
+--regime-long und --regime-short definieren erlaubte Werte (Default 1 und -1).
+--regime-check entry oder both (nur Entry prüfen oder Entry UND Exit).
+
+Beispiel:
+PYTHONIOENCODING=UTF-8 python -u engine/analyze_template.py \
+  --data data/price_data_with_signals_regime.csv \
+  --strategies data/strategies_k2_shard1.csv \
+  --sim long \
+  --k 2 \
+  --threshold 0.60 \
+  --cooldown 0 \
+  --require-ma200 1 \
+  --min-trades 50 \
+  --max-trades 50000 \
+  --num-procs 14 \
+  --chunksize 32 \
+  --progress-step 1 \
+  --save-trades 0 \
+  --normalize 1 \
+  --use-regime 1 \
+  --output-dir results/k2_long_regime_hold \
+  --min-hold-mins 10 \
+  --max-hold-mins 240 \
+  --regime-filter 1 \
+  --regime-col regime_signal \
+  --regime-check entry
 """
 
 import os, sys, ast, json, math, argparse
@@ -86,6 +119,46 @@ def filter_trades_by_hold(trades: list, min_mins: int = None, max_mins: int = No
         if ok: out.append(tr)
     return out
 
+# --------- Regime Filter ---------
+def filter_trades_by_regime(trades: list,
+                            regime_series: pd.Series,
+                            sim: str,
+                            long_ok: int = 1,
+                            short_ok: int = -1,
+                            check: str = "entry") -> list:
+    """
+    regime_series: pandas Series ueber die Datenzeilen (z. B. df['regime_signal']).
+    check: 'entry' prueft nur Entry-Index, 'both' prueft Entry und Exit.
+    """
+    if trades is None or regime_series is None: return trades or []
+    if len(trades) == 0: return trades
+    vals = regime_series.values
+    out = []
+    for tr in trades:
+        ei = tr.get("entry_idx", None)
+        xi = tr.get("exit_idx", None)
+        ok = True
+        try:
+            if sim == "long":
+                if ei is None: ok = False
+                else:
+                    if check == "both" and xi is not None:
+                        ok = (vals[int(ei)] == long_ok) and (vals[int(xi)] == long_ok)
+                    else:
+                        ok = (vals[int(ei)] == long_ok)
+            else:
+                if ei is None: ok = False
+                else:
+                    if check == "both" and xi is not None:
+                        ok = (vals[int(ei)] == short_ok) and (vals[int(xi)] == short_ok)
+                    else:
+                        ok = (vals[int(ei)] == short_ok)
+        except Exception:
+            ok = False
+        if ok: out.append(tr)
+    return out
+
+# --------- Metrics ---------
 def basic_metrics_from_trades(trades: list) -> dict:
     n = len(trades); pnls = []; wins = 0
     for tr in trades:
@@ -196,13 +269,15 @@ GLOBAL_DATA_DF = None
 GLOBAL_TIME_MAP = None
 GLOBAL_CFG = None
 GLOBAL_SIM = None
+GLOBAL_REGIME_SER = None
 
-def _init_worker(data_df, time_map, cfg_small, sim_func):
-    global GLOBAL_DATA_DF, GLOBAL_TIME_MAP, GLOBAL_CFG, GLOBAL_SIM
+def _init_worker(data_df, time_map, regime_ser, cfg_small, sim_func):
+    global GLOBAL_DATA_DF, GLOBAL_TIME_MAP, GLOBAL_CFG, GLOBAL_SIM, GLOBAL_REGIME_SER
     GLOBAL_DATA_DF = data_df
     GLOBAL_TIME_MAP = time_map
     GLOBAL_CFG = cfg_small
     GLOBAL_SIM = sim_func
+    GLOBAL_REGIME_SER = regime_ser
 
 def evaluate_one(task):
     idx, combo_row = task
@@ -220,6 +295,10 @@ def evaluate_one(task):
     min_hold = cfg["min_hold_mins"]
     max_hold = cfg["max_hold_mins"]
     save_trades = cfg["save_trades"]
+    regime_enabled = cfg["regime_filter"]
+    regime_check = cfg["regime_check"]
+    regime_long = cfg["regime_long"]
+    regime_short = cfg["regime_short"]
 
     # simulate
     if GLOBAL_SIM is not None:
@@ -240,14 +319,28 @@ def evaluate_one(task):
         result = _fallback_sim(GLOBAL_DATA_DF, combo, sim, threshold, cooldown, require_ma200, normalize, use_regime)
 
     trades = result.get("trades", [])
-    trades_f = filter_trades_by_hold(trades, min_mins=min_hold, max_mins=max_hold, idx_to_time=GLOBAL_TIME_MAP)
 
-    if min_trades is not None and len(trades_f) < int(min_trades):
-        metrics = {"roi": 0.0, "num_trades": len(trades_f), "winrate": 0.0, "pnl_sum": 0.0}
-    elif max_trades is not None and len(trades_f) > int(max_trades):
-        metrics = {"roi": 0.0, "num_trades": len(trades_f), "winrate": 0.0, "pnl_sum": 0.0}
+    # regime filter
+    if regime_enabled == 1 and GLOBAL_REGIME_SER is not None:
+        trades = filter_trades_by_regime(
+            trades=trades,
+            regime_series=GLOBAL_REGIME_SER,
+            sim=sim,
+            long_ok=int(regime_long),
+            short_ok=int(regime_short),
+            check=regime_check
+        )
+
+    # hold-time filter
+    trades = filter_trades_by_hold(trades, min_mins=min_hold, max_mins=max_hold, idx_to_time=GLOBAL_TIME_MAP)
+
+    # metrics
+    if min_trades is not None and len(trades) < int(min_trades):
+        metrics = {"roi": 0.0, "num_trades": len(trades), "winrate": 0.0, "pnl_sum": 0.0}
+    elif max_trades is not None and len(trades) > int(max_trades):
+        metrics = {"roi": 0.0, "num_trades": len(trades), "winrate": 0.0, "pnl_sum": 0.0}
     else:
-        metrics = basic_metrics_from_trades(trades_f)
+        metrics = basic_metrics_from_trades(trades)
 
     out = {
         "index": idx,
@@ -258,11 +351,11 @@ def evaluate_one(task):
         "pnl_sum": metrics["pnl_sum"],
     }
     if save_trades == 1:
-        out["trades"] = trades_f
+        out["trades"] = trades
     return out
 
 def main():
-    p = argparse.ArgumentParser(description="Analyze strategies with Hold-Time filter (minutes).")
+    p = argparse.ArgumentParser(description="Analyze strategies with Hold-Time and Regime filtering.")
     p.add_argument("--data", required=True)
     p.add_argument("--strategies", required=True)
     p.add_argument("--sim", choices=["long","short"], default="long")
@@ -279,8 +372,15 @@ def main():
     p.add_argument("--normalize", type=int, default=0)
     p.add_argument("--use-regime", type=int, default=0)
     p.add_argument("--output-dir", required=True)
+    # Hold-time
     p.add_argument("--min-hold-mins", type=int, default=None)
     p.add_argument("--max-hold-mins", type=int, default=None)
+    # Regime filter
+    p.add_argument("--regime-filter", type=int, default=0, help="0 off, 1 on")
+    p.add_argument("--regime-col", type=str, default="regime", help="Column name for regime values")
+    p.add_argument("--regime-long", type=int, default=1, help="Allowed regime value for long trades")
+    p.add_argument("--regime-short", type=int, default=-1, help="Allowed regime value for short trades")
+    p.add_argument("--regime-check", choices=["entry","both"], default="entry", help="Check entry only or entry and exit")
     args = p.parse_args()
 
     ensure_dir(args.output_dir)
@@ -304,6 +404,13 @@ def main():
         df["open_time"] = np.arange(len(df), dtype=np.int64)
         ts_col = "open_time"
     time_map = parse_timestamp(df[ts_col])
+
+    # Prepare regime series (optional)
+    regime_ser = None
+    if int(args.regime_filter) == 1:
+        if args.regime_col not in df.columns:
+            raise ValueError(f"Regime column '{args.regime_col}' not found in data CSV.")
+        regime_ser = pd.Series(df[args.regime_col].astype(int).values)
 
     log(f"Loading strategies: {args.strategies}")
     strat_df = pd.read_csv(args.strategies)
@@ -330,15 +437,17 @@ def main():
         "max_hold_mins": args.max_hold_mins,
         "save_trades": args.save_trades,
         "progress_step": max(1, int(args.progress_step)),
+        "regime_filter": int(args.regime_filter),
+        "regime_check": args.regime_check,
+        "regime_long": int(args.regime_long),
+        "regime_short": int(args.regime_short),
     }
 
     tasks = [(i, strat_df["Combination"].iat[i]) for i in range(total)]
     results = []; last_pct = -1
 
-    # Single-process fast path for tiny runs or debug
     if int(args.num_procs) <= 1:
-        # init globals
-        _init_worker(df, time_map, cfg_small, user_sim)
+        _init_worker(df, time_map, regime_ser, cfg_small, user_sim)
         for j, t in enumerate(tasks):
             res = evaluate_one(t); results.append(res)
             pct = int((100.0*len(results))/max(total,1))
@@ -347,7 +456,7 @@ def main():
     else:
         with Pool(processes=int(args.num_procs),
                   initializer=_init_worker,
-                  initargs=(df, time_map, cfg_small, user_sim)) as pool:
+                  initargs=(df, time_map, regime_ser, cfg_small, user_sim)) as pool:
             for j, res in enumerate(pool.imap_unordered(evaluate_one, tasks, chunksize=int(args.chunksize))):
                 results.append(res)
                 pct = int((100.0*len(results))/max(total,1))
@@ -377,6 +486,7 @@ if __name__ == "__main__":
     except Exception as e:
         log(f"FATAL: {e}")
         sys.exit(1)
+
 
 
 
