@@ -1,60 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-analyze_template.py
-Analyzer mit Hold-Time-Filter und Regime-Filter, effizientes Multiprocessing
-(DataFrame nur einmal per Pool-Initializer geteilt).
-
-ASCII-only Ausgaben.
-
-Erwartet:
-- Daten-CSV mit 'open_time' oder 'timestamp' oder 'time'
-- Strategien-CSV mit Spalte 'Combination' (Dict-String)
-
-Regime-Filter:
---regime-filter 1 aktiviert Filter.
---regime-col gibt die Spalte an (z. B. 'regime' oder 'regime_signal').
---regime-long und --regime-short definieren erlaubte Werte (Default 1 und -1).
---regime-check entry oder both (nur Entry prüfen oder Entry UND Exit).
-
-Beispiel:
-PYTHONIOENCODING=UTF-8 python -u engine/analyze_template.py \
-  --data data/price_data_with_signals_regime.csv \
-  --strategies data/strategies_k2_shard1.csv \
-  --sim long \
-  --k 2 \
-  --threshold 0.60 \
-  --cooldown 0 \
-  --require-ma200 1 \
-  --min-trades 50 \
-  --max-trades 50000 \
-  --num-procs 14 \
-  --chunksize 32 \
-  --progress-step 1 \
-  --save-trades 0 \
-  --normalize 1 \
-  --use-regime 1 \
-  --output-dir results/k2_long_regime_hold \
-  --min-hold-mins 10 \
-  --max-hold-mins 240 \
-  --regime-filter 1 \
-  --regime-col regime_signal \
-  --regime-check entry
-"""
-
+# ASCII only
 import os, sys, ast, json, math, argparse
 from datetime import datetime
 from multiprocessing import Pool, cpu_count
 import pandas as pd
 import numpy as np
 
-# --------- Logging / Utils ---------
-def log(msg: str):
+# ---------- utils ----------
+def log(msg):
     ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{ts} UTC] {msg}", flush=True)
+    print("[{} UTC] {}".format(ts, msg), flush=True)
 
-def ensure_dir(path: str):
-    os.makedirs(path, exist_ok=True)
+def ensure_dir(p):
+    os.makedirs(p, exist_ok=True)
 
 def parse_timestamp(series: pd.Series) -> pd.Series:
     s = series.copy()
@@ -63,7 +21,7 @@ def parse_timestamp(series: pd.Series) -> pd.Series:
         try:
             fv = float(v)
             if fv > 1e12: return pd.to_datetime(int(fv), unit="ms", utc=False)
-            if fv > 1e9:  return pd.to_datetime(int(fv), unit="s", utc=False)
+            if fv > 1e9:  return pd.to_datetime(int(fv), unit="s",  utc=False)
         except Exception:
             pass
         try:
@@ -72,12 +30,12 @@ def parse_timestamp(series: pd.Series) -> pd.Series:
             return pd.NaT
     return s.map(_c)
 
-def parse_combination(cell: str) -> dict:
+def parse_combination(cell):
     if isinstance(cell, dict): return cell
     try: return ast.literal_eval(str(cell))
     except Exception: return {}
 
-# --------- Hold-time Filter ---------
+# ---------- hold-time filter ----------
 def _to_dt(x):
     if x is None: return None
     if isinstance(x, (np.integer, int, float)):
@@ -88,78 +46,62 @@ def _to_dt(x):
     try: return pd.to_datetime(x)
     except Exception: return None
 
-def compute_hold_minutes_from_trade(trade: dict, idx_to_time: pd.Series = None) -> float:
+def compute_hold_minutes_from_trade(tr, idx_to_time: pd.Series = None) -> float:
     et = None; xt = None
-    for k in ("entry_time","entry_at","t_entry","timestamp_entry"):
-        if k in trade: et = _to_dt(trade[k]); break
-    if et is None and "entry_ts" in trade: et = _to_dt(trade["entry_ts"])
-    if et is None and "entry_idx" in trade and idx_to_time is not None:
-        try: et = pd.to_datetime(idx_to_time.iloc[int(trade["entry_idx"])])
+    for k in ("entry_time","entry_at","t_entry","timestamp_entry","entry_ts"):
+        if k in tr: et = _to_dt(tr[k]); 
+        if et is not None: break
+    if et is None and "entry_idx" in tr and idx_to_time is not None:
+        try: et = pd.to_datetime(idx_to_time.iloc[int(tr["entry_idx"])])
         except Exception: et = None
-    for k in ("exit_time","exit_at","t_exit","timestamp_exit"):
-        if k in trade: xt = _to_dt(trade[k]); break
-    if xt is None and "exit_ts" in trade: xt = _to_dt(trade["exit_ts"])
-    if xt is None and "exit_idx" in trade and idx_to_time is not None:
-        try: xt = pd.to_datetime(idx_to_time.iloc[int(trade["exit_idx"])])
+    for k in ("exit_time","exit_at","t_exit","timestamp_exit","exit_ts"):
+        if k in tr: xt = _to_dt(tr[k]); 
+        if xt is not None: break
+    if xt is None and "exit_idx" in tr and idx_to_time is not None:
+        try: xt = pd.to_datetime(idx_to_time.iloc[int(tr["exit_idx"])])
         except Exception: xt = None
     if et is None or xt is None: return math.inf
     d = (xt - et).total_seconds() / 60.0
     if not np.isfinite(d): return math.inf
     return max(0.0, float(d))
 
-def filter_trades_by_hold(trades: list, min_mins: int = None, max_mins: int = None, idx_to_time: pd.Series = None) -> list:
+def filter_trades_by_hold(trades, min_mins=None, max_mins=None, idx_to_time: pd.Series=None):
     if trades is None: return []
     if min_mins is None and max_mins is None: return trades
     out = []
     for tr in trades:
-        hm = compute_hold_minutes_from_trade(tr, idx_to_time=idx_to_time)
+        hm = compute_hold_minutes_from_trade(tr, idx_to_time)
         ok = True
         if min_mins is not None and (not np.isfinite(hm) or hm < float(min_mins)): ok = False
         if ok and max_mins is not None and (not np.isfinite(hm) or hm > float(max_mins)): ok = False
         if ok: out.append(tr)
     return out
 
-# --------- Regime Filter ---------
-def filter_trades_by_regime(trades: list,
-                            regime_series: pd.Series,
-                            sim: str,
-                            long_ok: int = 1,
-                            short_ok: int = -1,
-                            check: str = "entry") -> list:
-    """
-    regime_series: pandas Series ueber die Datenzeilen (z. B. df['regime_signal']).
-    check: 'entry' prueft nur Entry-Index, 'both' prueft Entry und Exit.
-    """
+# ---------- regime filter ----------
+def filter_trades_by_regime(trades, regime_series: pd.Series, sim: str,
+                            long_ok=1, short_ok=-1, check="entry"):
     if trades is None or regime_series is None: return trades or []
-    if len(trades) == 0: return trades
     vals = regime_series.values
     out = []
     for tr in trades:
-        ei = tr.get("entry_idx", None)
-        xi = tr.get("exit_idx", None)
+        ei = tr.get("entry_idx"); xi = tr.get("exit_idx")
         ok = True
         try:
             if sim == "long":
                 if ei is None: ok = False
                 else:
-                    if check == "both" and xi is not None:
-                        ok = (vals[int(ei)] == long_ok) and (vals[int(xi)] == long_ok)
-                    else:
-                        ok = (vals[int(ei)] == long_ok)
+                    ok = (vals[int(ei)] == long_ok) and (vals[int(xi)] == long_ok) if (check=="both" and xi is not None) else (vals[int(ei)] == long_ok)
             else:
                 if ei is None: ok = False
                 else:
-                    if check == "both" and xi is not None:
-                        ok = (vals[int(ei)] == short_ok) and (vals[int(xi)] == short_ok)
-                    else:
-                        ok = (vals[int(ei)] == short_ok)
+                    ok = (vals[int(ei)] == short_ok) and (vals[int(xi)] == short_ok) if (check=="both" and xi is not None) else (vals[int(ei)] == short_ok)
         except Exception:
             ok = False
         if ok: out.append(tr)
     return out
 
-# --------- Metrics ---------
-def basic_metrics_from_trades(trades: list) -> dict:
+# ---------- metrics ----------
+def basic_metrics_from_trades(trades):
     n = len(trades); pnls = []; wins = 0
     for tr in trades:
         pnl = None
@@ -179,7 +121,7 @@ def basic_metrics_from_trades(trades: list) -> dict:
     winrate = float(wins)/float(n) if n>0 else 0.0
     return {"roi": pnl_sum, "num_trades": n, "winrate": winrate, "pnl_sum": pnl_sum}
 
-# --------- Optional user simulator ---------
+# ---------- optional user simulator ----------
 def _import_user_simulator():
     try:
         import importlib
@@ -193,14 +135,32 @@ def _import_user_simulator():
     except Exception: pass
     return None
 
-# --------- Fallback simulator ---------
-def _fallback_sim(data_df: pd.DataFrame, combo: dict, sim: str, threshold: float, cooldown: int, require_ma200: int, normalize: int, use_regime: int):
+# ---------- normalization helpers ----------
+def norm_minmax(s: pd.Series):
+    if s.dtype.kind in "biufc":
+        mn = float(np.nanmin(s.values)); mx = float(np.nanmax(s.values))
+        if mx > mn: return (s - mn)/(mx - mn)
+    return s
+
+def norm_zscore(s: pd.Series):
+    if s.dtype.kind in "biufc":
+        arr = s.values.astype(float)
+        mu = np.nanmean(arr); sd = np.nanstd(arr)
+        if sd > 0: return (s - mu)/sd
+    return s
+
+# ---------- fallback simulator (symmetric long/short) ----------
+def _fallback_sim(data_df: pd.DataFrame, combo: dict, sim: str, threshold: float,
+                  cooldown: int, require_ma200: int, normalize: int, normalize_mode: str,
+                  use_regime: int):
     df = data_df
-    def norm_col(s: pd.Series):
-        if s.dtype.kind in "biufc":
-            mn = float(np.nanmin(s.values)); mx = float(np.nanmax(s.values))
-            if mx > mn: return (s - mn)/(mx - mn)
-        return s
+
+    def norm_col(s):
+        if normalize != 1: return s
+        if normalize_mode == "zscore": return norm_zscore(s)
+        if normalize_mode == "none":   return s
+        return norm_minmax(s)  # default
+
     score = None
     for k, w in combo.items():
         col = k
@@ -209,11 +169,13 @@ def _fallback_sim(data_df: pd.DataFrame, combo: dict, sim: str, threshold: float
                 if alt in df.columns: col = alt; break
         if col not in df.columns: continue
         s = df[col].astype(float)
-        if normalize == 1: s = norm_col(s)
-        sc = float(w)*s
+        s = norm_col(s)
+        sc = float(w) * s
         score = sc if score is None else (score + sc)
-    if score is None: return {"trades": [], "meta": {"reason": "no_signals"}}
-    _score = score.values.copy()
+    if score is None:
+        return {"trades": [], "meta": {"reason": "no_signals"}}
+
+    _score = score.values.astype(float).copy()
 
     if require_ma200 == 1:
         ma_col = None
@@ -227,44 +189,53 @@ def _fallback_sim(data_df: pd.DataFrame, combo: dict, sim: str, threshold: float
                 mask_ok = (df[price_col].astype(float) < df[ma_col].astype(float)).values
             _score[~mask_ok] = 0.0
 
-    thr = float(threshold); in_pos = False; entry_idx = None; trades = []
+    thr = float(threshold); in_pos = False; entry_idx = None
     last_exit_idx = -10**9
     price_col = "close" if "close" in df.columns else df.columns[0]
     closev = df[price_col].astype(float).values
+    trades = []
 
+    # symmetric decision rule:
+    # long: enter if score >= +thr, exit if score < +thr
+    # short: enter if score <= -thr, exit if score > -thr
     for i in range(len(df)):
         sc = _score[i]
         if not in_pos:
-            if i - last_exit_idx < int(cooldown): continue
+            if i - last_exit_idx < int(cooldown): 
+                continue
             if sim == "long":
-                if sc >= thr: in_pos=True; entry_idx=i
+                if sc >= thr:
+                    in_pos = True; entry_idx = i
             else:
-                if sc <= -thr: in_pos=True; entry_idx=i
+                if sc <= -thr:
+                    in_pos = True; entry_idx = i
         else:
             if sim == "long":
                 if sc < thr:
-                    exit_idx=i; e=closev[entry_idx]; x=closev[exit_idx]
+                    exit_idx = i; e = closev[entry_idx]; x = closev[exit_idx]
                     trades.append({"side":"long","entry_idx":entry_idx,"exit_idx":exit_idx,"entry_price":e,"exit_price":x})
-                    in_pos=False; entry_idx=None; last_exit_idx=i
+                    in_pos = False; entry_idx = None; last_exit_idx = i
             else:
                 if sc > -thr:
-                    exit_idx=i; e=closev[entry_idx]; x=closev[exit_idx]
+                    exit_idx = i; e = closev[entry_idx]; x = closev[exit_idx]
                     trades.append({"side":"short","entry_idx":entry_idx,"exit_idx":exit_idx,"entry_price":e,"exit_price":x})
-                    in_pos=False; entry_idx=None; last_exit_idx=i
+                    in_pos = False; entry_idx = None; last_exit_idx = i
 
     ts_col = None
     for c in ("open_time","timestamp","time"):
-        if c in df.columns: ts_col=c; break
+        if c in df.columns: ts_col = c; break
     if ts_col is not None:
         tsv = df[ts_col].values
         for tr in trades:
             try:
                 tr["entry_time"] = tsv[int(tr.get("entry_idx",-1))]
                 tr["exit_time"]  = tsv[int(tr.get("exit_idx",-1))]
-            except Exception: pass
+            except Exception:
+                pass
+
     return {"trades": trades, "meta": {}}
 
-# --------- Globals for workers ---------
+# ---------- globals for workers ----------
 GLOBAL_DATA_DF = None
 GLOBAL_TIME_MAP = None
 GLOBAL_CFG = None
@@ -282,23 +253,7 @@ def _init_worker(data_df, time_map, regime_ser, cfg_small, sim_func):
 def evaluate_one(task):
     idx, combo_row = task
     combo = parse_combination(combo_row)
-
     cfg = GLOBAL_CFG
-    sim = cfg["sim"]
-    threshold = cfg["threshold"]
-    cooldown = cfg["cooldown"]
-    require_ma200 = cfg["require_ma200"]
-    normalize = cfg["normalize"]
-    use_regime = cfg["use_regime"]
-    min_trades = cfg["min_trades"]
-    max_trades = cfg["max_trades"]
-    min_hold = cfg["min_hold_mins"]
-    max_hold = cfg["max_hold_mins"]
-    save_trades = cfg["save_trades"]
-    regime_enabled = cfg["regime_filter"]
-    regime_check = cfg["regime_check"]
-    regime_long = cfg["regime_long"]
-    regime_short = cfg["regime_short"]
 
     # simulate
     if GLOBAL_SIM is not None:
@@ -306,38 +261,33 @@ def evaluate_one(task):
             result = GLOBAL_SIM(
                 data_df=GLOBAL_DATA_DF,
                 combo=combo,
-                sim=sim,
-                threshold=threshold,
-                cooldown=cooldown,
-                require_ma200=require_ma200,
-                normalize=normalize,
-                use_regime=use_regime
+                sim=cfg["sim"],
+                threshold=cfg["threshold"],
+                cooldown=cfg["cooldown"],
+                require_ma200=cfg["require_ma200"],
+                normalize=cfg["normalize"]
             )
         except TypeError:
-            result = GLOBAL_SIM(GLOBAL_DATA_DF, combo, sim, threshold, cooldown, require_ma200)
+            result = GLOBAL_SIM(GLOBAL_DATA_DF, combo, cfg["sim"], cfg["threshold"], cfg["cooldown"], cfg["require_ma200"])
     else:
-        result = _fallback_sim(GLOBAL_DATA_DF, combo, sim, threshold, cooldown, require_ma200, normalize, use_regime)
+        result = _fallback_sim(GLOBAL_DATA_DF, combo, cfg["sim"], cfg["threshold"], cfg["cooldown"],
+                               cfg["require_ma200"], cfg["normalize"], cfg["normalize_mode"], cfg["use_regime"])
 
     trades = result.get("trades", [])
 
     # regime filter
-    if regime_enabled == 1 and GLOBAL_REGIME_SER is not None:
-        trades = filter_trades_by_regime(
-            trades=trades,
-            regime_series=GLOBAL_REGIME_SER,
-            sim=sim,
-            long_ok=int(regime_long),
-            short_ok=int(regime_short),
-            check=regime_check
-        )
+    if cfg["regime_filter"] == 1 and GLOBAL_REGIME_SER is not None:
+        trades = filter_trades_by_regime(trades, GLOBAL_REGIME_SER, cfg["sim"],
+                                         long_ok=cfg["regime_long"], short_ok=cfg["regime_short"],
+                                         check=cfg["regime_check"])
 
-    # hold-time filter
-    trades = filter_trades_by_hold(trades, min_mins=min_hold, max_mins=max_hold, idx_to_time=GLOBAL_TIME_MAP)
+    # hold filter
+    trades = filter_trades_by_hold(trades, cfg["min_hold_mins"], cfg["max_hold_mins"], GLOBAL_TIME_MAP)
 
     # metrics
-    if min_trades is not None and len(trades) < int(min_trades):
+    if cfg["min_trades"] is not None and len(trades) < int(cfg["min_trades"]):
         metrics = {"roi": 0.0, "num_trades": len(trades), "winrate": 0.0, "pnl_sum": 0.0}
-    elif max_trades is not None and len(trades) > int(max_trades):
+    elif cfg["max_trades"] is not None and len(trades) > int(cfg["max_trades"]):
         metrics = {"roi": 0.0, "num_trades": len(trades), "winrate": 0.0, "pnl_sum": 0.0}
     else:
         metrics = basic_metrics_from_trades(trades)
@@ -350,12 +300,12 @@ def evaluate_one(task):
         "winrate": metrics["winrate"],
         "pnl_sum": metrics["pnl_sum"],
     }
-    if save_trades == 1:
+    if cfg["save_trades"] == 1:
         out["trades"] = trades
     return out
 
 def main():
-    p = argparse.ArgumentParser(description="Analyze strategies with Hold-Time and Regime filtering.")
+    p = argparse.ArgumentParser(description="Analyze strategies (hold-time, regime, symmetric long/short, flexible normalization).")
     p.add_argument("--data", required=True)
     p.add_argument("--strategies", required=True)
     p.add_argument("--sim", choices=["long","short"], default="long")
@@ -370,17 +320,18 @@ def main():
     p.add_argument("--progress-step", type=int, default=2)
     p.add_argument("--save-trades", type=int, default=0)
     p.add_argument("--normalize", type=int, default=0)
+    p.add_argument("--normalize-mode", choices=["minmax","zscore","none"], default="minmax")
     p.add_argument("--use-regime", type=int, default=0)
     p.add_argument("--output-dir", required=True)
-    # Hold-time
+    # hold-time
     p.add_argument("--min-hold-mins", type=int, default=None)
     p.add_argument("--max-hold-mins", type=int, default=None)
-    # Regime filter
-    p.add_argument("--regime-filter", type=int, default=0, help="0 off, 1 on")
-    p.add_argument("--regime-col", type=str, default="regime", help="Column name for regime values")
-    p.add_argument("--regime-long", type=int, default=1, help="Allowed regime value for long trades")
-    p.add_argument("--regime-short", type=int, default=-1, help="Allowed regime value for short trades")
-    p.add_argument("--regime-check", choices=["entry","both"], default="entry", help="Check entry only or entry and exit")
+    # regime
+    p.add_argument("--regime-filter", type=int, default=0)
+    p.add_argument("--regime-col", type=str, default="regime")
+    p.add_argument("--regime-long", type=int, default=1)
+    p.add_argument("--regime-short", type=int, default=-1)
+    p.add_argument("--regime-check", choices=["entry","both"], default="entry")
     args = p.parse_args()
 
     ensure_dir(args.output_dir)
@@ -389,12 +340,12 @@ def main():
 
     if os.path.isfile(results_csv):
         ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        backup = os.path.join(args.output_dir, f"strategy_results_backup_{ts}.csv")
-        log(f"Existing results detected. Backup to {backup}")
+        backup = os.path.join(args.output_dir, "strategy_results_backup_{}.csv".format(ts))
+        log("Existing results detected. Backup to {}".format(backup))
         try: os.rename(results_csv, backup)
         except Exception: pass
 
-    log(f"Loading data: {args.data}")
+    log("Loading data: {}".format(args.data))
     df = pd.read_csv(args.data)
 
     ts_col = None
@@ -405,20 +356,19 @@ def main():
         ts_col = "open_time"
     time_map = parse_timestamp(df[ts_col])
 
-    # Prepare regime series (optional)
     regime_ser = None
     if int(args.regime_filter) == 1:
         if args.regime_col not in df.columns:
-            raise ValueError(f"Regime column '{args.regime_col}' not found in data CSV.")
+            raise ValueError("Regime column '{}' not found in data CSV.".format(args.regime_col))
         regime_ser = pd.Series(df[args.regime_col].astype(int).values)
 
-    log(f"Loading strategies: {args.strategies}")
+    log("Loading strategies: {}".format(args.strategies))
     strat_df = pd.read_csv(args.strategies)
     if "Combination" not in strat_df.columns:
         raise ValueError("Strategies CSV must contain column 'Combination'.")
 
     total = len(strat_df)
-    log(f"{total} strategies loaded")
+    log("{} strategies loaded".format(total))
 
     user_sim = _import_user_simulator()
     if user_sim is not None: log("Using simulate_strategy from user simtrader.")
@@ -430,6 +380,7 @@ def main():
         "cooldown": args.cooldown,
         "require_ma200": args.require_ma200,
         "normalize": args.normalize,
+        "normalize_mode": args.normalize_mode,
         "use_regime": args.use_regime,
         "min_trades": args.min_trades,
         "max_trades": args.max_trades,
@@ -452,7 +403,7 @@ def main():
             res = evaluate_one(t); results.append(res)
             pct = int((100.0*len(results))/max(total,1))
             if pct // cfg_small["progress_step"] > last_pct // cfg_small["progress_step"]:
-                last_pct = pct; log(f"Progress {pct}% ({len(results)}/{total})")
+                last_pct = pct; log("Progress {}% ({}/{})".format(pct, len(results), total))
     else:
         with Pool(processes=int(args.num_procs),
                   initializer=_init_worker,
@@ -461,31 +412,33 @@ def main():
                 results.append(res)
                 pct = int((100.0*len(results))/max(total,1))
                 if pct // cfg_small["progress_step"] > last_pct // cfg_small["progress_step"]:
-                    last_pct = pct; log(f"Progress {pct}% ({len(results)}/{total})")
+                    last_pct = pct; log("Progress {}% ({}/{})".format(pct, len(results), total))
 
     res_df = pd.DataFrame(results)
     if "trades" in res_df.columns:
         log("Writing per-strategy trades to files")
         for _, row in res_df.iterrows():
             if isinstance(row.get("trades", None), list):
-                fname = os.path.join(trades_dir, f"trades_{row['index']:08d}.json")
+                fname = os.path.join(trades_dir, "trades_{:08d}.json".format(int(row["index"])))
                 try:
                     with open(fname, "w", encoding="utf-8") as f:
                         json.dump(row["trades"], f, ensure_ascii=True)
-                except Exception: pass
+                except Exception:
+                    pass
         res_df = res_df.drop(columns=["trades"], errors="ignore")
 
     res_df = res_df.sort_values(by=["roi"], ascending=False)
     res_df.to_csv(results_csv, index=False)
-    log(f"Saved results to {results_csv}")
+    log("Saved results to {}".format(results_csv))
     log("Done.")
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        log(f"FATAL: {e}")
+        log("FATAL: {}".format(e))
         sys.exit(1)
+
 
 
 
