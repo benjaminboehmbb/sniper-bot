@@ -6,6 +6,50 @@ from multiprocessing import Pool, cpu_count
 import pandas as pd
 import numpy as np
 
+# --- ensure engine/ is importable ---
+import sys, os
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+
+# --- adapter to use engine.simtrader.evaluate_strategy ---
+try:
+    from engine.simtrader import evaluate_strategy as _real_eval
+except Exception:
+    _real_eval = None
+
+def _adapter_simfunc(data_df, combo, sim, threshold, cooldown, require_ma200, *args, **kwargs):
+    return _real_eval(0, combo, sim, df=data_df) if _real_eval else {trades: [], meta: {}}
+
+
+# --- Adapter so that analyze_template can use engine.simtrader.evaluate_strategy ---
+try:
+    from engine.simtrader import evaluate_strategy as _real_eval
+except Exception:
+    _real_eval = None
+
+def _adapter_simfunc(data_df, combo, sim, threshold, cooldown, require_ma200, *args, **kwargs):
+    # adapter translates analyze_template call -> real evaluate_strategy signature
+    # index = 0 because analyze_template passes index separately
+    return _real_eval(0, combo, sim, df=data_df)
+
+
+# --- force-load user simtrader (ADD) ---
+try:
+    from engine.simtrader import evaluate_strategy as USER_SIM_EVAL
+except Exception:
+    USER_SIM_EVAL = None
+
+
+# --- CSV/Parquet loader (ADD) ---
+def load_price_data(path: str):
+    pl = str(path).lower()
+    if pl.endswith(".parquet"):
+        return pd.read_parquet(path)
+    return pd.read_csv(path)
+
+
 # ---------- utils ----------
 def log(msg):
     ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -274,6 +318,22 @@ def evaluate_one(task):
                                cfg["require_ma200"], cfg["normalize"], cfg["normalize_mode"], cfg["use_regime"])
 
     trades = result.get("trades", [])
+    direct_metrics = None
+    if isinstance(result, dict) and ("roi" in result and "num_trades" in result and "winrate" in result) and (not trades):
+        direct_metrics = {
+            "roi": float(result.get("roi", 0.0)),
+            "num_trades": int(result.get("num_trades", 0)),
+            "winrate": float(result.get("winrate", 0.0)),
+            "pnl_sum": float(result.get("pnl_sum", result.get("roi", 0.0))),
+        }
+    direct_metrics = None
+    if isinstance(result, dict) and ("roi" in result and "num_trades" in result and "winrate" in result) and (not trades):
+        direct_metrics = {
+            "roi": float(result.get("roi", 0.0)),
+            "num_trades": int(result.get("num_trades", 0)),
+            "winrate": float(result.get("winrate", 0.0)),
+            "pnl_sum": float(result.get("pnl_sum", result.get("roi", 0.0))),
+        }
 
     # regime filter
     if cfg["regime_filter"] == 1 and GLOBAL_REGIME_SER is not None:
@@ -284,8 +344,10 @@ def evaluate_one(task):
     # hold filter
     trades = filter_trades_by_hold(trades, cfg["min_hold_mins"], cfg["max_hold_mins"], GLOBAL_TIME_MAP)
 
-    # metrics
-    if cfg["min_trades"] is not None and len(trades) < int(cfg["min_trades"]):
+        # metrics
+    if direct_metrics is not None:
+        metrics = direct_metrics
+    elif cfg["min_trades"] is not None and len(trades) < int(cfg["min_trades"]):
         metrics = {"roi": 0.0, "num_trades": len(trades), "winrate": 0.0, "pnl_sum": 0.0}
     elif cfg["max_trades"] is not None and len(trades) > int(cfg["max_trades"]):
         metrics = {"roi": 0.0, "num_trades": len(trades), "winrate": 0.0, "pnl_sum": 0.0}
@@ -346,7 +408,7 @@ def main():
         except Exception: pass
 
     log("Loading data: {}".format(args.data))
-    df = pd.read_csv(args.data)
+    df = load_price_data(args.data)
 
     ts_col = None
     for c in ("open_time","timestamp","time"):
@@ -370,9 +432,11 @@ def main():
     total = len(strat_df)
     log("{} strategies loaded".format(total))
 
-    user_sim = _import_user_simulator()
-    if user_sim is not None: log("Using simulate_strategy from user simtrader.")
-    else: log("User simtrader not found. Using fallback simulator.")
+    user_sim = _adapter_simfunc if _real_eval is not None else None
+    if user_sim is not None: log("Using engine/simtrader.evaluate_strategy.")
+    else:
+        log("FATAL: engine/simtrader not importable; abort.")
+        import sys; sys.exit(2)
 
     cfg_small = {
         "sim": args.sim,
