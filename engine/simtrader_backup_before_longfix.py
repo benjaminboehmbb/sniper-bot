@@ -166,7 +166,7 @@ def _simulate_short(score: np.ndarray, close: np.ndarray, tp: float, sl: float,
 def _simulate_long(score: np.ndarray, close: np.ndarray, tp: float, sl: float,
                    max_hold: int, enter_z: float, exit_z: float) -> Dict[str, Any]:
     n = score.shape[0]
-    entries = score > enter_z
+    entries = score < enter_z
     i = 0
     returns = []
     wins = 0
@@ -185,7 +185,7 @@ def _simulate_long(score: np.ndarray, close: np.ndarray, tp: float, sl: float,
                 returns.append(r); wins += 1; num += 1; i = j + 1; exited = True; break
             if r <= -sl:
                 returns.append(r); num += 1; i = j + 1; exited = True; break
-            if score[j] < exit_z:
+            if score[j] > exit_z:
                 returns.append(r); wins += int(r > 0); num += 1; i = j + 1; exited = True; break
             j += 1
         if not exited:

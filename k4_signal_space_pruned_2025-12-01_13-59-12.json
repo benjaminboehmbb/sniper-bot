@@ -1,0 +1,36 @@
+{
+  "signals": [
+    "adx",
+    "atr",
+    "bollinger",
+    "cci",
+    "ema50",
+    "ma200",
+    "macd",
+    "mfi",
+    "obv",
+    "roc",
+    "rsi",
+    "stoch"
+  ],
+  "selection_probabilities": {
+    "ema50": 0.12,
+    "roc": 0.12,
+    "macd": 0.12,
+    "ma200": 0.1,
+    "rsi": 0.1,
+    "atr": 0.08,
+    "bollinger": 0.08,
+    "obv": 0.07,
+    "mfi": 0.07,
+    "adx": 0.06,
+    "cci": 0.05,
+    "stoch": 0.03
+  },
+  "policy": {
+    "allow_all_signals": true,
+    "avoid_duplicates_in_combo": true,
+    "combo_size": 4,
+    "notes": "Moderate Priorisierung: ema50/roc/macd hoch; ma200/rsi mittel; atr/bollinger gut; obv/mfi leicht; adx moderat; cci/stoch reduziert, aber nicht ausgeschlossen."
+  }
+}
