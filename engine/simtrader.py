@@ -9,6 +9,8 @@ from __future__ import annotations
 import os
 from typing import Dict, Any, List
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 import pandas as pd
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
