@@ -1,6 +1,6 @@
 strategy:
-  enter_z: 2.0
-  exit_z: 0.0
+  enter_z: 0.0
+  exit_z: 1.0
   max_hold_bars: 1440
   risk:
     take_profit_pct: 0.04
