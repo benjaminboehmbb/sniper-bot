@@ -92,13 +92,15 @@ except Exception as e:
     sys.exit(2)
 
 
+DF = pd.read_csv("data/price_data_with_signals_regime.csv")
+
 def _eval_one(row):
     comb_s = row["Combination"]
     comb_d = parse_comb(str(comb_s))
     if not comb_d:
         return None
     try:
-        res = evaluate_strategy(0, comb_d, "long")
+        res = evaluate_strategy(0, comb_d, "long", df=DF)
     except Exception as e:
         return {"Combination": comb_s, "error": str(e)}
     out = {

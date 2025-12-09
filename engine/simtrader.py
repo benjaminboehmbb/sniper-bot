@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from typing import Dict, Any, List
 import numpy as np
+np.seterr(divide="ignore", invalid="ignore", over="ignore", under="ignore")
 import pandas as pd
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
