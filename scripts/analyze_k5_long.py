@@ -1,8 +1,7 @@
-# analyze_k5_short.py
-# K5 SHORT Regime analyzer (MP, batch writes, no tqdm, ASCII-only).
-# Supports --input-glob with shell-independent glob expansion (like K5-long).
-# Robust evaluator import and signature mapping (df/comb/direction/i/etc.).
-# Injects project root into sys.path for engine imports.
+# analyze_k5_long.py
+# K5 LONG Regime analyzer (MP, batch writes, no tqdm, ASCII-only).
+# Robust evaluator calling by mapping real signature param order (df/comb/direction/i/etc.).
+# Injects project root into sys.path to fix ModuleNotFoundError for engine/simtrader.
 
 import argparse
 import ast
@@ -94,7 +93,6 @@ def inject_project_root_into_syspath() -> str:
     project_root = os.path.abspath(os.path.join(scripts_dir, ".."))
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
-    print(f"[{utc_now_str()}] Repo root on sys.path: {project_root}")
     return project_root
 
 
@@ -154,6 +152,7 @@ def _call_func_by_signature(fn: Any, i: int, strategy: Dict[str, float], df: pd.
         sig = inspect.signature(fn)
         params = list(sig.parameters.values())
     except Exception:
+        # last resort
         return fn(df, strategy, side, i)
 
     args: List[Any] = []
@@ -177,6 +176,7 @@ def _call_func_by_signature(fn: Any, i: int, strategy: Dict[str, float], df: pd.
     for p in params:
         if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
             continue
+
         ok, val = map_value(p.name)
         if ok:
             if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
@@ -223,6 +223,7 @@ def _call_class_method_by_signature(meth: Any, i: int, strategy: Dict[str, float
     for p in params:
         if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
             continue
+
         ok, val = map_value(p.name)
         if ok:
             if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
@@ -246,6 +247,7 @@ def call_evaluator(evaluator: Any, evaluator_kind: str, i: int, strategy: Dict[s
     if evaluator_kind == "func":
         res = _call_func_by_signature(evaluator, i, strategy, df, side, use_regime)
         return _to_dict(res)
+
     if evaluator_kind == "class":
         st = evaluator
         for meth_name in ["evaluate_strategy", "evaluate", "run_strategy", "score_strategy"]:
@@ -254,6 +256,7 @@ def call_evaluator(evaluator: Any, evaluator_kind: str, i: int, strategy: Dict[s
                 res = _call_class_method_by_signature(meth, i, strategy, side, use_regime)
                 return _to_dict(res)
         raise RuntimeError("SimTrader instance found, but no usable evaluate method found.")
+
     raise RuntimeError(f"Unknown evaluator kind: {evaluator_kind}")
 
 
@@ -349,7 +352,7 @@ def main() -> None:
     ap.add_argument("--price-csv", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--num-procs", type=int, default=12)
-    ap.add_argument("--batch-write", type=int, default=5000)
+    ap.add_argument("--batch-write", type=int, default=10000)
     ap.add_argument("--progress-step", type=int, default=2)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--use-regime", type=int, default=1)
@@ -390,7 +393,7 @@ def main() -> None:
     pool = ctx.Pool(
         processes=args.num_procs,
         initializer=_init_worker,
-        initargs=(args.price_csv, eval_kind, eval_source, "short", int(args.use_regime)),
+        initargs=(args.price_csv, eval_kind, eval_source, "long", int(args.use_regime)),
         maxtasksperchild=2000,
     )
 
@@ -451,6 +454,7 @@ if __name__ == "__main__":
     except Exception:
         pass
     main()
+
 
 
 
