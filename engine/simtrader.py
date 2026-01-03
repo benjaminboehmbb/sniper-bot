@@ -314,14 +314,24 @@ def _eval_core(comb: Any, direction: str, df: pd.DataFrame | None = None) -> Dic
             "sharpe": float(rs["sharpe"] + rl["sharpe"]),
         }
 
+    # pnl_sum ist identisch zu roi (Summe der Trade-Returns)
     res["pnl_sum"] = float(res.get("roi", 0.0))
+
+    # sanitize numerics
     for k in ("roi", "winrate", "sharpe", "pnl_sum"):
         v = res.get(k, 0.0)
         if not isinstance(v, (int, float)) or not np.isfinite(float(v)):
             res[k] = 0.0
         else:
             res[k] = float(v)
+
     res["num_trades"] = int(res.get("num_trades", 0) or 0)
+
+    # *** NEU: avg_trade (billig, aus vorhandenen Werten) ***
+    nt = res["num_trades"]
+    ps = res["pnl_sum"]
+    res["avg_trade"] = float(ps / nt) if nt else 0.0
+
     return res
 
 
@@ -364,6 +374,7 @@ def evaluate_strategy(*args, **kwargs) -> Dict[str, Any]:
     direction = kwargs.get("direction") or kwargs.get("side") or "short"
     df = kwargs.get("df", None)
     return _eval_core(comb=comb, direction=str(direction), df=df)
+
 
 
 
