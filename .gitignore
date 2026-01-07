@@ -38,3 +38,7 @@ cache_np/
 cache_np/
 cache_np/
 *.npy
+
+# python caches
+__pycache__/
+*.pyc
