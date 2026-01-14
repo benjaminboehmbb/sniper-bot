@@ -45,3 +45,46 @@ Stand: 2026-01-XX
   - GS gilt als **invalid**
   - Alle Folgeanalysen sind **ungueltig**
 
+
+
+## Regression Gate (mandatory)
+
+**Ziel:**  
+Sicherstellen, dass `engine/simtraderGS.py` und alle Policy-/Regime-Anbindungen
+contract-treu, deterministisch und unverändert korrekt sind.
+
+**Pflicht vor JEDEM Analyse- oder Policy-Run:**
+
+```bash
+python3 tools/gs_regression_gate.py \
+  --csv data/btcusdt_1m_2026-01-07/simtraderGS/btcusdt_1m_price_2017_2025_GS_PLUS_FORWARD_WITH_SIGNALS_REGIMEV1.csv \
+  --rows 200000 \
+  --offset 0 \
+  --fee 0.0004 \
+  --regime_col regime_v1
+
+-> erwartetes ergebnis: 
+[ok] Determinism PASS
+[ok] Fee wiring PASS
+[ok] Regime gate PASS
+[ok] Policy check PASS
+[ok] GS REGRESSION GATE: ALL PASS
+
+bei FAIL sofort abbrechen!!!
+nur bei ALL PASS darf weitergearbeitet werden!!!
+
+
+## Run Guard (mandatory wrapper)
+
+Vor JEDEM Run (Policy-Runner, WF, K-Runs) wird zuerst der Run-Guard ausgeführt.
+Er kombiniert Input-Preflight + Regression-Gate und bricht bei Fehlern sofort ab.
+
+```bash
+python3 tools/gs_run_guard.py \
+  --csv data/btcusdt_1m_2026-01-07/simtraderGS/btcusdt_1m_price_2017_2025_GS_PLUS_FORWARD_WITH_SIGNALS_REGIMEV1.csv \
+  --rows 200000 \
+  --offset 0 \
+  --fee 0.0004 \
+  --require_signals rsi,macd,ma200 \
+  --regime_cols regime_v1 \
+  --regime_col regime_v1
