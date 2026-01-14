@@ -47,3 +47,26 @@ gates:
 ## Known failure modes (prevented)
 - Wrong working dir -> engine import fails. Use module form.
 - Copying shell lines into .py -> syntax errors. Keep shell separate.
+
+
+
+## 5m Baseline – Gate Pflicht (verifiziert)
+
+**Ergebnis (BTCUSDT 5m, GS, identische Strategie):**
+
+- `gate=auto` (→ `allow_long`):
+  - Trades: ~13.7k
+  - ROI: ~-7.8
+  - Winrate: ~26%
+
+- `gate=none` (kein Gate):
+  - Trades: ~36.8k
+  - ROI: ~-19.5
+  - Winrate: ~18%
+
+**Schlussfolgerung (verbindlich):**
+- Für **5m ist `gate=auto` zwingend erforderlich**
+- Das Gate reduziert Overtrading massiv und halbiert den Verlust
+- `gate=none` ist **nur für Diagnosezwecke** erlaubt
+
+**Status:** Baseline bestätigt und eingefroren.
