@@ -1,5 +1,10 @@
 # GS Runner (gs_run_with_manifest) — gs-runner-v1.0
 
+## Status
+- Version: gs-runner-v1.0
+- Status: FROZEN (Baseline, keine funktionalen Änderungen)
+- Zweck: Smoke-Runs, Gate-Validierung, Manifest-Erzeugung
+
 Tag: gs-runner-v1.0  
 Purpose: Deterministic single-eval runner for engine/simtraderGS with:
 - manifest write (inputs + derived gate stats)
