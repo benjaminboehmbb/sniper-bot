@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 # live_l1/core/loop.py
 #
-# Minimaler L1 Paper Trading Loop Skeleton (neu erstellt, robust)
+# Minimaler L1 Paper Trading Loop Skeleton (robust, mit Counter-Verdrahtung)
 #
 # Implementiert:
-# - Schritt 1: Start
-# - Schritt 2: Snapshot + Validation
-# - Schritt 3: Intent (Stub)
-# - Schritt 4: Cost/Overtrading Guards (cost_guards.py)
-# - Schritt 5: Execution Attempt (Stub)
-# - Schritt 6: State Update (S2/S4)
-# - Schritt 7: Persistenz (S2/S4)
-# - Schritt 8: Loop Delay
+# - Snapshot + Validation
+# - Intent (Stub)
+# - Cost/Overtrading Guards (cost_guards.py)
+# - Execution Attempt (Stub)
+# - State Persistenz (S2/S4)
 #
-# ASCII-only. Deterministisch in der Control-Flow-Logik.
-# Keine funktionale Aenderung an GS/Engine, nur L1-Guard-Permission Layer.
+# Counter wiring (minimal, kontrolliert):
+# - trades_today
+# - trades_6h (rolling 6h window)
+# - last_trade_ts_utc
+# - net_pnl_today_est (noch 0.0, bis echte PnL aus Execution kommt)
+#
+# ASCII-only. Deterministisch im Control-Flow.
 
 from __future__ import annotations
 
@@ -22,7 +24,9 @@ import os
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from collections import deque
+from datetime import datetime, timezone, timedelta
+from typing import Optional, Deque
 
 from live_l1.logs.logger import L1Logger
 from live_l1.io.market import DummyMarketFeed, MarketSnapshot
@@ -48,6 +52,9 @@ class RuntimeConfig:
     gate_mode: str
     fee_roundtrip: float
 
+    # Rolling window
+    trades_window_hours: int
+
 
 @dataclass
 class LiveState:
@@ -56,15 +63,18 @@ class LiveState:
     is_running: bool
     data_valid: bool
 
-    # Minimaler Guard-State
+    # Guard-State
     guard_last_reason: str
     guard_disable_until_utc: str  # ISO string or ""
 
-    # Minimaler Counter-State (TODO: spaeter real verdrahten)
+    # Counter-State
     trades_today: int
     trades_6h: int
     net_pnl_today_est: float
     last_trade_ts_utc: str  # ISO string or ""
+
+    # For daily reset
+    day_utc_yyyy_mm_dd: str
 
 
 def load_runtime_config(repo_root: str) -> RuntimeConfig:
@@ -73,9 +83,10 @@ def load_runtime_config(repo_root: str) -> RuntimeConfig:
     symbol = os.environ.get("L1_SYMBOL", "BTCUSDT")
     invalid_every = int(os.environ.get("L1_DUMMY_INVALID_EVERY", "0"))
 
-    # Guard config (Integrity)
     gate_mode = os.environ.get("L1_GATE_MODE", "auto").strip().lower()
     fee_roundtrip = float(os.environ.get("L1_FEE_ROUNDTRIP", "0.0004"))
+
+    trades_window_hours = int(os.environ.get("L1_TRADES_WINDOW_HOURS", "6"))
 
     return RuntimeConfig(
         decision_tick_seconds=tick,
@@ -86,6 +97,7 @@ def load_runtime_config(repo_root: str) -> RuntimeConfig:
         state_path_s4=os.path.join(repo_root, "live_state", "s4_risk.jsonl"),
         gate_mode=gate_mode,
         fee_roundtrip=fee_roundtrip,
+        trades_window_hours=trades_window_hours,
     )
 
 
@@ -94,11 +106,6 @@ def _now_utc() -> datetime:
 
 
 def _safe_intent_kind(intent: Intent) -> str:
-    """
-    Intent models can evolve; avoid hard dependency on a specific attribute name.
-    Return a best-effort string for logging.
-    """
-    # common candidates
     for attr in ("intent_type", "type", "action", "kind", "name"):
         if hasattr(intent, attr):
             try:
@@ -106,8 +113,61 @@ def _safe_intent_kind(intent: Intent) -> str:
                 return str(v) if v is not None else ""
             except Exception:
                 return ""
-    # fallback: class name
     return intent.__class__.__name__
+
+
+def _parse_iso_utc(ts: str) -> Optional[datetime]:
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _is_trade_executed(er: ExecutionResult) -> bool:
+    """
+    Robust heuristic: detect if execution result indicates a trade happened.
+    We avoid hard dependency on ExecutionResult schema.
+    """
+    # Preferred: attribute 'executed' or 'filled' or similar.
+    for attr in ("executed", "filled", "is_filled", "did_execute", "success"):
+        if hasattr(er, attr):
+            try:
+                v = getattr(er, attr)
+                if isinstance(v, bool):
+                    return v
+            except Exception:
+                pass
+
+    # Fallback: inspect reason string (stub uses 'paper_trading_stub_no_execution')
+    reason = ""
+    try:
+        reason = str(getattr(er, "reason", "")).lower()
+    except Exception:
+        reason = ""
+
+    if "no_execution" in reason:
+        return False
+    if "not_sent" in reason:
+        return False
+    if "executed" in reason or "filled" in reason or "fill" in reason:
+        return True
+
+    # Default conservative: assume not executed
+    return False
+
+
+def _roll_trades_window(trade_ts: Deque[datetime], now: datetime, window_hours: int) -> int:
+    cutoff = now - timedelta(hours=window_hours)
+    while trade_ts and trade_ts[0] < cutoff:
+        trade_ts.popleft()
+    return len(trade_ts)
+
+
+def _utc_day_str(ts: datetime) -> str:
+    d = ts.date()
+    return f"{d.year:04d}-{d.month:02d}-{d.day:02d}"
 
 
 def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
@@ -115,6 +175,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
     cfg = load_runtime_config(repo_root)
     log = L1Logger(cfg.log_path)
 
+    now0 = _now_utc()
     state = LiveState(
         system_state_id=system_state_id,
         kill_level="NONE",
@@ -126,7 +187,12 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
         trades_6h=0,
         net_pnl_today_est=0.0,
         last_trade_ts_utc="",
+        day_utc_yyyy_mm_dd=_utc_day_str(now0),
     )
+
+    # Rolling trade timestamps for trades_6h
+    trade_ts_window: Deque[datetime] = deque()
+
     feed = DummyMarketFeed(symbol=cfg.symbol, invalid_every=cfg.invalid_every)
 
     log.log(
@@ -140,6 +206,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
             "symbol": cfg.symbol,
             "gate_mode": cfg.gate_mode,
             "fee_roundtrip": cfg.fee_roundtrip,
+            "trades_window_hours": cfg.trades_window_hours,
         },
     )
 
@@ -147,6 +214,23 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
     try:
         while state.is_running and ticks < max_ticks:
             ticks += 1
+            now = _now_utc()
+
+            # Daily reset
+            day_str = _utc_day_str(now)
+            if day_str != state.day_utc_yyyy_mm_dd:
+                state.day_utc_yyyy_mm_dd = day_str
+                state.trades_today = 0
+                state.net_pnl_today_est = 0.0
+                state.last_trade_ts_utc = ""
+                # Keep rolling window timestamps, they are time-based anyway.
+                log.log(
+                    category="L6",
+                    event="daily_reset",
+                    severity="INFO",
+                    system_state_id=state.system_state_id,
+                    fields={"day_utc": state.day_utc_yyyy_mm_dd},
+                )
 
             # Step 2: Snapshot + Validation
             snap: MarketSnapshot = feed.next_snapshot()
@@ -168,7 +252,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
             )
 
             # Step 3: Intent (Stub)
-            intent: Intent | None = None
+            intent: Optional[Intent] = None
             if state.data_valid:
                 intent = make_hold_intent()
                 log.log(
@@ -183,16 +267,13 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     },
                 )
 
-            # Step 4: Cost/Overtrading Guards (entry gating)
-            last_trade_dt = None
-            if state.last_trade_ts_utc:
-                try:
-                    last_trade_dt = datetime.fromisoformat(state.last_trade_ts_utc.replace("Z", "+00:00"))
-                except Exception:
-                    last_trade_dt = None
+            # Update rolling trades_6h before guard evaluation
+            state.trades_6h = _roll_trades_window(trade_ts_window, now, cfg.trades_window_hours)
 
+            # Step 4: Guards
+            last_trade_dt = _parse_iso_utc(state.last_trade_ts_utc)
             gm = GuardMetrics(
-                now_utc=_now_utc(),
+                now_utc=now,
                 trades_today=state.trades_today,
                 trades_6h=state.trades_6h,
                 net_pnl_today_est=state.net_pnl_today_est,
@@ -221,22 +302,36 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     },
                 )
 
-            # Step 5: Execution Attempt (Stub)
+            # Step 5: Execution Attempt
             if gd.allow_entry and intent is not None:
                 er: ExecutionResult = attempt_execution(intent)
+                executed = _is_trade_executed(er)
+
                 log.log(
                     category="L5",
-                    event="order_not_sent",
+                    event=("order_executed" if executed else "order_not_sent"),
                     severity="INFO",
                     system_state_id=state.system_state_id,
                     intent_id=getattr(intent, "intent_id", ""),
-                    fields={"reason": er.reason},
+                    fields={"reason": getattr(er, "reason", ""), "executed": executed},
                 )
-                # TODO: When real execution is implemented:
-                # - if a trade actually happens, update:
-                #   state.trades_today += 1
-                #   state.trades_6h += 1 (or a rolling window counter)
-                #   state.last_trade_ts_utc = _now_utc().isoformat()
+
+                if executed:
+                    # Update counters
+                    state.trades_today += 1
+                    trade_ts_window.append(now)
+                    state.trades_6h = _roll_trades_window(trade_ts_window, now, cfg.trades_window_hours)
+                    state.last_trade_ts_utc = now.isoformat()
+
+                    # net_pnl_today_est update only if ExecutionResult provides something explicit
+                    for attr in ("pnl_net", "pnl", "net_pnl", "pnl_est"):
+                        if hasattr(er, attr):
+                            try:
+                                v = float(getattr(er, attr))
+                                state.net_pnl_today_est += v
+                                break
+                            except Exception:
+                                pass
 
             # Step 6: State Update (S2/S4)
             s2 = PositionStateS2(symbol=cfg.symbol, position="FLAT", size=0.0, entry_price=None)
@@ -251,6 +346,8 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     "s2": "FLAT",
                     "s4_kill_level": state.kill_level,
                     "guard_reason": state.guard_last_reason,
+                    "trades_today": state.trades_today,
+                    "trades_6h": state.trades_6h,
                 },
             )
 
@@ -275,6 +372,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     "trades_6h": state.trades_6h,
                     "net_pnl_today_est": state.net_pnl_today_est,
                     "last_trade_ts_utc": state.last_trade_ts_utc,
+                    "day_utc": state.day_utc_yyyy_mm_dd,
                 },
             )
             log.log(
@@ -306,6 +404,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
 
     finally:
         log.close()
+
 
 
 
