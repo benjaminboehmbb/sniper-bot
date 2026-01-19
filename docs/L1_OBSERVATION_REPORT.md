@@ -31,3 +31,39 @@ Result:
 Observation closed: PASSED (clean).
 Runtime: 2026-01-11T15:53:18Z → 2026-01-13T23:29:16Z
 Ticks: 199447 | WARN=0 | ERROR=0 | Stop: external
+
+
+## L1 Paper-Run – 60h Stabilitätslauf
+
+System-State-ID: L1P-c795fa377387  
+Symbol: BTCUSDT  
+Modus: Paper-Trading  
+Decision Tick: 1.0 s  
+Trades Window: 6 h  
+
+Start:
+2026-01-16T10:26:43Z — event=system_start
+
+Stop:
+2026-01-19T03:37:53Z — event=system_stop  
+Stop-Grund: max_ticks_reached
+
+Geplante Dauer: 60 Stunden  
+Erreichte Ticks: 216000  
+
+Finaler Tick:
+2026-01-19T03:37:52Z — tick=216000
+
+Fehler:
+ERROR COUNT = 0
+
+Beobachtungen:
+- Loop lief durchgehend ohne Unterbrechung
+- Keine Restarts, keine Hänger, kein Drift
+- Guard-State durchgehend OK
+- State-Persistenz stabil (s2_position, s4_risk)
+- Deterministischer Abbruch über max_ticks
+
+Bewertung:
+Dieser Run bestätigt die Multi-Day-Stabilität des L1-Core-Loops.
+Keine Aussage über Trading-Qualität oder Signalpfade.
