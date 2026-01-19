@@ -1,0 +1,3 @@
+seed_id,comb_json
+C01_rsi_stoch_06,"{'rsi': 0.6, 'stoch': 0.6}"
+C02_rsi_stoch_08,"{'rsi': 0.8, 'stoch': 0.8}"

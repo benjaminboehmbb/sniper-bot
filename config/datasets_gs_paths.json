@@ -1,0 +1,6 @@
+{
+  "btcusdt": {
+    "1m": "data/btcusdt_1m_2026-01-07/simtraderGS/btcusdt_1m_price_2017_2025_GS_PLUS_FORWARD_WITH_SIGNALS_REGIMEV1_ASYMGATE.csv",
+    "5m": "archive/POST_GS_5m_2026-01-14/btcusdt_5m_2026-01-07/simtraderGS/btcusdt_5m_price_2017_2025_GS_FROM_1m_WITH_SIGNALS_REGIMEV1_ASYMGATE.csv"
+  }
+}

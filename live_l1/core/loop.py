@@ -32,6 +32,7 @@ from live_l1.logs.logger import L1Logger
 from live_l1.io.market import DummyMarketFeed, MarketSnapshot
 from live_l1.io.validate import validate_snapshot, ValidationResult
 from live_l1.core.intent import make_hold_intent, Intent
+from live_l1.core.intent_fusion import TimingVote, merge_intent_with_5m_vote
 from live_l1.core.execution import attempt_execution, ExecutionResult
 from live_l1.state.models import PositionStateS2, RiskStateS4
 from live_l1.state.persist import _atomic_append_jsonl
@@ -253,6 +254,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
 
             # Step 3: Intent (Stub)
             intent: Optional[Intent] = None
+            fusion = None  # set when data_valid and intent exists
             if state.data_valid:
                 intent = make_hold_intent()
                 log.log(
@@ -264,6 +266,45 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     fields={
                         "snapshot_id": snap.snapshot_id,
                         "intent_kind": _safe_intent_kind(intent),
+                    },
+                )
+
+                # Step 3b: Intent Fusion (LOG-ONLY, stubbed 5m vote)
+                # - No dataflow/aggregation yet
+                # - No execution change yet
+                kind = _safe_intent_kind(intent)
+                kind_u = kind.upper()
+                if "BUY" in kind_u:
+                    intent_1m_raw = "BUY"
+                elif "SELL" in kind_u:
+                    intent_1m_raw = "SELL"
+                else:
+                    intent_1m_raw = "HOLD"
+
+                timing_vote = TimingVote(direction="none", strength=0.0, seed_id=None)
+                fusion = merge_intent_with_5m_vote(
+                    intent_1m_raw=intent_1m_raw,
+                    vote=timing_vote,
+                    allow_long=1,
+                    allow_short=1,
+                    thresh=0.60,
+                )
+                log.log(
+                    category="L3",
+                    event="intent_fused",
+                    severity="INFO",
+                    system_state_id=state.system_state_id,
+                    intent_id=getattr(intent, "intent_id", ""),
+                    fields={
+                        "intent_1m_raw": fusion.intent_1m_raw,
+                        "intent_final": fusion.intent_final,
+                        "reason_code": fusion.reason_code,
+                        "vote_5m_direction": fusion.vote_5m_direction,
+                        "vote_5m_strength": fusion.vote_5m_strength,
+                        "vote_5m_seed_id": fusion.vote_5m_seed_id,
+                        "allow_long": fusion.allow_long,
+                        "allow_short": fusion.allow_short,
+                        "thresh": fusion.thresh,
                     },
                 )
 
@@ -303,9 +344,23 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 )
 
             # Step 5: Execution Attempt
-            if gd.allow_entry and intent is not None:
+            if gd.allow_entry and intent is not None and fusion is not None:
                 er: ExecutionResult = attempt_execution(intent)
                 executed = _is_trade_executed(er)
+
+                # LOG-ONLY: execution context (fusion)
+                log.log(
+                    category="L5",
+                    event="execution_context",
+                    severity="INFO",
+                    system_state_id=state.system_state_id,
+                    intent_id=getattr(intent, "intent_id", ""),
+                    fields={
+                        "intent_1m_raw": getattr(fusion, "intent_1m_raw", ""),
+                        "intent_final": getattr(fusion, "intent_final", ""),
+                        "reason_code": getattr(fusion, "reason_code", ""),
+                    },
+                )
 
                 log.log(
                     category="L5",
