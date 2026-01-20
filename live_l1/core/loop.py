@@ -2,6 +2,7 @@
 # live_l1/core/loop.py
 #
 # L1 core loop with 5m timing vote fusion + optional forced 1m intents for L1-C validation.
+# L1-D: optional v2 shadow timing (compare logging only; no behavior change).
 # ASCII-only.
 
 from __future__ import annotations
@@ -9,16 +10,22 @@ from __future__ import annotations
 import os
 import time
 import uuid
+import csv
+import ast
 from dataclasses import dataclass
 from collections import deque
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Deque
+from typing import Optional, Deque, Tuple, List, Dict, Any
 
 from live_l1.logs.logger import L1Logger
 from live_l1.io.market import DummyMarketFeed, MarketSnapshot
 from live_l1.io.validate import validate_snapshot, ValidationResult
 from live_l1.core.intent import make_hold_intent, Intent
-from live_l1.core.intent_fusion import merge_intent_with_5m_vote
+from live_l1.core.intent_fusion import (
+    merge_intent_with_5m_vote,
+    format_timing_compare_log,
+    TimingVote as FusionTimingVote,
+)
 from live_l1.core.execution import attempt_execution, ExecutionResult
 from live_l1.state.models import PositionStateS2, RiskStateS4
 from live_l1.state.persist import _atomic_append_jsonl
@@ -40,9 +47,13 @@ class RuntimeConfig:
     fee_roundtrip: float
     trades_window_hours: int
 
-    # 5m vote config
+    # 5m vote config (v1 seeds)
     seeds_5m_csv: str
     thresh_5m: float
+
+    # L1-D shadow (v2)
+    timing_v2_shadow: bool
+    timing_v2_history_len: int
 
     # L1-C test mode
     test_force_intents: bool
@@ -116,6 +127,10 @@ def load_runtime_config(repo_root: str) -> RuntimeConfig:
     # Threshold: allow both names; CLI will set THRESH_5M
     thresh_5m = _env_float("THRESH_5M", _env_float("L1_5M_THRESH", 0.60))
 
+    # L1-D shadow timing v2
+    timing_v2_shadow = _env_bool01("L1_TIMING_V2_SHADOW", 1)
+    timing_v2_history_len = _env_int("L1_TIMING_V2_HISTORY_LEN", 3)
+
     # Test forcing
     test_force_intents = _env_bool01("L1_TEST_FORCE_INTENTS", 0)
     test_force_buy_every = _env_int("L1_TEST_FORCE_BUY_EVERY", 10)
@@ -135,6 +150,8 @@ def load_runtime_config(repo_root: str) -> RuntimeConfig:
         trades_window_hours=trades_window_hours,
         seeds_5m_csv=seeds_5m_csv,
         thresh_5m=thresh_5m,
+        timing_v2_shadow=timing_v2_shadow,
+        timing_v2_history_len=timing_v2_history_len,
         test_force_intents=test_force_intents,
         test_force_buy_every=test_force_buy_every,
         test_force_sell_every=test_force_sell_every,
@@ -221,6 +238,100 @@ def _compute_forced_intent_1m_raw(cfg: RuntimeConfig, tick_id: int) -> Tuple[str
     return "HOLD", 0
 
 
+def _infer_default_dir_from_path(path_csv: str) -> str:
+    p = (path_csv or "").lower()
+    if "short" in p:
+        return "short"
+    if "long" in p:
+        return "long"
+    return "long"
+
+
+def _load_v2_seeds_from_csv(path_csv: str) -> List[Any]:
+    """
+    Load v1-style seed CSV (seed_id, comb_json) into timing_5m_v2.GSSpec list.
+
+    v2 expects direction per seed. We support:
+      - comb_json contains 'dir' (preferred)
+      - if missing, infer default from filename (long/short) and use that
+    """
+    seeds: List[Any] = []
+    try:
+        from live_l1.core.timing_5m_v2 import GSSpec
+    except Exception:
+        return seeds
+
+    default_dir = _infer_default_dir_from_path(path_csv)
+
+    try:
+        with open(path_csv, "r", newline="", encoding="utf-8") as f:
+            r = csv.DictReader(f)
+            for row in r:
+                seed_id = str(row.get("seed_id", "")).strip()
+                comb_raw = row.get("comb_json", "")
+                if not seed_id or not comb_raw:
+                    continue
+
+                try:
+                    comb = ast.literal_eval(comb_raw)
+                except Exception:
+                    continue
+
+                if not isinstance(comb, dict):
+                    continue
+
+                d = str(comb.get("dir", "")).strip().lower()
+                if d not in ("long", "short"):
+                    d = default_dir
+
+                weights: Dict[str, float] = {}
+                for k, v in comb.items():
+                    if k == "dir":
+                        continue
+                    try:
+                        weights[str(k)] = float(v)
+                    except Exception:
+                        continue
+
+                seeds.append(GSSpec(seed_id=seed_id, direction=d, weights=weights))
+    except Exception:
+        return []
+
+    return seeds
+
+
+def _build_5m_candles_from_prices(prices_1m: Deque[float], candles_5m: Deque[Any]) -> None:
+    """
+    Deterministic dummy aggregation:
+      - every 5 ticks -> one 5m candle
+      - volume is synthetic (count of points)
+    """
+    if len(prices_1m) < 5:
+        return
+
+    try:
+        from live_l1.core.timing_5m_v2 import Candle5m
+    except Exception:
+        return
+
+    chunk: List[float] = []
+    for _ in range(5):
+        if prices_1m:
+            chunk.append(prices_1m.popleft())
+
+    if len(chunk) != 5:
+        return
+
+    o = chunk[0]
+    c = chunk[-1]
+    h = max(chunk)
+    l = min(chunk)
+    vol = float(len(chunk))
+    ts_open_utc = _now_utc().isoformat()
+
+    candles_5m.append(Candle5m(ts_open_utc=ts_open_utc, open=o, high=h, low=l, close=c, volume=vol))
+
+
 def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
     system_state_id = f"L1P-{uuid.uuid4().hex[:11]}"
     cfg = load_runtime_config(repo_root)
@@ -244,6 +355,27 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
     trade_ts_window: Deque[datetime] = deque()
     feed = DummyMarketFeed(symbol=cfg.symbol, invalid_every=cfg.invalid_every)
 
+    # Shadow v2 state
+    v2_seeds: List[Any] = []
+    prices_1m_buf: Deque[float] = deque()
+    candles_5m_buf: Deque[Any] = deque(maxlen=64)
+
+    if cfg.timing_v2_shadow:
+        v2_seeds = _load_v2_seeds_from_csv(cfg.seeds_5m_csv)
+        log.log(
+            category="L1",
+            event="timing_v2_shadow_init",
+            severity=("INFO" if len(v2_seeds) > 0 else "WARN"),
+            system_state_id=state.system_state_id,
+            fields={
+                "enabled": 1,
+                "seeds_csv": cfg.seeds_5m_csv,
+                "num_seeds_loaded": len(v2_seeds),
+                "history_len": cfg.timing_v2_history_len,
+                "default_dir": _infer_default_dir_from_path(cfg.seeds_5m_csv),
+            },
+        )
+
     log.log(
         category="L1",
         event="system_start",
@@ -258,6 +390,8 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
             "trades_window_hours": cfg.trades_window_hours,
             "seeds_5m_csv": cfg.seeds_5m_csv,
             "thresh_5m": cfg.thresh_5m,
+            "timing_v2_shadow": int(cfg.timing_v2_shadow),
+            "timing_v2_history_len": cfg.timing_v2_history_len,
             "test_force_intents": int(cfg.test_force_intents),
             "test_force_buy_every": cfg.test_force_buy_every,
             "test_force_sell_every": cfg.test_force_sell_every,
@@ -295,6 +429,17 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 system_state_id=state.system_state_id,
                 fields={"snapshot_id": snap.snapshot_id, "price": snap.price},
             )
+
+            # Shadow aggregation buffer
+            try:
+                prices_1m_buf.append(float(snap.price))
+            except Exception:
+                pass
+
+            # Every 5 ticks build a synthetic 5m candle
+            if cfg.timing_v2_shadow and len(prices_1m_buf) >= 5:
+                _build_5m_candles_from_prices(prices_1m_buf, candles_5m_buf)
+
             vr: ValidationResult = validate_snapshot(snap)
             state.data_valid = bool(vr.data_valid)
             log.log(
@@ -316,10 +461,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     severity="INFO",
                     system_state_id=state.system_state_id,
                     intent_id=getattr(intent, "intent_id", ""),
-                    fields={
-                        "snapshot_id": snap.snapshot_id,
-                        "intent_kind": _safe_intent_kind(intent),
-                    },
+                    fields={"snapshot_id": snap.snapshot_id, "intent_kind": _safe_intent_kind(intent)},
                 )
 
                 # Derive raw intent (default HOLD)
@@ -336,23 +478,52 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 if is_forced:
                     intent_1m_raw = forced_intent
 
-                # 5m vote (IMPORTANT: correct signature)
+                # 5m vote v1 (authoritative)
                 from live_l1.core.timing_5m import compute_5m_timing_vote
 
-                timing_vote = compute_5m_timing_vote(
+                timing_vote_v1 = compute_5m_timing_vote(
                     repo_root=cfg.repo_root,
                     symbol=cfg.symbol,
                     seeds_csv=cfg.seeds_5m_csv,
                     now_utc=now.isoformat(),
                 )
 
-                # Fusion
+                # 5m vote v2 (shadow only)
+                shadow_vote: Optional[FusionTimingVote] = None
+                if (
+                    cfg.timing_v2_shadow
+                    and len(v2_seeds) > 0
+                    and len(candles_5m_buf) >= max(1, cfg.timing_v2_history_len)
+                ):
+                    try:
+                        from live_l1.core.timing_5m_v2 import compute_5m_timing_vote_v2
+                        v2_vote = compute_5m_timing_vote_v2(
+                            repo_root=cfg.repo_root,
+                            symbol=cfg.symbol,
+                            now_utc=now.isoformat(),
+                            candles_5m=list(candles_5m_buf),
+                            seeds=v2_seeds,
+                            thresh=cfg.thresh_5m,
+                            history_len=cfg.timing_v2_history_len,
+                            dynamic_thresh=True,
+                        )
+                        shadow_vote = FusionTimingVote(
+                            direction=v2_vote.direction,
+                            strength=float(v2_vote.strength),
+                            seed_id=v2_vote.seed_id,
+                        )
+                    except Exception:
+                        shadow_vote = None
+
+                # Fusion (v1 authoritative; v2 shadow only)
                 fusion = merge_intent_with_5m_vote(
                     intent_1m_raw=intent_1m_raw,
-                    vote=timing_vote,
+                    vote=timing_vote_v1,
                     allow_long=1,
                     allow_short=1,
                     thresh=cfg.thresh_5m,
+                    shadow_vote=shadow_vote,
+                    shadow_tag="v2",
                 )
 
                 log.log(
@@ -372,8 +543,31 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                         "allow_short": fusion.allow_short,
                         "thresh": fusion.thresh,
                         "test_forced_intent": is_forced,
+                        "timing_v2_shadow": int(cfg.timing_v2_shadow),
                     },
                 )
+
+                # Shadow compare log event (no behavior impact)
+                if cfg.timing_v2_shadow and shadow_vote is not None:
+                    compare_line = format_timing_compare_log(fusion)
+                    log.log(
+                        category="L3",
+                        event="timing_compare",
+                        severity="INFO",
+                        system_state_id=state.system_state_id,
+                        intent_id=getattr(intent, "intent_id", ""),
+                        fields={
+                            "compare": compare_line,
+                            "v1_dir": fusion.vote_5m_direction,
+                            "v1_strength": fusion.vote_5m_strength,
+                            "v1_seed_id": fusion.vote_5m_seed_id,
+                            "v2_dir": fusion.shadow_vote_direction,
+                            "v2_strength": fusion.shadow_vote_strength,
+                            "v2_seed_id": fusion.shadow_vote_seed_id,
+                            "v2_history_len": cfg.timing_v2_history_len,
+                            "candles_5m_buf_len": len(candles_5m_buf),
+                        },
+                    )
 
             # Rolling trades window
             state.trades_6h = _roll_trades_window(trade_ts_window, now, cfg.trades_window_hours)
@@ -397,13 +591,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 log.log(
                     category="L4",
                     event="guard_state_change",
-                    severity=(
-                        "ERROR"
-                        if gd.reason in ("FEE_CONFIG_MISMATCH", "GATE_MODE_NOT_AUTO")
-                        else "WARN"
-                        if gd.reason != "OK"
-                        else "INFO"
-                    ),
+                    severity=("ERROR" if gd.reason in ("FEE_CONFIG_MISMATCH", "GATE_MODE_NOT_AUTO") else "WARN" if gd.reason != "OK" else "INFO"),
                     system_state_id=state.system_state_id,
                     fields={
                         "guard_reason": gd.reason,
@@ -477,12 +665,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
 
             _atomic_append_jsonl(
                 cfg.state_path_s2,
-                {
-                    "system_state_id": system_state_id,
-                    "symbol": s2.symbol,
-                    "position": s2.position,
-                    "size": s2.size,
-                },
+                {"system_state_id": system_state_id, "symbol": s2.symbol, "position": s2.position, "size": s2.size},
             )
             _atomic_append_jsonl(
                 cfg.state_path_s4,
@@ -528,6 +711,8 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
 
     finally:
         log.close()
+
+
 
 
 
