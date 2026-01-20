@@ -1,7 +1,7 @@
 # live_l1/core/timing_5m_v2.py
 #
 # L1-D: 5m Timing Core v2
-# Step 3: History-based candle evaluation (last N candles).
+# Step 4: Trend vs. Mean-Reversion scoring on last N candles.
 #
 # No execution.
 # No side effects.
@@ -15,10 +15,6 @@ from dataclasses import dataclass
 
 VoteDir = Literal["long", "short", "none"]
 
-
-# ----------------------------
-# Data Structures
-# ----------------------------
 
 @dataclass(frozen=True)
 class TimingVote:
@@ -44,10 +40,6 @@ class GSSpec:
     weights: Dict[str, float]
 
 
-# ----------------------------
-# Core API
-# ----------------------------
-
 def compute_5m_timing_vote_v2(
     repo_root: str,
     symbol: str,
@@ -61,7 +53,6 @@ def compute_5m_timing_vote_v2(
     if not candles_5m or not seeds:
         return TimingVote(direction="none", strength=0.0, seed_id=None)
 
-    # Use only last N candles
     if history_len < 1:
         history_len = 1
 
@@ -69,7 +60,6 @@ def compute_5m_timing_vote_v2(
 
     best_long_score: float = 0.0
     best_short_score: float = 0.0
-
     best_long_seed: Optional[str] = None
     best_short_seed: Optional[str] = None
 
@@ -80,13 +70,11 @@ def compute_5m_timing_vote_v2(
             if score > best_long_score:
                 best_long_score = score
                 best_long_seed = seed.seed_id
-
         elif seed.direction == "short":
             if score > best_short_score:
                 best_short_score = score
                 best_short_seed = seed.seed_id
 
-    # Decide
     if best_long_score < thresh and best_short_score < thresh:
         return TimingVote(direction="none", strength=max(best_long_score, best_short_score), seed_id=None)
 
@@ -99,56 +87,87 @@ def compute_5m_timing_vote_v2(
     return TimingVote(direction="none", strength=max(best_long_score, best_short_score), seed_id=None)
 
 
-# ----------------------------
-# Seed Evaluation v3 (history-based)
-# ----------------------------
-
 def _evaluate_seed_on_window(seed: GSSpec, window: List[Candle5m]) -> float:
     """
-    History-based scoring on last N 5m candles.
+    Trend vs mean-reversion on last N candles.
 
-    Logic:
-        - base_weight = sum(abs(weights))
-        - for each candle:
-            +1 if close > open
-            -1 if close < open
-             0 if equal
-        - avg_signal = mean(candle_signals)
-        - raw_score = base_weight * avg_signal
-        - final_score = clamp(abs(raw_score), 0, 1)
+    We compute two components:
+      - trend_strength: fraction of candles in direction of majority (0..1)
+      - reversal_strength: 1 if last candle is opposite to majority else 0
+
+    Then we combine into a single score using seed weights:
+      - if seed contains key "trend": use it as weight for trend component
+      - if seed contains key "reversal": use it as weight for reversal component
+      - otherwise fall back to sum(abs(weights)) as base weight
+
+    This is still a placeholder model, but now it distinguishes trend vs reversal.
     """
 
-    if not seed.weights or not window:
+    if not window:
         return 0.0
 
-    base_weight = 0.0
-    for _, w in seed.weights.items():
-        try:
-            base_weight += abs(float(w))
-        except Exception:
-            continue
-
-    if base_weight <= 0.0:
-        return 0.0
-
-    # Aggregate candle signals
-    s = 0.0
+    # Determine candle signs: +1 bull, -1 bear, 0 flat
+    signs: List[int] = []
     for c in window:
         if c.close > c.open:
-            s += 1.0
+            signs.append(1)
         elif c.close < c.open:
-            s -= 1.0
+            signs.append(-1)
         else:
-            s += 0.0
+            signs.append(0)
 
-    avg_signal = s / float(len(window))
+    # Majority direction (ignore zeros)
+    pos = sum(1 for s in signs if s == 1)
+    neg = sum(1 for s in signs if s == -1)
 
-    raw_score = base_weight * avg_signal
+    if pos == 0 and neg == 0:
+        majority = 0
+    elif pos >= neg:
+        majority = 1
+    else:
+        majority = -1
 
-    score = abs(raw_score)
-    if score > 1.0:
-        score = 1.0
+    # Trend strength: fraction aligned with majority, ignoring zeros
+    denom = pos + neg
+    if denom == 0 or majority == 0:
+        trend_strength = 0.0
+    else:
+        aligned = pos if majority == 1 else neg
+        trend_strength = aligned / float(denom)
 
-    return float(score)
+    # Reversal strength: last candle opposite to majority
+    last = signs[-1]
+    if majority != 0 and last != 0 and last == -majority:
+        reversal_strength = 1.0
+    else:
+        reversal_strength = 0.0
+
+    # Base weights
+    w_trend = float(seed.weights.get("trend", 0.0)) if seed.weights else 0.0
+    w_reversal = float(seed.weights.get("reversal", 0.0)) if seed.weights else 0.0
+
+    if w_trend == 0.0 and w_reversal == 0.0:
+        # fallback: sum abs weights
+        base = 0.0
+        if seed.weights:
+            for _, w in seed.weights.items():
+                try:
+                    base += abs(float(w))
+                except Exception:
+                    continue
+        # Use base as trend weight (conservative)
+        w_trend = base
+        w_reversal = 0.0
+
+    raw = abs(w_trend) * trend_strength + abs(w_reversal) * reversal_strength
+
+    # Normalize to [0,1]
+    if raw > 1.0:
+        raw = 1.0
+    if raw < 0.0:
+        raw = 0.0
+
+    return float(raw)
+
 
 
