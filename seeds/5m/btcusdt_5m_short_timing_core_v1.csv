@@ -1,6 +1,6 @@
 seed_id,comb_json
-C01_rsi_stoch_06,"{'rsi': 0.6, 'stoch': 0.6}"
-C02_rsi_mfi_06,"{'rsi': 0.6, 'mfi': 0.6}"
-C03_rsi_stoch_08,"{'rsi': 0.8, 'stoch': 0.8}"
-C04_rsi_mfi_08,"{'rsi': 0.8, 'mfi': 0.8}"
-C05_stoch_mfi_06,"{'stoch': 0.6, 'mfi': 0.6}"
+C01_rsi_stoch_06,"{'dir': 'short', 'rsi': 0.6, 'stoch': 0.6}"
+C02_rsi_mfi_06,"{'dir': 'short', 'rsi': 0.6, 'mfi': 0.6}"
+C03_rsi_stoch_08,"{'dir': 'short', 'rsi': 0.8, 'stoch': 0.8}"
+C04_rsi_mfi_08,"{'dir': 'short', 'rsi': 0.8, 'mfi': 0.8}"
+C05_stoch_mfi_06,"{'dir': 'short', 'stoch': 0.6, 'mfi': 0.6}"

@@ -1,22 +1,8 @@
 #!/usr/bin/env python3
 # live_l1/core/loop.py
 #
-# Minimaler L1 Paper Trading Loop Skeleton (robust, mit Counter-Verdrahtung)
-#
-# Implementiert:
-# - Snapshot + Validation
-# - Intent (Stub)
-# - Cost/Overtrading Guards (cost_guards.py)
-# - Execution Attempt (Stub)
-# - State Persistenz (S2/S4)
-#
-# Counter wiring (minimal, kontrolliert):
-# - trades_today
-# - trades_6h (rolling 6h window)
-# - last_trade_ts_utc
-# - net_pnl_today_est (noch 0.0, bis echte PnL aus Execution kommt)
-#
-# ASCII-only. Deterministisch im Control-Flow.
+# L1 core loop with 5m timing vote fusion + optional forced 1m intents for L1-C validation.
+# ASCII-only.
 
 from __future__ import annotations
 
@@ -32,29 +18,37 @@ from live_l1.logs.logger import L1Logger
 from live_l1.io.market import DummyMarketFeed, MarketSnapshot
 from live_l1.io.validate import validate_snapshot, ValidationResult
 from live_l1.core.intent import make_hold_intent, Intent
-from live_l1.core.intent_fusion import TimingVote, merge_intent_with_5m_vote
+from live_l1.core.intent_fusion import merge_intent_with_5m_vote
 from live_l1.core.execution import attempt_execution, ExecutionResult
 from live_l1.state.models import PositionStateS2, RiskStateS4
 from live_l1.state.persist import _atomic_append_jsonl
-
 from live_l1.guards.cost_guards import GuardMetrics, evaluate_cost_guards
 
 
 @dataclass(frozen=True)
 class RuntimeConfig:
+    repo_root: str
     decision_tick_seconds: float
     log_path: str
     symbol: str
     invalid_every: int
+
     state_path_s2: str
     state_path_s4: str
 
-    # Guard-relevante config (Integrity)
     gate_mode: str
     fee_roundtrip: float
-
-    # Rolling window
     trades_window_hours: int
+
+    # 5m vote config
+    seeds_5m_csv: str
+    thresh_5m: float
+
+    # L1-C test mode
+    test_force_intents: bool
+    test_force_buy_every: int
+    test_force_sell_every: int
+    test_force_warmup_ticks: int
 
 
 @dataclass
@@ -64,32 +58,72 @@ class LiveState:
     is_running: bool
     data_valid: bool
 
-    # Guard-State
     guard_last_reason: str
-    guard_disable_until_utc: str  # ISO string or ""
+    guard_disable_until_utc: str
 
-    # Counter-State
     trades_today: int
     trades_6h: int
     net_pnl_today_est: float
-    last_trade_ts_utc: str  # ISO string or ""
+    last_trade_ts_utc: str
 
-    # For daily reset
     day_utc_yyyy_mm_dd: str
 
 
+def _env_float(name: str, default: float) -> float:
+    v = os.environ.get(name, "")
+    try:
+        return float(v) if v else float(default)
+    except Exception:
+        return float(default)
+
+
+def _env_int(name: str, default: int) -> int:
+    v = os.environ.get(name, "")
+    try:
+        return int(v) if v else int(default)
+    except Exception:
+        return int(default)
+
+
+def _env_str(name: str, default: str) -> str:
+    v = os.environ.get(name, "")
+    return v if v else default
+
+
+def _env_bool01(name: str, default: int = 0) -> bool:
+    v = os.environ.get(name, "")
+    if v == "":
+        return bool(default)
+    return v.strip() == "1"
+
+
 def load_runtime_config(repo_root: str) -> RuntimeConfig:
-    tick = float(os.environ.get("L1_DECISION_TICK_SECONDS", "1.0"))
-    log_path = os.environ.get("L1_LOG_PATH", os.path.join(repo_root, "live_logs", "l1_paper.log"))
-    symbol = os.environ.get("L1_SYMBOL", "BTCUSDT")
-    invalid_every = int(os.environ.get("L1_DUMMY_INVALID_EVERY", "0"))
+    tick = _env_float("L1_DECISION_TICK_SECONDS", 1.0)
+    log_path = _env_str("L1_LOG_PATH", os.path.join(repo_root, "live_logs", "l1_paper.log"))
+    symbol = _env_str("L1_SYMBOL", "BTCUSDT")
+    invalid_every = _env_int("L1_DUMMY_INVALID_EVERY", 0)
 
-    gate_mode = os.environ.get("L1_GATE_MODE", "auto").strip().lower()
-    fee_roundtrip = float(os.environ.get("L1_FEE_ROUNDTRIP", "0.0004"))
+    gate_mode = _env_str("L1_GATE_MODE", "auto").strip().lower()
+    fee_roundtrip = _env_float("L1_FEE_ROUNDTRIP", 0.0004)
+    trades_window_hours = _env_int("L1_TRADES_WINDOW_HOURS", 6)
 
-    trades_window_hours = int(os.environ.get("L1_TRADES_WINDOW_HOURS", "6"))
+    # Seeds: allow both names; CLI will set SEEDS_5M_CSV
+    seeds_5m_csv = _env_str(
+        "SEEDS_5M_CSV",
+        _env_str("L1_5M_SEEDS_CSV", "seeds/5m/btcusdt_5m_long_timing_core_v1.csv"),
+    )
+
+    # Threshold: allow both names; CLI will set THRESH_5M
+    thresh_5m = _env_float("THRESH_5M", _env_float("L1_5M_THRESH", 0.60))
+
+    # Test forcing
+    test_force_intents = _env_bool01("L1_TEST_FORCE_INTENTS", 0)
+    test_force_buy_every = _env_int("L1_TEST_FORCE_BUY_EVERY", 10)
+    test_force_sell_every = _env_int("L1_TEST_FORCE_SELL_EVERY", 15)
+    test_force_warmup_ticks = _env_int("L1_TEST_FORCE_WARMUP_TICKS", 0)
 
     return RuntimeConfig(
+        repo_root=repo_root,
         decision_tick_seconds=tick,
         log_path=log_path,
         symbol=symbol,
@@ -99,11 +133,31 @@ def load_runtime_config(repo_root: str) -> RuntimeConfig:
         gate_mode=gate_mode,
         fee_roundtrip=fee_roundtrip,
         trades_window_hours=trades_window_hours,
+        seeds_5m_csv=seeds_5m_csv,
+        thresh_5m=thresh_5m,
+        test_force_intents=test_force_intents,
+        test_force_buy_every=test_force_buy_every,
+        test_force_sell_every=test_force_sell_every,
+        test_force_warmup_ticks=test_force_warmup_ticks,
     )
 
 
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _utc_day_str(ts: datetime) -> str:
+    d = ts.date()
+    return f"{d.year:04d}-{d.month:02d}-{d.day:02d}"
+
+
+def _parse_iso_utc(ts: str) -> Optional[datetime]:
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return None
 
 
 def _safe_intent_kind(intent: Intent) -> str:
@@ -117,21 +171,7 @@ def _safe_intent_kind(intent: Intent) -> str:
     return intent.__class__.__name__
 
 
-def _parse_iso_utc(ts: str) -> Optional[datetime]:
-    if not ts:
-        return None
-    try:
-        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    except Exception:
-        return None
-
-
 def _is_trade_executed(er: ExecutionResult) -> bool:
-    """
-    Robust heuristic: detect if execution result indicates a trade happened.
-    We avoid hard dependency on ExecutionResult schema.
-    """
-    # Preferred: attribute 'executed' or 'filled' or similar.
     for attr in ("executed", "filled", "is_filled", "did_execute", "success"):
         if hasattr(er, attr):
             try:
@@ -141,7 +181,6 @@ def _is_trade_executed(er: ExecutionResult) -> bool:
             except Exception:
                 pass
 
-    # Fallback: inspect reason string (stub uses 'paper_trading_stub_no_execution')
     reason = ""
     try:
         reason = str(getattr(er, "reason", "")).lower()
@@ -155,7 +194,6 @@ def _is_trade_executed(er: ExecutionResult) -> bool:
     if "executed" in reason or "filled" in reason or "fill" in reason:
         return True
 
-    # Default conservative: assume not executed
     return False
 
 
@@ -166,13 +204,25 @@ def _roll_trades_window(trade_ts: Deque[datetime], now: datetime, window_hours: 
     return len(trade_ts)
 
 
-def _utc_day_str(ts: datetime) -> str:
-    d = ts.date()
-    return f"{d.year:04d}-{d.month:02d}-{d.day:02d}"
+def _compute_forced_intent_1m_raw(cfg: RuntimeConfig, tick_id: int) -> Tuple[str, int]:
+    if not cfg.test_force_intents:
+        return "HOLD", 0
+    if tick_id <= cfg.test_force_warmup_ticks:
+        return "HOLD", 0
+
+    sell_every = max(1, int(cfg.test_force_sell_every))
+    buy_every = max(1, int(cfg.test_force_buy_every))
+
+    # priority: SELL then BUY
+    if tick_id % sell_every == 0:
+        return "SELL", 1
+    if tick_id % buy_every == 0:
+        return "BUY", 1
+    return "HOLD", 0
 
 
 def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
-    system_state_id = f"L1P-{uuid.uuid4().hex[:12]}"
+    system_state_id = f"L1P-{uuid.uuid4().hex[:11]}"
     cfg = load_runtime_config(repo_root)
     log = L1Logger(cfg.log_path)
 
@@ -191,9 +241,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
         day_utc_yyyy_mm_dd=_utc_day_str(now0),
     )
 
-    # Rolling trade timestamps for trades_6h
     trade_ts_window: Deque[datetime] = deque()
-
     feed = DummyMarketFeed(symbol=cfg.symbol, invalid_every=cfg.invalid_every)
 
     log.log(
@@ -208,6 +256,12 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
             "gate_mode": cfg.gate_mode,
             "fee_roundtrip": cfg.fee_roundtrip,
             "trades_window_hours": cfg.trades_window_hours,
+            "seeds_5m_csv": cfg.seeds_5m_csv,
+            "thresh_5m": cfg.thresh_5m,
+            "test_force_intents": int(cfg.test_force_intents),
+            "test_force_buy_every": cfg.test_force_buy_every,
+            "test_force_sell_every": cfg.test_force_sell_every,
+            "test_force_warmup_ticks": cfg.test_force_warmup_ticks,
         },
     )
 
@@ -224,7 +278,6 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 state.trades_today = 0
                 state.net_pnl_today_est = 0.0
                 state.last_trade_ts_utc = ""
-                # Keep rolling window timestamps, they are time-based anyway.
                 log.log(
                     category="L6",
                     event="daily_reset",
@@ -252,9 +305,9 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 fields={"snapshot_id": snap.snapshot_id},
             )
 
-            # Step 3: Intent (Stub)
             intent: Optional[Intent] = None
-            fusion = None  # set when data_valid and intent exists
+            fusion = None
+
             if state.data_valid:
                 intent = make_hold_intent()
                 log.log(
@@ -269,26 +322,39 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     },
                 )
 
-                # Step 3b: Intent Fusion (LOG-ONLY, stubbed 5m vote)
-                # - No dataflow/aggregation yet
-                # - No execution change yet
-                kind = _safe_intent_kind(intent)
-                kind_u = kind.upper()
-                if "BUY" in kind_u:
+                # Derive raw intent (default HOLD)
+                kind = _safe_intent_kind(intent).upper()
+                if "BUY" in kind:
                     intent_1m_raw = "BUY"
-                elif "SELL" in kind_u:
+                elif "SELL" in kind:
                     intent_1m_raw = "SELL"
                 else:
                     intent_1m_raw = "HOLD"
 
-                timing_vote = TimingVote(direction="none", strength=0.0, seed_id=None)
+                # Forced intent override for L1-C validation
+                forced_intent, is_forced = _compute_forced_intent_1m_raw(cfg, ticks)
+                if is_forced:
+                    intent_1m_raw = forced_intent
+
+                # 5m vote (IMPORTANT: correct signature)
+                from live_l1.core.timing_5m import compute_5m_timing_vote
+
+                timing_vote = compute_5m_timing_vote(
+                    repo_root=cfg.repo_root,
+                    symbol=cfg.symbol,
+                    seeds_csv=cfg.seeds_5m_csv,
+                    now_utc=now.isoformat(),
+                )
+
+                # Fusion
                 fusion = merge_intent_with_5m_vote(
                     intent_1m_raw=intent_1m_raw,
                     vote=timing_vote,
                     allow_long=1,
                     allow_short=1,
-                    thresh=0.60,
+                    thresh=cfg.thresh_5m,
                 )
+
                 log.log(
                     category="L3",
                     event="intent_fused",
@@ -305,13 +371,14 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                         "allow_long": fusion.allow_long,
                         "allow_short": fusion.allow_short,
                         "thresh": fusion.thresh,
+                        "test_forced_intent": is_forced,
                     },
                 )
 
-            # Update rolling trades_6h before guard evaluation
+            # Rolling trades window
             state.trades_6h = _roll_trades_window(trade_ts_window, now, cfg.trades_window_hours)
 
-            # Step 4: Guards
+            # Guards
             last_trade_dt = _parse_iso_utc(state.last_trade_ts_utc)
             gm = GuardMetrics(
                 now_utc=now,
@@ -330,8 +397,13 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 log.log(
                     category="L4",
                     event="guard_state_change",
-                    severity=("ERROR" if gd.reason in ("FEE_CONFIG_MISMATCH", "GATE_MODE_NOT_AUTO") else "WARN"
-                              if gd.reason != "OK" else "INFO"),
+                    severity=(
+                        "ERROR"
+                        if gd.reason in ("FEE_CONFIG_MISMATCH", "GATE_MODE_NOT_AUTO")
+                        else "WARN"
+                        if gd.reason != "OK"
+                        else "INFO"
+                    ),
                     system_state_id=state.system_state_id,
                     fields={
                         "guard_reason": gd.reason,
@@ -343,12 +415,11 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     },
                 )
 
-            # Step 5: Execution Attempt
+            # Execution attempt (still stub)
             if gd.allow_entry and intent is not None and fusion is not None:
                 er: ExecutionResult = attempt_execution(intent)
                 executed = _is_trade_executed(er)
 
-                # LOG-ONLY: execution context (fusion)
                 log.log(
                     category="L5",
                     event="execution_context",
@@ -372,13 +443,11 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 )
 
                 if executed:
-                    # Update counters
                     state.trades_today += 1
                     trade_ts_window.append(now)
                     state.trades_6h = _roll_trades_window(trade_ts_window, now, cfg.trades_window_hours)
                     state.last_trade_ts_utc = now.isoformat()
 
-                    # net_pnl_today_est update only if ExecutionResult provides something explicit
                     for attr in ("pnl_net", "pnl", "net_pnl", "pnl_est"):
                         if hasattr(er, attr):
                             try:
@@ -388,7 +457,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                             except Exception:
                                 pass
 
-            # Step 6: State Update (S2/S4)
+            # State update + persist
             s2 = PositionStateS2(symbol=cfg.symbol, position="FLAT", size=0.0, entry_price=None)
             s4 = RiskStateS4(kill_level=state.kill_level, cooldown_until_utc=None)
 
@@ -406,7 +475,6 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 },
             )
 
-            # Step 7: Persistenz
             _atomic_append_jsonl(
                 cfg.state_path_s2,
                 {
@@ -430,6 +498,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                     "day_utc": state.day_utc_yyyy_mm_dd,
                 },
             )
+
             log.log(
                 category="L6",
                 event="state_persisted",
@@ -438,7 +507,7 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
                 fields={"paths": "s2_position.jsonl,s4_risk.jsonl"},
             )
 
-            # Step 8: Loop Delay
+            # Delay
             log.log(
                 category="L1",
                 event="loop_delay",
@@ -459,6 +528,11 @@ def run_l1_loop_step1234567(repo_root: str, max_ticks: int = 6) -> int:
 
     finally:
         log.close()
+
+
+
+
+
 
 
 
