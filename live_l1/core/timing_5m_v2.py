@@ -1,7 +1,7 @@
 # live_l1/core/timing_5m_v2.py
 #
 # L1-D: 5m Timing Core v2
-# Step 5: Volume-weighted trend vs reversal scoring on last N candles.
+# Step 6: Dynamic (volatility-aware) threshold on last N candles.
 #
 # No execution.
 # No side effects.
@@ -48,6 +48,7 @@ def compute_5m_timing_vote_v2(
     seeds: List[GSSpec],
     thresh: float,
     history_len: int = 3,
+    dynamic_thresh: bool = True,
 ) -> TimingVote:
 
     if not candles_5m or not seeds:
@@ -57,6 +58,11 @@ def compute_5m_timing_vote_v2(
         history_len = 1
 
     window = candles_5m[-history_len:]
+
+    # Dynamic threshold based on 5m volatility in the window.
+    # Quiet market => higher threshold.
+    # Volatile market => lower threshold.
+    eff_thresh = _compute_effective_thresh(window, thresh) if dynamic_thresh else _clamp01(thresh)
 
     best_long_score: float = 0.0
     best_short_score: float = 0.0
@@ -75,13 +81,13 @@ def compute_5m_timing_vote_v2(
                 best_short_score = score
                 best_short_seed = seed.seed_id
 
-    if best_long_score < thresh and best_short_score < thresh:
+    if best_long_score < eff_thresh and best_short_score < eff_thresh:
         return TimingVote(direction="none", strength=max(best_long_score, best_short_score), seed_id=None)
 
-    if best_long_score >= thresh and best_long_score > best_short_score:
+    if best_long_score >= eff_thresh and best_long_score > best_short_score:
         return TimingVote(direction="long", strength=best_long_score, seed_id=best_long_seed)
 
-    if best_short_score >= thresh and best_short_score > best_long_score:
+    if best_short_score >= eff_thresh and best_short_score > best_long_score:
         return TimingVote(direction="short", strength=best_short_score, seed_id=best_short_seed)
 
     return TimingVote(direction="none", strength=max(best_long_score, best_short_score), seed_id=None)
@@ -156,7 +162,6 @@ def _evaluate_seed_on_window(seed: GSSpec, window: List[Candle5m]) -> float:
     if denom_vol <= 0.0:
         last_vol_norm = 0.0
     else:
-        # Normalize last volume into [0,1] relative to window directional volume
         last_vol_norm = last_vol / denom_vol
         if last_vol_norm > 1.0:
             last_vol_norm = 1.0
@@ -195,13 +200,86 @@ def _evaluate_seed_on_window(seed: GSSpec, window: List[Candle5m]) -> float:
 
     raw = abs(w_trend) * trend_strength + abs(w_reversal) * reversal_strength
 
-    # Clamp to [0,1]
-    if raw > 1.0:
-        raw = 1.0
-    if raw < 0.0:
-        raw = 0.0
+    return _clamp01(raw)
 
-    return float(raw)
+
+def _compute_effective_thresh(window: List[Candle5m], base_thresh: float) -> float:
+    """
+    Compute an effective threshold from base_thresh using window volatility.
+
+    Volatility proxy:
+      mean_range_pct = mean( (high-low) / max(open, eps) )
+
+    Mapping (deterministic):
+      vol_norm in [0,1] where:
+        vol_norm = clamp(mean_range_pct / target_range_pct, 0, 1)
+
+      factor = 1.2 - 0.4 * vol_norm
+        - quiet (vol_norm=0)  => factor=1.2 (stricter)
+        - volatile (vol_norm=1) => factor=0.8 (looser)
+
+    eff_thresh = clamp(base_thresh * factor, 0, 0.95)
+    """
+
+    bt = _clamp01(base_thresh)
+    if not window:
+        return bt
+
+    eps = 1e-12
+    s = 0.0
+    n = 0
+    for c in window:
+        try:
+            o = float(c.open)
+            h = float(c.high)
+            l = float(c.low)
+        except Exception:
+            continue
+
+        denom = o if o > eps else eps
+        rng = h - l
+        if rng < 0.0:
+            rng = 0.0
+
+        s += (rng / denom)
+        n += 1
+
+    if n == 0:
+        return bt
+
+    mean_range_pct = s / float(n)
+
+    # Target where we consider the market "fully volatile" for this simple mapping.
+    target_range_pct = 0.02  # 2% per 5m candle as "high"
+    vol_norm = mean_range_pct / target_range_pct
+    if vol_norm < 0.0:
+        vol_norm = 0.0
+    if vol_norm > 1.0:
+        vol_norm = 1.0
+
+    factor = 1.2 - 0.4 * vol_norm  # 0.8..1.2
+    eff = bt * factor
+
+    # keep headroom so score=1.0 can still pass comfortably
+    if eff > 0.95:
+        eff = 0.95
+    if eff < 0.0:
+        eff = 0.0
+
+    return float(eff)
+
+
+def _clamp01(x: float) -> float:
+    try:
+        v = float(x)
+    except Exception:
+        return 0.0
+    if v < 0.0:
+        return 0.0
+    if v > 1.0:
+        return 1.0
+    return v
+
 
 
 
