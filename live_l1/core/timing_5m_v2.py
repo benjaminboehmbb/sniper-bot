@@ -1,7 +1,7 @@
 # live_l1/core/timing_5m_v2.py
 #
 # L1-D: 5m Timing Core v2
-# Step 4: Trend vs. Mean-Reversion scoring on last N candles.
+# Step 5: Volume-weighted trend vs reversal scoring on last N candles.
 #
 # No execution.
 # No side effects.
@@ -89,25 +89,24 @@ def compute_5m_timing_vote_v2(
 
 def _evaluate_seed_on_window(seed: GSSpec, window: List[Candle5m]) -> float:
     """
-    Trend vs mean-reversion on last N candles.
+    Volume-weighted trend vs mean-reversion on last N candles.
 
-    We compute two components:
-      - trend_strength: fraction of candles in direction of majority (0..1)
-      - reversal_strength: 1 if last candle is opposite to majority else 0
+    Components:
+      - trend_strength: volume-weighted fraction aligned with majority (0..1)
+      - reversal_strength: volume-weighted last-candle reversal signal (0..1)
 
-    Then we combine into a single score using seed weights:
-      - if seed contains key "trend": use it as weight for trend component
-      - if seed contains key "reversal": use it as weight for reversal component
-      - otherwise fall back to sum(abs(weights)) as base weight
-
-    This is still a placeholder model, but now it distinguishes trend vs reversal.
+    Combination:
+      - if seed has key "trend": use abs(weight) for trend component
+      - if seed has key "reversal": use abs(weight) for reversal component
+      - else fallback: sum(abs(all weights)) -> trend weight, reversal weight 0
     """
 
     if not window:
         return 0.0
 
-    # Determine candle signs: +1 bull, -1 bear, 0 flat
+    # Candle sign: +1 bull, -1 bear, 0 flat
     signs: List[int] = []
+    vols: List[float] = []
     for c in window:
         if c.close > c.open:
             signs.append(1)
@@ -116,7 +115,15 @@ def _evaluate_seed_on_window(seed: GSSpec, window: List[Candle5m]) -> float:
         else:
             signs.append(0)
 
-    # Majority direction (ignore zeros)
+        try:
+            v = float(c.volume)
+        except Exception:
+            v = 0.0
+        if v < 0.0:
+            v = 0.0
+        vols.append(v)
+
+    # Majority direction ignoring flats (count-based for determinism)
     pos = sum(1 for s in signs if s == 1)
     neg = sum(1 for s in signs if s == -1)
 
@@ -127,27 +134,55 @@ def _evaluate_seed_on_window(seed: GSSpec, window: List[Candle5m]) -> float:
     else:
         majority = -1
 
-    # Trend strength: fraction aligned with majority, ignoring zeros
-    denom = pos + neg
-    if denom == 0 or majority == 0:
+    # Volume-weighted trend strength: aligned_volume / (pos_volume + neg_volume)
+    pos_vol = 0.0
+    neg_vol = 0.0
+    for s, v in zip(signs, vols):
+        if s == 1:
+            pos_vol += v
+        elif s == -1:
+            neg_vol += v
+
+    denom_vol = pos_vol + neg_vol
+    if denom_vol <= 0.0 or majority == 0:
         trend_strength = 0.0
     else:
-        aligned = pos if majority == 1 else neg
-        trend_strength = aligned / float(denom)
+        aligned_vol = pos_vol if majority == 1 else neg_vol
+        trend_strength = aligned_vol / denom_vol  # 0..1
 
-    # Reversal strength: last candle opposite to majority
-    last = signs[-1]
-    if majority != 0 and last != 0 and last == -majority:
-        reversal_strength = 1.0
+    # Volume-weighted reversal strength (only last candle matters)
+    last_sign = signs[-1]
+    last_vol = vols[-1]
+    if denom_vol <= 0.0:
+        last_vol_norm = 0.0
+    else:
+        # Normalize last volume into [0,1] relative to window directional volume
+        last_vol_norm = last_vol / denom_vol
+        if last_vol_norm > 1.0:
+            last_vol_norm = 1.0
+        if last_vol_norm < 0.0:
+            last_vol_norm = 0.0
+
+    if majority != 0 and last_sign != 0 and last_sign == -majority:
+        reversal_strength = 1.0 * last_vol_norm  # 0..1
     else:
         reversal_strength = 0.0
 
-    # Base weights
-    w_trend = float(seed.weights.get("trend", 0.0)) if seed.weights else 0.0
-    w_reversal = float(seed.weights.get("reversal", 0.0)) if seed.weights else 0.0
+    # Seed weights
+    w_trend = 0.0
+    w_reversal = 0.0
+    if seed.weights:
+        try:
+            w_trend = float(seed.weights.get("trend", 0.0))
+        except Exception:
+            w_trend = 0.0
+        try:
+            w_reversal = float(seed.weights.get("reversal", 0.0))
+        except Exception:
+            w_reversal = 0.0
 
     if w_trend == 0.0 and w_reversal == 0.0:
-        # fallback: sum abs weights
+        # fallback: sum abs weights (conservative: treat as trend weight)
         base = 0.0
         if seed.weights:
             for _, w in seed.weights.items():
@@ -155,19 +190,19 @@ def _evaluate_seed_on_window(seed: GSSpec, window: List[Candle5m]) -> float:
                     base += abs(float(w))
                 except Exception:
                     continue
-        # Use base as trend weight (conservative)
         w_trend = base
         w_reversal = 0.0
 
     raw = abs(w_trend) * trend_strength + abs(w_reversal) * reversal_strength
 
-    # Normalize to [0,1]
+    # Clamp to [0,1]
     if raw > 1.0:
         raw = 1.0
     if raw < 0.0:
         raw = 0.0
 
     return float(raw)
+
 
 
 
