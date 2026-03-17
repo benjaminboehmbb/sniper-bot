@@ -2,6 +2,7 @@
 # live_l1/core/loop.py
 # L1 core loop with CSV 1m market feed + 5m timing vote fusion.
 # L1-D adds state validation before loop start and CSV resume support.
+# L1-F adds minimal paper execution logging/state transitions.
 # ASCII-only.
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from live_l1.core.feature_snapshot import build_feature_snapshot
 from live_l1.core.intent import compute_1m_intent_raw
 from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
+from live_l1.core.execution import apply_paper_execution
 
 
 @dataclass(frozen=True)
@@ -274,6 +276,33 @@ def run_l1_loop_step1234567(
                     "vote_5m_direction": vote_v1.direction,
                     "vote_5m_seed_id": str(vote_v1.seed_id),
                     "vote_5m_strength": float(vote_v1.strength),
+                },
+            )
+
+            exec_decision = apply_paper_execution(
+                state=state,
+                intent_final=fused.intent_final,
+                price=float(features.price),
+                timestamp_utc=str(features.timestamp_utc),
+                position_size=1.0,
+            )
+
+            log.log(
+                category="L5",
+                event="execution",
+                severity="INFO",
+                system_state_id=state.system_state_id,
+                intent_id=fused.intent_id,
+                fields={
+                    "tick": tick.tick_id,
+                    "action": exec_decision.action,
+                    "executed": int(exec_decision.executed),
+                    "position_before": exec_decision.position_before,
+                    "position_after": exec_decision.position_after,
+                    "side_after": exec_decision.side_after,
+                    "entry_price": "" if exec_decision.entry_price is None else float(exec_decision.entry_price),
+                    "entry_timestamp_utc": exec_decision.entry_timestamp_utc,
+                    "reason": exec_decision.reason,
                 },
             )
 
