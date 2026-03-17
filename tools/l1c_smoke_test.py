@@ -2,9 +2,9 @@
 # tools/l1c_smoke_test.py
 #
 # L1-C Smoke Test (deterministic, fast)
-# - Verifiziert, dass timing_5m fuer LONG/SHORT Seeds korrekt votet
-# - Fuehrt zwei Mini-Paper-Runs mit Forced-Intents aus (LONG + SHORT)
-# - Parsed die Logs und prueft, ob BUY durch LONG bestaetigt wird und SELL durch SHORT bestaetigt wird
+# - Verifies timing_5m LONG/SHORT seed voting
+# - Runs two mini paper-runs with forced intents (LONG + SHORT)
+# - Parses the logs and checks BUY/SELL confirmation behaviour
 #
 # Exit codes:
 #   0 = OK
@@ -12,11 +12,11 @@
 #   3 = ERROR (unexpected runtime error)
 #
 # Usage (WSL, repo-root):
-#   python3 tools/l1c_smoke_test.py
+#   python3 -m tools.l1c_smoke_test
 #
 # Optional:
-#   python3 tools/l1c_smoke_test.py --keep-logs
-#   python3 tools/l1c_smoke_test.py --max-ticks 120 --thresh 0.60
+#   python3 -m tools.l1c_smoke_test --keep-logs
+#   python3 -m tools.l1c_smoke_test --max-ticks 120 --thresh 0.60
 
 from __future__ import annotations
 
@@ -26,11 +26,14 @@ import re
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 
 DEFAULT_LONG_SEEDS = "seeds/5m/btcusdt_5m_long_timing_core_v1.csv"
 DEFAULT_SHORT_SEEDS = "seeds/5m/btcusdt_5m_short_timing_core_v1.csv"
+
+DEFAULT_LONG_MARKET = "data/l1_paper_gate_open_test.csv"
+DEFAULT_SHORT_MARKET = "data/l1_paper_short_gate_test.csv"
 
 
 @dataclass
@@ -52,7 +55,6 @@ class RunResult:
 
 
 def _now_tag() -> str:
-    # timezone-aware UTC, avoids DeprecationWarning
     return datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
 
 
@@ -69,10 +71,6 @@ def _run_cmd(cmd: List[str], env: Dict[str, str], cwd: str) -> Tuple[int, str, s
 
 
 def _parse_kv_line(line: str) -> Dict[str, str]:
-    """
-    Parses key=value tokens separated by spaces.
-    Values are assumed to not contain unescaped spaces.
-    """
     out: Dict[str, str] = {}
     for tok in line.strip().split():
         if "=" not in tok:
@@ -138,10 +136,6 @@ def _summarize(events: List[Dict[str, str]]) -> Tuple[int, int, int, int, int, i
 
 
 def _timing_cli(repo_root: str, seeds_csv: str) -> Tuple[bool, str, str, str]:
-    """
-    Runs:
-      python3 -m live_l1.core.timing_5m --seeds <csv>
-    """
     env = os.environ.copy()
     cmd = ["python3", "-m", "live_l1.core.timing_5m", "--seeds", seeds_csv]
     code, out, err = _run_cmd(cmd, env=env, cwd=repo_root)
@@ -150,7 +144,7 @@ def _timing_cli(repo_root: str, seeds_csv: str) -> Tuple[bool, str, str, str]:
 
     line = (out.strip().splitlines() or [""])[-1].strip()
     m_dir = re.search(r"direction=([a-zA-Z]+)", line)
-    m_seed = re.search(r"seed_id=([A-Za-z0-9_\-]+)", line)
+    m_seed = re.search(r"seed_id=([A-Za-z0-9_-]+)", line)
 
     direction = (m_dir.group(1).lower() if m_dir else "")
     seed_id = (m_seed.group(1) if m_seed else "")
@@ -163,6 +157,7 @@ def _paper_run(
     repo_root: str,
     label: str,
     seeds_csv: str,
+    market_csv: str,
     thresh: float,
     max_ticks: int,
     keep_logs: bool,
@@ -191,6 +186,7 @@ def _paper_run(
 
     env = os.environ.copy()
     env["L1_LOG_PATH"] = log_path
+    env["L1_MARKET_CSV_PATH"] = market_csv
     env["THRESH_5M"] = str(thresh)
     env["SEEDS_5M_CSV"] = seeds_csv
 
@@ -217,7 +213,7 @@ def _paper_run(
 
     code, out, err = _run_cmd(cmd, env=env, cwd=repo_root)
     if code != 0:
-        msg = (err.strip() or out.strip())
+        msg = err.strip() or out.strip()
         return RunResult(
             ok=False,
             label=label,
@@ -345,6 +341,8 @@ def main() -> int:
     ap.add_argument("--symbol", default="BTCUSDT", help="symbol (default: BTCUSDT)")
     ap.add_argument("--long-seeds", default=DEFAULT_LONG_SEEDS, help=f"LONG seeds csv (default: {DEFAULT_LONG_SEEDS})")
     ap.add_argument("--short-seeds", default=DEFAULT_SHORT_SEEDS, help=f"SHORT seeds csv (default: {DEFAULT_SHORT_SEEDS})")
+    ap.add_argument("--long-market", default=DEFAULT_LONG_MARKET, help=f"LONG market csv (default: {DEFAULT_LONG_MARKET})")
+    ap.add_argument("--short-market", default=DEFAULT_SHORT_MARKET, help=f"SHORT market csv (default: {DEFAULT_SHORT_MARKET})")
     ap.add_argument("--thresh", type=float, default=0.60, help="5m thresh (default: 0.60)")
     ap.add_argument("--max-ticks", type=int, default=120, help="ticks per mini-run (default: 120)")
     ap.add_argument("--keep-logs", action="store_true", help="do not delete successful smoke logs")
@@ -359,6 +357,7 @@ def main() -> int:
             repo_root=repo_root,
             label="LONG",
             seeds_csv=args.long_seeds,
+            market_csv=args.long_market,
             thresh=float(args.thresh),
             max_ticks=int(args.max_ticks),
             keep_logs=bool(args.keep_logs),
@@ -369,6 +368,7 @@ def main() -> int:
             repo_root=repo_root,
             label="SHORT",
             seeds_csv=args.short_seeds,
+            market_csv=args.short_market,
             thresh=float(args.thresh),
             max_ticks=int(args.max_ticks),
             keep_logs=bool(args.keep_logs),
