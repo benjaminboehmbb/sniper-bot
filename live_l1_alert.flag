@@ -1,0 +1,1 @@
+{"status":"ALERT","reason":"incomplete_tick_missing_snapshot_received","category":"A_LOG_INTEGRITY","system_state_id":"L1P-6bd5bd320b3 reason=max_ticks_reached tick=3","timestamp_utc":"2026-03-17T15:00:02Z","action":"STOP_RECOMMENDED","source":"l1_health_check"}

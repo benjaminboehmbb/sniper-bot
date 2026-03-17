@@ -1,0 +1,221 @@
+version: "2026-01"
+name: "Sniper-Bot GS Acceptance Checklist"
+scope:
+  - "GS phase (pre-live)"
+  - "all strategy experiments"
+  - "all ML and hybrid experiments"
+references:
+  - "docs/REFERENCES.md"
+  - "docs/POLICIES/backtest_integrity_policy.md"
+  - "docs/POLICIES/ml_validation_policy.md"
+  - "docs/POLICIES/gs_acceptance_checklist.md"
+
+rules:
+  enforcement:
+    required_all_mandatory: true
+    failure_action:
+      - "STOP: not GS-accepted"
+      - "Do not compare"
+      - "Do not archive as GS result"
+    exceptions_allowed: true
+    exception_policy:
+      must_be_documented: true
+      must_be_justified: true
+      must_be_marked_as_exception: true
+
+sections:
+  - id: "A"
+    title: "General metadata (mandatory)"
+    applies_if: "always"
+    items:
+      - id: "A1"
+        text: "Strategy id/name is uniquely defined"
+        mandatory: true
+      - id: "A2"
+        text: "Run timestamp is documented"
+        mandatory: true
+      - id: "A3"
+        text: "Code version (commit/hash) is documented"
+        mandatory: true
+      - id: "A4"
+        text: "Dataset version is uniquely referenced"
+        mandatory: true
+      - id: "A5"
+        text: "Parameter set is fully documented"
+        mandatory: true
+
+  - id: "B"
+    title: "Backtest integrity (mandatory)"
+    applies_if: "always"
+    subsections:
+      - id: "B_time"
+        title: "Time integrity"
+        items:
+          - id: "B1"
+            text: "No look-ahead bias"
+            mandatory: true
+          - id: "B2"
+            text: "Decision time is clearly separated from execution time"
+            mandatory: true
+          - id: "B3"
+            text: "Signal uses only data <= decision time"
+            mandatory: true
+          - id: "B4"
+            text: "Execution occurs earliest at t+1 or is explicitly modeled and justified"
+            mandatory: true
+      - id: "B_data"
+        title: "Data integrity"
+        items:
+          - id: "B5"
+            text: "Point-in-time data is used"
+            mandatory: true
+          - id: "B6"
+            text: "No survivorship-bias cleanup unless explicitly labeled"
+            mandatory: true
+          - id: "B7"
+            text: "Missing-data handling is explicitly defined"
+            mandatory: true
+          - id: "B8"
+            text: "No implicit interpolation of missing data"
+            mandatory: true
+      - id: "B_exec"
+        title: "Costs and execution realism"
+        items:
+          - id: "B9"
+            text: "Transaction costs are included"
+            mandatory: true
+          - id: "B10"
+            text: "Slippage/spread is modeled or conservatively assumed"
+            mandatory: true
+          - id: "B11"
+            text: "No implicit mid-price fills without justification"
+            mandatory: true
+
+  - id: "C"
+    title: "Capital and risk (mandatory)"
+    applies_if: "always"
+    items:
+      - id: "C1"
+        text: "Capital binding is modeled correctly"
+        mandatory: true
+      - id: "C2"
+        text: "No double-use of the same capital across concurrent positions"
+        mandatory: true
+      - id: "C3"
+        text: "Position sizing is explicit and reproducible"
+        mandatory: true
+      - id: "C4"
+        text: "Leverage is clearly defined or excluded"
+        mandatory: true
+      - id: "C5"
+        text: "Drawdowns are fully visible (no smoothing)"
+        mandatory: true
+
+  - id: "D"
+    title: "Statistics and robustness (mandatory)"
+    applies_if: "always"
+    items:
+      - id: "D1"
+        text: "Backtest horizon is sufficiently long"
+        mandatory: true
+      - id: "D2"
+        text: "Number of independent trades is sufficient"
+        mandatory: true
+      - id: "D3"
+        text: "Results are not dominated by single extreme events"
+        mandatory: true
+      - id: "D4"
+        text: "In-sample and out-of-sample are separated"
+        mandatory: true
+      - id: "D5"
+        text: "Walk-forward (or comparable) robustness check is performed"
+        mandatory: true
+
+  - id: "E"
+    title: "Baselines and comparisons (mandatory)"
+    applies_if: "always"
+    items:
+      - id: "E1"
+        text: "Compared against a trivial baseline (buy&hold / flat / random)"
+        mandatory: true
+      - id: "E2"
+        text: "Compared against existing GS references"
+        mandatory: true
+      - id: "E3"
+        text: "Outperformance is reproducible across multiple time windows"
+        mandatory: true
+      - id: "E4"
+        text: "No cherry picking of favorable sub-periods"
+        mandatory: true
+
+  - id: "F"
+    title: "ML-specific checks (mandatory only if ML is used)"
+    applies_if: "ml_used == true"
+    items:
+      - id: "F1"
+        text: "A rule-based GS baseline exists"
+        mandatory: true
+      - id: "F2"
+        text: "ML is defined explicitly as an improvement over baseline"
+        mandatory: true
+      - id: "F3"
+        text: "Feature horizon, label horizon, and trading horizon are consistent"
+        mandatory: true
+      - id: "F4"
+        text: "All features are point-in-time correct"
+        mandatory: true
+      - id: "F5"
+        text: "No global normalization across the full dataset"
+        mandatory: true
+      - id: "F6"
+        text: "Labels are cleanly defined (e.g., forward return) and fixed"
+        mandatory: true
+      - id: "F7"
+        text: "No relabeling based on achieved performance"
+        mandatory: true
+      - id: "F8"
+        text: "Time-aware CV is used (walk-forward / purged CV / CPCV)"
+        mandatory: true
+      - id: "F9"
+        text: "Embargo zones are implemented correctly"
+        mandatory: true
+      - id: "F10"
+        text: "Hyperparameter tuning occurs only within training windows"
+        mandatory: true
+      - id: "F11"
+        text: "Performance is stable across CV splits"
+        mandatory: true
+      - id: "F12"
+        text: "Negative test with random labels is performed (expect no edge)"
+        mandatory: true
+      - id: "F13"
+        text: "Higher complexity models beat simpler ones robustly (not only pointwise)"
+        mandatory: true
+
+  - id: "G"
+    title: "Reproducibility and artifacts (mandatory)"
+    applies_if: "always"
+    items:
+      - id: "G1"
+        text: "Run is deterministically reproducible"
+        mandatory: true
+      - id: "G2"
+        text: "Random seeds are documented"
+        mandatory: true
+      - id: "G3"
+        text: "Results are versioned and stored"
+        mandatory: true
+      - id: "G4"
+        text: "Relevant artifacts are saved (logs, csv, etc.)"
+        mandatory: true
+
+decision:
+  id: "H"
+  title: "Final acceptance"
+  accept_if:
+    - "all mandatory items across applicable sections are true"
+  reject_if:
+    - "any mandatory item across applicable sections is false"
+  notes:
+    - "If ml_used==false, section F is ignored."
+    - "Exceptions are allowed only if explicitly documented, justified, and marked as exception."

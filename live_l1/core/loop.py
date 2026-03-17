@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # live_l1/core/loop.py
 # L1 core loop with CSV 1m market feed + 5m timing vote fusion.
+# L1-D adds state validation before loop start and CSV resume support.
 # ASCII-only.
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from live_l1.logs.logger import L1Logger
 from live_l1.io.market import CSVMarketFeed
 from live_l1.io.valid import validate_runtime_config
 from live_l1.state.state_store import load_or_init_state, persist_state
+from live_l1.state.state_validation import validate_loaded_state
 from live_l1.guards.guards import evaluate_guards
 from live_l1.core.clock import TickClock
 from live_l1.core.feature_snapshot import build_feature_snapshot
@@ -106,6 +108,12 @@ def load_runtime_config(repo_root: str) -> RuntimeConfig:
     return cfg
 
 
+def _warnings_to_text(warnings: list[str]) -> str:
+    if not warnings:
+        return ""
+    return ",".join(str(w).strip() for w in warnings if str(w).strip() != "")
+
+
 def run_l1_loop_step1234567(
     repo_root: str,
     max_ticks: int = 6,
@@ -115,11 +123,16 @@ def run_l1_loop_step1234567(
 
     cfg = load_runtime_config(repo_root)
     log = L1Logger(cfg.log_path)
+
+    state = load_or_init_state(cfg.state_dir, system_state_id=system_state_id)
+    validation = validate_loaded_state(state)
+
     market = CSVMarketFeed(
         csv_path=os.path.join(repo_root, cfg.market_csv_path),
         symbol=cfg.symbol,
+        resume_after_snapshot_id=getattr(state, "last_snapshot_id", ""),
     )
-    state = load_or_init_state(cfg.state_dir, system_state_id=system_state_id)
+
     clock = TickClock(decision_tick_seconds=cfg.decision_tick_seconds)
 
     deadline_monotonic: float | None = None
@@ -128,6 +141,18 @@ def run_l1_loop_step1234567(
 
     try:
         clock.start()
+
+        log.log(
+            category="L1",
+            event="recovery_checked",
+            severity="INFO" if validation.is_valid else "WARNING",
+            system_state_id=getattr(state, "system_state_id", system_state_id),
+            fields={
+                "recovery_mode": validation.recovery_mode,
+                "state_valid": int(validation.is_valid),
+                "warnings": _warnings_to_text(validation.warnings),
+            },
+        )
 
         log.log(
             category="L1",
@@ -147,6 +172,8 @@ def run_l1_loop_step1234567(
                 "test_force_sell_every": cfg.test_force_sell_every,
                 "test_force_warmup_ticks": cfg.test_force_warmup_ticks,
                 "max_run_seconds": max_run_seconds,
+                "recovery_mode": validation.recovery_mode,
+                "resume_after_snapshot_id": str(getattr(state, "last_snapshot_id", "")),
             },
         )
 
@@ -253,6 +280,22 @@ def run_l1_loop_step1234567(
             guard_reason, s4_kill_level = evaluate_guards(cfg=cfg, state=state)
             state.s4_risk.kill_level = s4_kill_level
 
+            state.last_snapshot_id = str(features.snapshot_id)
+            state.last_timestamp_utc = str(features.timestamp_utc)
+            state.last_tick_id = int(tick.tick_id)
+
+            if hasattr(state, "s2_position"):
+                if hasattr(state.s2_position, "snapshot_id"):
+                    state.s2_position.snapshot_id = str(features.snapshot_id)
+                if hasattr(state.s2_position, "last_intent_id"):
+                    state.s2_position.last_intent_id = str(fused.intent_id)
+
+            if hasattr(state, "s4_risk"):
+                if hasattr(state.s4_risk, "trades_6h") and getattr(state.s4_risk, "trades_6h", None) is None:
+                    state.s4_risk.trades_6h = 0
+                if hasattr(state.s4_risk, "trades_today") and getattr(state.s4_risk, "trades_today", None) is None:
+                    state.s4_risk.trades_today = 0
+
             log.log(
                 category="L6",
                 event="state_update",
@@ -263,8 +306,10 @@ def run_l1_loop_step1234567(
                     "guard_reason": guard_reason,
                     "s2": state.s2_position.position,
                     "s4_kill_level": state.s4_risk.kill_level,
-                    "trades_6h": 0,
-                    "trades_today": 0,
+                    "trades_6h": int(getattr(state.s4_risk, "trades_6h", 0)),
+                    "trades_today": int(getattr(state.s4_risk, "trades_today", 0)),
+                    "last_snapshot_id": str(getattr(state, "last_snapshot_id", "")),
+                    "last_timestamp_utc": str(getattr(state, "last_timestamp_utc", "")),
                 },
             )
 

@@ -953,6 +953,29 @@ Stabilen und sicheren 24/7-Live-Betrieb gewährleisten, Datenverlust vermeiden u
 - Logs und Backups dienen zugleich als Grundlage für Audits und Machine-Learning-Datenaufbereitung.
 
 
+---
+
+## L1-C Acceptance (2026-03-16)
+
+Status: PASSED
+
+Deterministic L1-C smoke test successfully completed.
+
+Results:
+- LONG seed voting correct
+- SHORT seed voting correct
+- intent_fusion behaviour verified
+- paper loop execution verified
+
+Smoke test output:
+LONG: confirm_buy=8, block_sell=8, votes_long=120  
+SHORT: confirm_sell=8, block_buy=8, votes_short=120
+
+Conclusion:
+L1-C timing gate and intent fusion are verified.
+
+Decision:
+L1-C accepted and frozen.
 
 ---
 
