@@ -15,10 +15,11 @@ from live_l1.io.market import CSVMarketFeed
 from live_l1.io.valid import validate_runtime_config
 from live_l1.state.state_store import load_or_init_state, persist_state
 from live_l1.guards.guards import evaluate_guards
+from live_l1.core.clock import TickClock
+from live_l1.core.feature_snapshot import build_feature_snapshot
 from live_l1.core.intent import compute_1m_intent_raw
 from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
-from live_l1.core.clock import TickClock
 
 
 @dataclass(frozen=True)
@@ -174,10 +175,12 @@ def run_l1_loop_step1234567(
                 )
                 return 0
 
+            features = build_feature_snapshot(snapshot)
+
             intent_1m_raw, forced = compute_1m_intent_raw(
                 cfg=cfg,
                 tick_id=tick.tick_id,
-                snapshot=snapshot,
+                features=features,
             )
 
             vote_v1 = compute_5m_timing_vote(
@@ -193,8 +196,8 @@ def run_l1_loop_step1234567(
                 vote_5m_strength=vote_v1.strength,
                 vote_5m_seed_id=vote_v1.seed_id,
                 thresh=cfg.thresh_5m,
-                allow_long=int(snapshot.allow_long),
-                allow_short=int(snapshot.allow_short),
+                allow_long=int(features.allow_long),
+                allow_short=int(features.allow_short),
             )
 
             log.log(
@@ -216,13 +219,13 @@ def run_l1_loop_step1234567(
                 system_state_id=state.system_state_id,
                 fields={
                     "tick": tick.tick_id,
-                    "snapshot_id": snapshot.snapshot_id,
-                    "timestamp_utc": snapshot.timestamp_utc,
-                    "symbol": snapshot.symbol,
-                    "price": float(snapshot.price),
-                    "allow_long": int(snapshot.allow_long),
-                    "allow_short": int(snapshot.allow_short),
-                    "regime_v2": int(snapshot.regime_v2),
+                    "snapshot_id": features.snapshot_id,
+                    "timestamp_utc": features.timestamp_utc,
+                    "symbol": features.symbol,
+                    "price": float(features.price),
+                    "allow_long": int(features.allow_long),
+                    "allow_short": int(features.allow_short),
+                    "regime_v2": int(features.regime_v2),
                 },
             )
 
@@ -234,8 +237,8 @@ def run_l1_loop_step1234567(
                 intent_id=fused.intent_id,
                 fields={
                     "tick": tick.tick_id,
-                    "allow_long": int(snapshot.allow_long),
-                    "allow_short": int(snapshot.allow_short),
+                    "allow_long": int(features.allow_long),
+                    "allow_short": int(features.allow_short),
                     "intent_1m_raw": intent_1m_raw,
                     "intent_final": fused.intent_final,
                     "reason_code": fused.reason_code,
@@ -293,19 +296,3 @@ def run_l1_loop_step1234567(
         except Exception:
             pass
         log.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
