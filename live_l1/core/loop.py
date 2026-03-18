@@ -1,14 +1,6 @@
 #!/usr/bin/env python3
 # live_l1/core/loop.py
-# L1 core loop with CSV 1m market feed + 5m timing vote fusion.
-# L1-D adds state validation before loop start and CSV resume support.
-# L1-F adds minimal paper execution logging/state transitions.
-#
-# TEMPORARY TEST ADDITION:
-# - if L1_TEST_FORCE_INTENTS=1 and a forced BUY/SELL is generated,
-#   bypass 5m/gate fusion for that tick and forward the forced intent
-#   directly to execution as intent_final.
-#
+# CLEAN VERSION (TEST_BYPASS REMOVED)
 # ASCII-only.
 
 from __future__ import annotations
@@ -120,32 +112,6 @@ def _warnings_to_text(warnings: list[str]) -> str:
     if not warnings:
         return ""
     return ",".join(str(w).strip() for w in warnings if str(w).strip() != "")
-
-
-def _apply_test_bypass_if_needed(*, cfg: RuntimeConfig, intent_1m_raw: str, forced: bool, fused):
-    if not cfg.test_force_intents:
-        return fused
-
-    if not forced:
-        return fused
-
-    raw = str(intent_1m_raw).strip().upper()
-    if raw not in ("BUY", "SELL"):
-        return fused
-
-    return type(fused)(
-        intent_id=fused.intent_id,
-        intent_final=raw,
-        reason_code=f"TEST_BYPASS_{raw}",
-        intent_1m_raw=raw,
-        vote_5m_direction=fused.vote_5m_direction,
-        vote_5m_strength=fused.vote_5m_strength,
-        vote_5m_seed_id=fused.vote_5m_seed_id,
-        allow_long=fused.allow_long,
-        allow_short=fused.allow_short,
-        thresh=fused.thresh,
-        current_position=fused.current_position,
-    )
 
 
 def run_l1_loop_step1234567(
@@ -264,13 +230,6 @@ def run_l1_loop_step1234567(
                 allow_long=int(features.allow_long),
                 allow_short=int(features.allow_short),
                 current_position=current_position,
-            )
-
-            fused = _apply_test_bypass_if_needed(
-                cfg=cfg,
-                intent_1m_raw=intent_1m_raw,
-                forced=forced,
-                fused=fused,
             )
 
             log.log(
