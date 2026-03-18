@@ -2,6 +2,20 @@
 # live_l1/core/intent_fusion.py
 #
 # Deterministic fusion of 1m intent with 5m timing vote.
+#
+# L1-I policy:
+# - BUY remains strict for LONG entries
+# - SELL remains strict for SHORT entries
+# - BUT exits must always remain possible
+#
+# Exit rules:
+# - if current_position == LONG and 1m says SELL:
+#     allow SELL as exit, regardless of 5m direction
+# - if current_position == SHORT and 1m says BUY:
+#     allow BUY as exit, regardless of 5m direction
+#
+# This decouples exit handling from directional entry gating.
+#
 # ASCII-only.
 
 from __future__ import annotations
@@ -13,6 +27,7 @@ from typing import Literal, Optional
 
 Intent = Literal["BUY", "SELL", "HOLD"]
 VoteDir = Literal["long", "short", "none"]
+Position = Literal["FLAT", "LONG", "SHORT"]
 
 
 @dataclass(frozen=True)
@@ -34,6 +49,7 @@ class FusionDecision:
     allow_long: int
     allow_short: int
     thresh: float
+    current_position: str
 
 
 def _new_intent_id() -> str:
@@ -52,6 +68,13 @@ def _clamp01(x: float) -> float:
     return v
 
 
+def _norm_position(value: object) -> str:
+    s = "" if value is None else str(value).strip().upper()
+    if s in ("FLAT", "LONG", "SHORT"):
+        return s
+    return "FLAT"
+
+
 def fuse_intent_with_5m_timing(
     *,
     intent_1m_raw: Intent,
@@ -61,11 +84,13 @@ def fuse_intent_with_5m_timing(
     allow_long: int = 1,
     allow_short: int = 1,
     vote_5m_seed_id: Optional[str] = None,
+    current_position: str = "FLAT",
 ) -> FusionDecision:
     allow_long_i = 1 if int(allow_long) == 1 else 0
     allow_short_i = 1 if int(allow_short) == 1 else 0
     s = _clamp01(vote_5m_strength)
     d = vote_5m_direction
+    pos = _norm_position(current_position)
     intent_id = _new_intent_id()
 
     if intent_1m_raw == "HOLD":
@@ -80,26 +105,33 @@ def fuse_intent_with_5m_timing(
             allow_long=allow_long_i,
             allow_short=allow_short_i,
             thresh=float(thresh),
-        )
-
-    if d == "none":
-        return FusionDecision(
-            intent_id=intent_id,
-            intent_final="HOLD",
-            reason_code="NO_5M_VOTE",
-            intent_1m_raw=intent_1m_raw,
-            vote_5m_direction=d,
-            vote_5m_strength=s,
-            vote_5m_seed_id=vote_5m_seed_id,
-            allow_long=allow_long_i,
-            allow_short=allow_short_i,
-            thresh=float(thresh),
+            current_position=pos,
         )
 
     if intent_1m_raw == "BUY":
+        # L1-I: BUY must always be allowed as exit from an existing SHORT.
+        if pos == "SHORT":
+            return FusionDecision(
+                intent_id=intent_id,
+                intent_final="BUY",
+                reason_code="EXIT_SHORT_ON_1M_BUY",
+                intent_1m_raw="BUY",
+                vote_5m_direction=d,
+                vote_5m_strength=s,
+                vote_5m_seed_id=vote_5m_seed_id,
+                allow_long=allow_long_i,
+                allow_short=allow_short_i,
+                thresh=float(thresh),
+                current_position=pos,
+            )
+
+        # Otherwise BUY remains directional / entry-like behaviour.
         if allow_long_i != 1:
             out = "HOLD"
             rc = "GATE_BLOCK_LONG"
+        elif d == "none":
+            out = "HOLD"
+            rc = "NO_5M_VOTE"
         elif d != "long":
             out = "HOLD"
             rc = "5M_CONTRADICTS_1M"
@@ -121,21 +153,49 @@ def fuse_intent_with_5m_timing(
             allow_long=allow_long_i,
             allow_short=allow_short_i,
             thresh=float(thresh),
+            current_position=pos,
         )
 
     if intent_1m_raw == "SELL":
-        if allow_short_i != 1:
-            out = "HOLD"
-            rc = "GATE_BLOCK_SHORT"
-        elif d != "short":
+        # L1-I: SELL must always be allowed as exit from an existing LONG.
+        if pos == "LONG":
+            return FusionDecision(
+                intent_id=intent_id,
+                intent_final="SELL",
+                reason_code="EXIT_LONG_ON_1M_SELL",
+                intent_1m_raw="SELL",
+                vote_5m_direction=d,
+                vote_5m_strength=s,
+                vote_5m_seed_id=vote_5m_seed_id,
+                allow_long=allow_long_i,
+                allow_short=allow_short_i,
+                thresh=float(thresh),
+                current_position=pos,
+            )
+
+        # Otherwise SELL remains directional / entry-like behaviour.
+        if d == "long":
             out = "HOLD"
             rc = "5M_CONTRADICTS_1M"
-        elif s < float(thresh):
-            out = "HOLD"
-            rc = "WEAK_5M_SHORT_CONFIRM"
-        else:
+        elif d == "short":
+            if s < float(thresh):
+                out = "HOLD"
+                rc = "WEAK_5M_SHORT_CONFIRM"
+            else:
+                out = "SELL"
+                if allow_short_i == 1:
+                    rc = "CONFIRMED_1M_SELL_5M_SHORT"
+                else:
+                    rc = "CONFIRMED_1M_SELL_5M_SHORT_EXIT_ONLY"
+        elif d == "none":
             out = "SELL"
-            rc = "CONFIRMED_1M_SELL_5M_SHORT"
+            if allow_short_i == 1:
+                rc = "SELL_EXIT_ON_NEUTRAL_5M"
+            else:
+                rc = "SELL_EXIT_ONLY_ON_NEUTRAL_5M"
+        else:
+            out = "HOLD"
+            rc = "UNKNOWN_5M_DIRECTION"
 
         return FusionDecision(
             intent_id=intent_id,
@@ -148,12 +208,13 @@ def fuse_intent_with_5m_timing(
             allow_long=allow_long_i,
             allow_short=allow_short_i,
             thresh=float(thresh),
+            current_position=pos,
         )
 
     return FusionDecision(
         intent_id=intent_id,
         intent_final="HOLD",
-        reason_code="INVALID_INTENT",
+        reason_code="UNKNOWN_INTENT",
         intent_1m_raw="HOLD",
         vote_5m_direction=d,
         vote_5m_strength=s,
@@ -161,23 +222,6 @@ def fuse_intent_with_5m_timing(
         allow_long=allow_long_i,
         allow_short=allow_short_i,
         thresh=float(thresh),
-    )
-
-
-def merge_intent_with_5m_vote(
-    intent_1m_raw: Intent,
-    vote: TimingVote,
-    allow_long: int,
-    allow_short: int,
-    thresh: float = 0.60,
-) -> FusionDecision:
-    return fuse_intent_with_5m_timing(
-        intent_1m_raw=intent_1m_raw,
-        vote_5m_direction=vote.direction,
-        vote_5m_strength=vote.strength,
-        vote_5m_seed_id=vote.seed_id,
-        thresh=thresh,
-        allow_long=allow_long,
-        allow_short=allow_short,
+        current_position=pos,
     )
 

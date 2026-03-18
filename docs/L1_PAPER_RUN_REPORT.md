@@ -107,6 +107,68 @@ Not yet observed in real mode:
 
 ---
 
-## Status
 
-L1-F: COMPLETE
+## L1-G Observation Update (2026-03-18)
+
+Extended real paper run showed:
+
+- real OPEN_LONG observed
+- no real CLOSE_LONG observed in the tested window
+- multiple SELL raw intents occurred
+- these SELL intents were converted to HOLD before execution
+
+Observed pattern:
+- intent_1m_raw=SELL
+- intent_final=HOLD
+- reason_code=GATE_BLOCK_SHORT
+- frequently allow_long=1 and allow_short=0
+- 5m vote remained long
+
+Interpretation:
+- execution layer is not the blocker
+- real exits are currently suppressed by upstream gate/fusion logic
+- this creates effective long-only holding behavior in the observed window
+
+Conclusion:
+L1-G observation confirms a system-level behavior:
+exit starvation caused by gate/fusion policy, not by L5 execution failure.
+
+
+## L1-H Update (2026-03-18) - Exit Policy A++
+
+A++ was implemented and verified in real mode.
+
+Policy:
+- BUY remains gated by long permission / long confirmation
+- SELL is allowed as EXIT from an existing LONG position
+- exit is no longer blocked by long-biased 5m vote
+
+Observed real behavior:
+- OPEN_LONG occurred multiple times
+- CLOSE_LONG occurred multiple times
+- reason_code observed: EXIT_LONG_ON_1M_SELL
+- execution observed: SELL_CLOSES_LONG
+
+Conclusion:
+Exit starvation issue is resolved for LONG positions.
+Entry gating and exit handling are now decoupled.
+
+
+## L1-I Update (2026-03-18) - Symmetric SHORT Exit
+
+L1-I was implemented and verified in real mode.
+
+Policy:
+- BUY can close an existing SHORT position
+- SELL can close an existing LONG position
+- exit handling is now symmetric across both sides
+
+Observed real behavior:
+- OPEN_SHORT observed multiple times
+- reason_code observed: EXIT_SHORT_ON_1M_BUY
+- execution observed: BUY_CLOSES_SHORT
+- CLOSE_SHORT observed multiple times
+
+Conclusion:
+Symmetric exit handling is now verified in real mode.
+Entry gating and exit handling are fully decoupled for both LONG and SHORT.
