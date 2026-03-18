@@ -91,6 +91,7 @@ def _build_default_position() -> S2Position:
     setattr(s2, "position_size", 0.0)
     setattr(s2, "last_intent_id", "")
     setattr(s2, "snapshot_id", "")
+    setattr(s2, "side", "")
     return s2
 
 
@@ -132,6 +133,14 @@ def load_or_init_state(state_dir: str, system_state_id: str) -> L1State:
         setattr(s2, "last_intent_id", _safe_text(s2_last.get("last_intent_id"), ""))
         setattr(s2, "snapshot_id", _safe_text(s2_last.get("snapshot_id"), ""))
 
+        loaded_side = _safe_text(s2_last.get("side"), "")
+        if loaded_side == "":
+            if s2.position == "LONG":
+                loaded_side = "long"
+            elif s2.position == "SHORT":
+                loaded_side = "short"
+        setattr(s2, "side", loaded_side)
+
     if s4_last:
         loaded_system_state_id = _safe_text(s4_last.get("system_state_id"), loaded_system_state_id)
 
@@ -172,6 +181,7 @@ def persist_state(state_dir: str, state: L1State) -> None:
     s2_entry_timestamp_utc = _safe_text(getattr(state.s2_position, "entry_timestamp_utc", ""), "")
     s2_last_intent_id = _safe_text(getattr(state.s2_position, "last_intent_id", ""), "")
     s2_snapshot_id = _safe_text(getattr(state.s2_position, "snapshot_id", ""), "")
+    s2_side = _safe_text(getattr(state.s2_position, "side", ""), "")
 
     s4_trades_6h = _safe_int(getattr(state.s4_risk, "trades_6h", 0), 0)
     s4_trades_today = _safe_int(getattr(state.s4_risk, "trades_today", 0), 0)
@@ -183,6 +193,7 @@ def persist_state(state_dir: str, state: L1State) -> None:
             "system_state_id": state.system_state_id,
             "symbol": state.s2_position.symbol,
             "position": state.s2_position.position,
+            "side": s2_side,
             "size": state.s2_position.size,
             "entry_price": state.s2_position.entry_price,
             "entry_timestamp_utc": s2_entry_timestamp_utc,

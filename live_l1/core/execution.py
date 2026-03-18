@@ -1,24 +1,34 @@
 #!/usr/bin/env python3
 # live_l1/core/execution.py
 #
-# Minimal paper execution for L1-F.
+# L1-K paper execution with trade logging on CLOSE.
 # - deterministic
 # - ASCII-only
 # - no real broker/exchange actions
-# - only state transition logic for paper positions
+# - state transition logic for paper positions
+# - realized trade log written only when a trade is CLOSED
+# - duplicate guard on trade_id
 #
 # Current scope:
-# - FLAT + BUY  -> open LONG
-# - LONG + BUY  -> no action
-# - FLAT + SELL -> open SHORT
-# - SHORT + SELL -> no action
-# - HOLD -> no action
+# - FLAT + BUY   -> OPEN_LONG
+# - LONG + BUY   -> NOOP
+# - SHORT + BUY  -> CLOSE_SHORT (+ trade log)
+# - FLAT + SELL  -> OPEN_SHORT
+# - SHORT + SELL -> NOOP
+# - LONG + SELL  -> CLOSE_LONG (+ trade log)
+# - HOLD         -> NOOP
 #
-# Exit / flip / PnL logic is intentionally not implemented yet.
+# Intentionally still not implemented:
+# - flip in one step
+# - fees deducted from pnl
+# - partial close
 
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Literal, Optional
 
 
@@ -56,6 +66,18 @@ def _safe_float(value: object, default: float = 0.0) -> float:
         return default
 
 
+def _safe_optional_float(value: object) -> Optional[float]:
+    if value is None:
+        return None
+    s = str(value).strip()
+    if s == "":
+        return None
+    try:
+        return float(s)
+    except Exception:
+        return None
+
+
 def _safe_text(value: object, default: str = "") -> str:
     if value is None:
         return default
@@ -63,6 +85,9 @@ def _safe_text(value: object, default: str = "") -> str:
 
 
 def _ensure_position_attrs(state) -> None:
+    if not hasattr(state, "s2_position"):
+        raise AttributeError("state.s2_position missing")
+
     if not hasattr(state.s2_position, "position"):
         state.s2_position.position = "FLAT"
 
@@ -82,6 +107,190 @@ def _ensure_position_attrs(state) -> None:
         state.s2_position.side = ""
 
 
+def _reset_to_flat(state) -> None:
+    state.s2_position.position = "FLAT"
+    state.s2_position.side = ""
+    state.s2_position.size = 0.0
+    state.s2_position.position_size = 0.0
+    state.s2_position.entry_price = None
+    state.s2_position.entry_timestamp_utc = ""
+
+
+def _resolve_trade_log_path(trade_log_path: Optional[str]) -> str:
+    if trade_log_path is not None and str(trade_log_path).strip() != "":
+        return str(trade_log_path).strip()
+
+    env_path = os.environ.get("L1_TRADE_LOG_PATH", "").strip()
+    if env_path != "":
+        return env_path
+
+    return "live_logs/trades_l1.jsonl"
+
+
+def _ensure_parent_dir(path: str) -> None:
+    parent = os.path.dirname(path)
+    if parent != "":
+        os.makedirs(parent, exist_ok=True)
+
+
+def _append_jsonl(path: str, payload: dict) -> None:
+    _ensure_parent_dir(path)
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=True, sort_keys=True) + "\n")
+
+
+def _trade_id_exists(path: str, trade_id: str) -> bool:
+    if not os.path.isfile(path):
+        return False
+
+    target = _safe_text(trade_id, "")
+    if target == "":
+        return False
+
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            for raw_line in fh:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                if not isinstance(obj, dict):
+                    continue
+                existing_trade_id = _safe_text(obj.get("trade_id"), "")
+                if existing_trade_id == target:
+                    return True
+    except Exception:
+        return False
+
+    return False
+
+
+def _parse_timestamp_utc(ts: str) -> Optional[datetime]:
+    s = _safe_text(ts, "")
+    if s == "":
+        return None
+
+    normalized = s.replace("_", " ")
+
+    try:
+        if normalized.endswith("Z"):
+            return datetime.fromisoformat(normalized[:-1] + "+00:00")
+        dt = datetime.fromisoformat(normalized)
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _compute_duration_sec(entry_timestamp_utc: str, exit_timestamp_utc: str) -> float:
+    dt_entry = _parse_timestamp_utc(entry_timestamp_utc)
+    dt_exit = _parse_timestamp_utc(exit_timestamp_utc)
+
+    if dt_entry is None or dt_exit is None:
+        return 0.0
+
+    duration = (dt_exit - dt_entry).total_seconds()
+    if duration < 0:
+        return 0.0
+    return float(duration)
+
+
+def _compute_pnl(side: str, entry_price: float, exit_price: float, size: float) -> float:
+    if side == "long":
+        return (exit_price - entry_price) * size
+    if side == "short":
+        return (entry_price - exit_price) * size
+    return 0.0
+
+
+def _compute_pnl_pct(pnl: float, entry_price: float, size: float) -> float:
+    denom = entry_price * size
+    if denom <= 0.0:
+        return 0.0
+    return pnl / denom
+
+
+def _build_trade_id(system_state_id: str, entry_timestamp_utc: str) -> str:
+    sid = _safe_text(system_state_id, "UNKNOWN_SYSTEM")
+    ets = _safe_text(entry_timestamp_utc, "UNKNOWN_ENTRY_TS")
+    return sid + "_" + ets
+
+
+def _log_closed_trade(
+    *,
+    state,
+    side: str,
+    entry_price: float,
+    exit_price: float,
+    entry_timestamp_utc: str,
+    exit_timestamp_utc: str,
+    size: float,
+    fee_roundtrip: float,
+    exit_reason: str,
+    trade_log_path: Optional[str],
+) -> None:
+    system_state_id = _safe_text(getattr(state, "system_state_id", ""), "")
+    trade_id = _build_trade_id(system_state_id, entry_timestamp_utc)
+    duration_sec = _compute_duration_sec(entry_timestamp_utc, exit_timestamp_utc)
+    pnl = _compute_pnl(side, entry_price, exit_price, size)
+    pnl_pct = _compute_pnl_pct(pnl, entry_price, size)
+
+    payload = {
+        "system_state_id": system_state_id,
+        "trade_id": trade_id,
+        "side": side,
+        "entry_price": float(entry_price),
+        "exit_price": float(exit_price),
+        "entry_timestamp_utc": _safe_text(entry_timestamp_utc, ""),
+        "exit_timestamp_utc": _safe_text(exit_timestamp_utc, ""),
+        "duration_sec": float(duration_sec),
+        "size": float(size),
+        "pnl": float(pnl),
+        "pnl_pct": float(pnl_pct),
+        "fee_roundtrip": float(fee_roundtrip),
+        "exit_reason": _safe_text(exit_reason, ""),
+    }
+
+    path = _resolve_trade_log_path(trade_log_path)
+
+    if _trade_id_exists(path, trade_id):
+        return
+
+    _append_jsonl(path, payload)
+
+
+def _capture_open_position_snapshot(state) -> dict:
+    return {
+        "position": _norm_position(getattr(state.s2_position, "position", "FLAT")),
+        "side": _safe_text(getattr(state.s2_position, "side", ""), ""),
+        "entry_price": _safe_optional_float(getattr(state.s2_position, "entry_price", None)),
+        "entry_timestamp_utc": _safe_text(getattr(state.s2_position, "entry_timestamp_utc", ""), ""),
+        "size": _safe_float(
+            getattr(
+                state.s2_position,
+                "position_size",
+                getattr(state.s2_position, "size", 0.0),
+            ),
+            0.0,
+        ),
+    }
+
+
+def _valid_trade_snapshot(snapshot: dict) -> bool:
+    return bool(
+        snapshot.get("position") in ("LONG", "SHORT")
+        and snapshot.get("side") in ("long", "short")
+        and snapshot.get("entry_price") is not None
+        and float(snapshot.get("entry_price")) > 0.0
+        and float(snapshot.get("size", 0.0)) > 0.0
+        and _safe_text(snapshot.get("entry_timestamp_utc", ""), "") != ""
+    )
+
+
 def apply_paper_execution(
     *,
     state,
@@ -89,9 +298,11 @@ def apply_paper_execution(
     price: float,
     timestamp_utc: str,
     position_size: float = 1.0,
+    fee_roundtrip: float = 0.0,
+    trade_log_path: Optional[str] = None,
 ) -> ExecutionDecision:
     """
-    Minimal paper execution state transition.
+    L1-K paper execution state transition with trade logging on CLOSE.
 
     Parameters
     ----------
@@ -100,6 +311,8 @@ def apply_paper_execution(
     price : current market price
     timestamp_utc : timestamp of current snapshot
     position_size : paper position size for new entries
+    fee_roundtrip : stored in trade log, not deducted from pnl yet
+    trade_log_path : optional override for close-trade JSONL path
 
     Returns
     -------
@@ -111,10 +324,10 @@ def apply_paper_execution(
     pos_before = _norm_position(getattr(state.s2_position, "position", "FLAT"))
     px = _safe_float(price, 0.0)
     ts = _safe_text(timestamp_utc, "")
-    size = _safe_float(position_size, 1.0)
+    size_new = _safe_float(position_size, 1.0)
 
-    if size <= 0.0:
-        size = 1.0
+    if size_new <= 0.0:
+        size_new = 1.0
 
     if intent_final == "HOLD":
         return ExecutionDecision(
@@ -132,8 +345,8 @@ def apply_paper_execution(
         if pos_before == "FLAT":
             state.s2_position.position = "LONG"
             state.s2_position.side = "long"
-            state.s2_position.size = float(size)
-            state.s2_position.position_size = float(size)
+            state.s2_position.size = float(size_new)
+            state.s2_position.position_size = float(size_new)
             state.s2_position.entry_price = float(px)
             state.s2_position.entry_timestamp_utc = ts
 
@@ -161,23 +374,41 @@ def apply_paper_execution(
             )
 
         if pos_before == "SHORT":
+            trade_snapshot = _capture_open_position_snapshot(state)
+
+            if _valid_trade_snapshot(trade_snapshot):
+                _log_closed_trade(
+                    state=state,
+                    side="short",
+                    entry_price=float(trade_snapshot["entry_price"]),
+                    exit_price=float(px),
+                    entry_timestamp_utc=_safe_text(trade_snapshot["entry_timestamp_utc"], ""),
+                    exit_timestamp_utc=ts,
+                    size=float(trade_snapshot["size"]),
+                    fee_roundtrip=float(fee_roundtrip),
+                    exit_reason="CLOSE_SHORT",
+                    trade_log_path=trade_log_path,
+                )
+
+            _reset_to_flat(state)
+
             return ExecutionDecision(
-                action="NOOP",
-                executed=False,
+                action="CLOSE_SHORT",
+                executed=True,
                 position_before="SHORT",
-                position_after="SHORT",
-                side_after="short",
-                entry_price=getattr(state.s2_position, "entry_price", None),
-                entry_timestamp_utc=_safe_text(getattr(state.s2_position, "entry_timestamp_utc", ""), ""),
-                reason="BUY_WHILE_SHORT_NOT_SUPPORTED_YET",
+                position_after="FLAT",
+                side_after="",
+                entry_price=None,
+                entry_timestamp_utc="",
+                reason="BUY_CLOSES_SHORT",
             )
 
     if intent_final == "SELL":
         if pos_before == "FLAT":
             state.s2_position.position = "SHORT"
             state.s2_position.side = "short"
-            state.s2_position.size = float(size)
-            state.s2_position.position_size = float(size)
+            state.s2_position.size = float(size_new)
+            state.s2_position.position_size = float(size_new)
             state.s2_position.entry_price = float(px)
             state.s2_position.entry_timestamp_utc = ts
 
@@ -205,15 +436,33 @@ def apply_paper_execution(
             )
 
         if pos_before == "LONG":
+            trade_snapshot = _capture_open_position_snapshot(state)
+
+            if _valid_trade_snapshot(trade_snapshot):
+                _log_closed_trade(
+                    state=state,
+                    side="long",
+                    entry_price=float(trade_snapshot["entry_price"]),
+                    exit_price=float(px),
+                    entry_timestamp_utc=_safe_text(trade_snapshot["entry_timestamp_utc"], ""),
+                    exit_timestamp_utc=ts,
+                    size=float(trade_snapshot["size"]),
+                    fee_roundtrip=float(fee_roundtrip),
+                    exit_reason="CLOSE_LONG",
+                    trade_log_path=trade_log_path,
+                )
+
+            _reset_to_flat(state)
+
             return ExecutionDecision(
-                action="NOOP",
-                executed=False,
+                action="CLOSE_LONG",
+                executed=True,
                 position_before="LONG",
-                position_after="LONG",
-                side_after="long",
-                entry_price=getattr(state.s2_position, "entry_price", None),
-                entry_timestamp_utc=_safe_text(getattr(state.s2_position, "entry_timestamp_utc", ""), ""),
-                reason="SELL_WHILE_LONG_NOT_SUPPORTED_YET",
+                position_after="FLAT",
+                side_after="",
+                entry_price=None,
+                entry_timestamp_utc="",
+                reason="SELL_CLOSES_LONG",
             )
 
     return ExecutionDecision(
