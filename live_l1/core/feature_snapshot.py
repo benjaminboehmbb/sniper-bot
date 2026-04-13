@@ -71,6 +71,12 @@ class FeatureSnapshot:
     def signal(self, name: str, default: int = 0) -> int:
         return _to_int(self.signals.get(name), default)
 
+    def weighted_signal_score(self, weights: Mapping[str, float]) -> float:
+        score = 0.0
+        for col, w in weights.items():
+            score += float(w) * float(self.signal(col, 0))
+        return score
+
     def signal_score(self) -> int:
         score = 0
         for col in SIGNAL_COLUMNS:

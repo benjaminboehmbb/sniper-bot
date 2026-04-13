@@ -204,10 +204,15 @@ def run_l1_loop_step1234567(
 
             features = build_feature_snapshot(snapshot)
 
+            current_position = "FLAT"
+            if hasattr(state, "s2_position") and hasattr(state.s2_position, "position"):
+                current_position = str(state.s2_position.position).strip().upper()
+
             intent_1m_raw, forced = compute_1m_intent_raw(
                 cfg=cfg,
                 tick_id=tick.tick_id,
                 features=features,
+                current_position=current_position,
             )
 
             vote_v1 = compute_5m_timing_vote(
@@ -216,10 +221,6 @@ def run_l1_loop_step1234567(
                 symbol=cfg.symbol,
                 now_utc=tick.tick_started_utc,
             )
-
-            current_position = "FLAT"
-            if hasattr(state, "s2_position") and hasattr(state.s2_position, "position"):
-                current_position = str(state.s2_position.position).strip().upper()
 
             fused = fuse_intent_with_5m_timing(
                 intent_1m_raw=intent_1m_raw,

@@ -18,6 +18,12 @@
 # - LONG + SELL  -> CLOSE_LONG (+ trade log)
 # - HOLD         -> NOOP
 #
+# Added:
+# - fixed TP/SL exits
+#   - TP = 2% wird dann doh geändert
+#   - SL = 1% wird auch geändert
+# - TP/SL is checked before signal-based exit
+#
 # Intentionally still not implemented:
 # - flip in one step
 # - fees deducted from pnl
@@ -328,6 +334,79 @@ def apply_paper_execution(
 
     if size_new <= 0.0:
         size_new = 1.0
+
+    tp_pct = 0.05
+    sl_pct = 0.02
+
+    entry_price_current = _safe_optional_float(getattr(state.s2_position, "entry_price", None))
+
+    if pos_before == "LONG" and entry_price_current is not None and entry_price_current > 0.0:
+        tp_price_long = entry_price_current * (1.0 + tp_pct)
+        sl_price_long = entry_price_current * (1.0 - sl_pct)
+
+        if px >= tp_price_long or px <= sl_price_long:
+            trade_snapshot = _capture_open_position_snapshot(state)
+
+            if _valid_trade_snapshot(trade_snapshot):
+                _log_closed_trade(
+                    state=state,
+                    side="long",
+                    entry_price=float(trade_snapshot["entry_price"]),
+                    exit_price=float(px),
+                    entry_timestamp_utc=_safe_text(trade_snapshot["entry_timestamp_utc"], ""),
+                    exit_timestamp_utc=ts,
+                    size=float(trade_snapshot["size"]),
+                    fee_roundtrip=float(fee_roundtrip),
+                    exit_reason="TP_LONG" if px >= tp_price_long else "SL_LONG",
+                    trade_log_path=trade_log_path,
+                )
+
+            _reset_to_flat(state)
+
+            return ExecutionDecision(
+                action="CLOSE_LONG",
+                executed=True,
+                position_before="LONG",
+                position_after="FLAT",
+                side_after="",
+                entry_price=None,
+                entry_timestamp_utc="",
+                reason="TP_LONG_HIT" if px >= tp_price_long else "SL_LONG_HIT",
+            )
+
+    if pos_before == "SHORT" and entry_price_current is not None and entry_price_current > 0.0:
+        tp_price_short = entry_price_current * (1.0 - tp_pct)
+        sl_price_short = entry_price_current * (1.0 + sl_pct)
+
+        if px <= tp_price_short or px >= sl_price_short:
+            trade_snapshot = _capture_open_position_snapshot(state)
+
+            if _valid_trade_snapshot(trade_snapshot):
+                _log_closed_trade(
+                    state=state,
+                    side="short",
+                    entry_price=float(trade_snapshot["entry_price"]),
+                    exit_price=float(px),
+                    entry_timestamp_utc=_safe_text(trade_snapshot["entry_timestamp_utc"], ""),
+                    exit_timestamp_utc=ts,
+                    size=float(trade_snapshot["size"]),
+                    fee_roundtrip=float(fee_roundtrip),
+                    exit_reason="TP_SHORT" if px <= tp_price_short else "SL_SHORT",
+                    trade_log_path=trade_log_path,
+                )
+
+            _reset_to_flat(state)
+
+            return ExecutionDecision(
+                action="CLOSE_SHORT",
+                executed=True,
+                position_before="SHORT",
+                position_after="FLAT",
+                side_after="",
+                entry_price=None,
+                entry_timestamp_utc="",
+                reason="TP_SHORT_HIT" if px <= tp_price_short else "SL_SHORT_HIT",
+            )
 
     if intent_final == "HOLD":
         return ExecutionDecision(
