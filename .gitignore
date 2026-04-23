@@ -42,3 +42,6 @@ cache_np/
 # python caches
 __pycache__/
 *.pyc
+live_logs/
+live_state/
+__pycache__/

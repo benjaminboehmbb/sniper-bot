@@ -1,26 +1,6 @@
 #!/usr/bin/env python3
 # live_l1/core/intent.py
 # Deterministic 1m intent logic for L1 paper loop.
-#
-# Current test:
-# - FLAT entry uses ma200 gate + 2-bar confirmation at threshold 4
-# - plus RSI AND MFI direction alignment at entry
-# - LONG/SHORT exit remains short-hold timing logic
-#
-# Entry:
-#   BUY  only if ma200_signal == +1 and rsi_signal == +1 and mfi_signal == +1
-#        and last 2 scores >= +4
-#   SELL only if ma200_signal == -1 and rsi_signal == -1 and mfi_signal == -1
-#        and last 2 scores <= -4
-#
-# Exit:
-#   LONG  -> SELL only if last 2 scores <= -2
-#   SHORT -> BUY  only if last 1 score >= +2
-#
-# Optional debug:
-#   export L1_INTENT_DEBUG=1
-#   writes to live_logs/intent_debug.log
-#
 # ASCII-only.
 
 from __future__ import annotations
@@ -90,7 +70,6 @@ def _normalize_score(features: FeatureSnapshot) -> int:
             + features.signal("bollinger_signal")
             + features.signal("stoch_signal")
             + features.signal("cci_signal")
-            + features.signal("mfi_signal")
         )
     except Exception:
         return 0
@@ -173,27 +152,6 @@ def compute_1m_intent_raw(
     features: FeatureSnapshot,
     current_position: str = "FLAT",
 ) -> Tuple[IntentAction, bool]:
-    """
-    Returns:
-        (intent_1m_raw, forced)
-
-    Normal mode:
-    - FLAT:
-        BUY  if ma200_signal == +1 and rsi_signal == +1 and mfi_signal == +1
-              and last 2 scores >= +4
-        SELL if ma200_signal == -1 and rsi_signal == -1 and mfi_signal == -1
-              and last 2 scores <= -4
-    - LONG:
-        SELL if last 2 scores <= -2
-        else HOLD
-    - SHORT:
-        BUY if last 1 score >= +2
-        else HOLD
-
-    Forced mode:
-    - deterministic BUY/SELL for tests
-    """
-
     tick_id = int(tick_id)
     _maybe_reset_on_tick_reset(tick_id)
 
@@ -256,12 +214,22 @@ def compute_1m_intent_raw(
 
     if pos == "FLAT":
         ma200_sig = int(features.signal("ma200_signal"))
-        rsi_sig = int(features.signal("rsi_signal"))
         mfi_sig = int(features.signal("mfi_signal"))
+        adx_sig = int(features.signal("adx_signal"))
 
-        if ma200_sig == 1 and rsi_sig == 1 and mfi_sig == 1 and _last_n_all_ge(2, 4):
+        if (
+            ma200_sig == 1
+            and mfi_sig == 1
+            and adx_sig == 1
+            and _last_n_all_ge(2, 3)
+        ):
             intent = "BUY"
-        elif ma200_sig == -1 and rsi_sig == -1 and mfi_sig == -1 and _last_n_all_le(2, -4):
+        elif (
+            ma200_sig == -1
+            and mfi_sig == -1
+            and adx_sig == -1
+            and _last_n_all_le(2, -3)
+        ):
             intent = "SELL"
 
     elif pos == "LONG":
