@@ -8,6 +8,7 @@
 # - state transition logic for paper positions
 # - realized trade log written only when a trade is CLOSED
 # - duplicate guard on trade_id
+# - loss-cluster entry gate
 #
 # Current scope:
 # - FLAT + BUY   -> OPEN_LONG
@@ -20,9 +21,9 @@
 #
 # Added:
 # - fixed TP/SL exits
-#   - TP = 2% wird dann doh geändert
-#   - SL = 1% wird auch geändert
 # - TP/SL is checked before signal-based exit
+# - loss-cluster gate:
+#   if 5 of last 10 closed trades are losses, block next 25 entry attempts
 #
 # Intentionally still not implemented:
 # - flip in one step
@@ -33,7 +34,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
@@ -51,6 +52,43 @@ class ExecutionDecision:
     entry_price: Optional[float]
     entry_timestamp_utc: str
     reason: str
+
+
+LOSS_CLUSTER_LOOKBACK = 10
+LOSS_CLUSTER_MIN_LOSSES = 5
+LOSS_CLUSTER_PAUSE_ENTRIES = 25
+
+
+@dataclass
+class _LossClusterGateState:
+    recent_closed_trade_pnls: list[float] = field(default_factory=list)
+    pause_entries_remaining: int = 0
+
+
+_LOSS_GATE_STATE = _LossClusterGateState()
+
+
+def _loss_gate_register_closed_trade(pnl: float) -> None:
+    _LOSS_GATE_STATE.recent_closed_trade_pnls.append(float(pnl))
+
+    if len(_LOSS_GATE_STATE.recent_closed_trade_pnls) > LOSS_CLUSTER_LOOKBACK:
+        _LOSS_GATE_STATE.recent_closed_trade_pnls.pop(0)
+
+    losses = sum(1 for x in _LOSS_GATE_STATE.recent_closed_trade_pnls if float(x) < 0.0)
+
+    if (
+        len(_LOSS_GATE_STATE.recent_closed_trade_pnls) >= LOSS_CLUSTER_LOOKBACK
+        and losses >= LOSS_CLUSTER_MIN_LOSSES
+    ):
+        _LOSS_GATE_STATE.pause_entries_remaining = LOSS_CLUSTER_PAUSE_ENTRIES
+        _LOSS_GATE_STATE.recent_closed_trade_pnls = []
+
+
+def _loss_gate_allows_entry() -> bool:
+    if _LOSS_GATE_STATE.pause_entries_remaining > 0:
+        _LOSS_GATE_STATE.pause_entries_remaining -= 1
+        return False
+    return True
 
 
 def _norm_position(value: object) -> str:
@@ -267,6 +305,7 @@ def _log_closed_trade(
         return
 
     _append_jsonl(path, payload)
+    _loss_gate_register_closed_trade(float(pnl))
 
 
 def _capture_open_position_snapshot(state) -> dict:
@@ -297,6 +336,19 @@ def _valid_trade_snapshot(snapshot: dict) -> bool:
     )
 
 
+def _blocked_entry_decision(pos_before: str, side_after: str, entry_price, entry_timestamp_utc: str) -> ExecutionDecision:
+    return ExecutionDecision(
+        action="NOOP",
+        executed=False,
+        position_before=pos_before,
+        position_after=pos_before,
+        side_after=side_after,
+        entry_price=entry_price,
+        entry_timestamp_utc=entry_timestamp_utc,
+        reason="LOSS_CLUSTER_GATE_BLOCKED_ENTRY",
+    )
+
+
 def apply_paper_execution(
     *,
     state,
@@ -309,20 +361,6 @@ def apply_paper_execution(
 ) -> ExecutionDecision:
     """
     L1-K paper execution state transition with trade logging on CLOSE.
-
-    Parameters
-    ----------
-    state : loaded L1 state
-    intent_final : BUY / SELL / HOLD
-    price : current market price
-    timestamp_utc : timestamp of current snapshot
-    position_size : paper position size for new entries
-    fee_roundtrip : stored in trade log, not deducted from pnl yet
-    trade_log_path : optional override for close-trade JSONL path
-
-    Returns
-    -------
-    ExecutionDecision
     """
 
     _ensure_position_attrs(state)
@@ -336,7 +374,7 @@ def apply_paper_execution(
         size_new = 1.0
 
     tp_pct = 0.05
-    sl_pct = 0.02
+    sl_pct = 0.015
 
     entry_price_current = _safe_optional_float(getattr(state.s2_position, "entry_price", None))
 
@@ -422,6 +460,14 @@ def apply_paper_execution(
 
     if intent_final == "BUY":
         if pos_before == "FLAT":
+            if not _loss_gate_allows_entry():
+                return _blocked_entry_decision(
+                    pos_before="FLAT",
+                    side_after="",
+                    entry_price=None,
+                    entry_timestamp_utc="",
+                )
+
             state.s2_position.position = "LONG"
             state.s2_position.side = "long"
             state.s2_position.size = float(size_new)
@@ -484,6 +530,14 @@ def apply_paper_execution(
 
     if intent_final == "SELL":
         if pos_before == "FLAT":
+            if not _loss_gate_allows_entry():
+                return _blocked_entry_decision(
+                    pos_before="FLAT",
+                    side_after="",
+                    entry_price=None,
+                    entry_timestamp_utc="",
+                )
+
             state.s2_position.position = "SHORT"
             state.s2_position.side = "short"
             state.s2_position.size = float(size_new)

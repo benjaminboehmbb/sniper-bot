@@ -978,15 +978,146 @@ Decision:
 L1-C accepted and frozen.
 
 ---
+## 10. Aktueller Entwicklungsstand – L1-Strategieoptimierung
 
-## 10. Fazit
+### Setup (aktuell gültig)
+
+Entry:
+- Trendfilter: ma200_signal
+- Filter: mfi_signal
+- Score: rsi + bollinger + stoch + cci
+
+Entry-Logik:
+- ATR schlecht (atr_sig == -1):
+  - LONG: 2x >= +3
+  - SHORT: 2x <= -3
+- ATR normal:
+  - LONG: 3x >= +3
+  - SHORT: 3x <= -3
+
+Cooldown:
+- Standard: 120
+
+Exit (fix):
+- LONG: 1x <= -1
+- SHORT: 2x >= +2
+
+TP/SL:
+- TP: 5%
+- SL: 2%
+
+---
+
+### Validierung – 200k Runs
+
+Ergebnisse stabil:
+
+- Offset 1M:
+  - PF ~1.7
+  - DD ~2%
+  - Trades ~113
+
+- Offset 0:
+  - PF ~2.3
+  - DD ~5%
+  - Trades ~149
+
+- Offset 500k:
+  - PF ~4.5
+  - DD <1%
+  - Trades ~134
+
+👉 Aussage:
+System funktioniert in kurzen Fenstern stabil.
+
+---
+
+### Problem – lange Runs (500k+)
+
+Beispiel:
+
+- 500k @ Offset 1.5M:
+  - Return: 46.62%
+  - Trades: 228
+  - PF: 1.34
+  - DD: 31.51%
+
+👉 Hauptproblem:
+
+Nicht einzelne schlechte Trades,
+sondern:
+
+→ zu viele mittelmäßige Trades über Zeit  
+→ Drawdown akkumuliert
+
+---
+
+### Zentrale Erkenntnis
+
+Entry-Logik ist ausreichend gut.
+
+Problem liegt in:
+
+→ fehlender Phase-Erkennung / Aktivitätskontrolle
+
+---
+
+### Neue Lösung (aktuell getestet)
+
+Loss-Cluster-Gate:
+
+- wenn 5 der letzten 10 Trades Verlust sind:
+  → blockiere nächste 25 Entries
+
+---
+
+### Wirkung (offline Analyse)
+
+Vergleich:
+
+ohne Gate:
+- PF: 1.34
+- DD: 31.5%
+- Trades: 228
+
+mit Gate:
+- PF: ~2.18
+- DD: ~8.9%
+- Trades: ~128
+
+👉 Bedeutung:
+
+- DD massiv reduziert
+- PF deutlich verbessert
+- Return bleibt erhalten
+
+
+### Nächster Schritt
+
+Integration in execution.py und Validierung:
+
+1. 200k @ Offset 1M (Gatekeeper)
+2. 200k @ Offset 0
+3. 200k @ Offset 500k
+4. 500k @ Offset 1.5M
+
+---
+
+### Workflow-Regel (kritisch)
+Nach JEDEM Run:
+```bash
+cp live_logs/trades_l1.jsonl live_logs/archive/trades_<runname>.jsonl
+
+---
+
+## 11. Fazit
 
 Dieses Dokument ist die **Master-Blaupause** des Sniper-Bot Projekts.  
 Es bildet die Grundlage für alle aktuellen und zukünftigen Entwicklungen – von klassischen Filter-Strategien über Marktregime & Volumen bis hin zu Machine Learning und Live-Betrieb.  
 
 ---
 
-### 10.1 Zentrale Prinzipien
+### 11.1 Zentrale Prinzipien
 - **Baukasten-System:** modular, flexibel, jederzeit erweiterbar.  
 - **Selektivität:** ca. 200 Trades pro Jahr (±100) – Qualität vor Quantität.  
 - **Backups & Versionierung:** jede Analyse wird reproduzierbar und nachvollziehbar gespeichert.  
@@ -995,7 +1126,7 @@ Es bildet die Grundlage für alle aktuellen und zukünftigen Entwicklungen – v
 
 ---
 
-### 10.2 Erweiterte Schwerpunkte
+### 11.2 Erweiterte Schwerpunkte
 - **Marktregime & Volumen:** zentrale Filter- und Bewertungsdimensionen.  
 - **Multi-Coin-Analyse:** Cross-Market Confirmation als Signalverstärkung.  
 - **Erweiterte Metriken:** Sharpe, Sortino, Calmar, Profit Factor, Omega, Ulcer, Skew/Kurtosis.  
@@ -1006,7 +1137,7 @@ Es bildet die Grundlage für alle aktuellen und zukünftigen Entwicklungen – v
 
 ---
 
-### 10.3 Endziel
+### 11.3 Endziel
 Ein **vollständig adaptiver Trading-Bot**, der:  
 1. **Marktregime erkennt** und Kapital dynamisch allokiert.  
 2. **Volumenbewegungen als Signalverstärker** nutzt.  
@@ -1017,7 +1148,7 @@ Ein **vollständig adaptiver Trading-Bot**, der:
 
 ---
 
-### 10.4 Fazit in einem Satz
+### 11.4 Fazit in einem Satz
 Der Sniper-Bot ist kein starres System, sondern ein **modularer, adaptiver Baukasten**, der mit jedem Schritt präziser, robuster und intelligenter wird – bis hin zum vollständig autonomen, marktintelligenten Live-Bot.
  
 
