@@ -326,7 +326,91 @@ FINAL BASELINE ERREICHT
 
 
 
+## RUN - SCORE 4 ONLY TEST - 200k @ offset 1,000,000
 
+### Ziel
+Pruefung, ob eine einfache Entry-Verschaerfung auf Score 4 only die finale Baseline verbessert.
+
+### Aenderung
+Testvariante in `live_l1/core/intent.py`:
+
+- Normal ATR LONG: 3x score >= +3 -> 3x score >= +4
+- Normal ATR SHORT: 3x score <= -3 -> 3x score <= -4
+
+Bad ATR war bereits strikt und blieb unveraendert:
+
+- Bad ATR LONG: 3x score >= +4
+- Bad ATR SHORT: 3x score <= -4
+
+### Setup
+- Geraet: Workstation
+- Environment: WSL
+- Marktdatei: `data/l1_full_run.csv`
+- Run: 200k ticks @ offset 1,000,000
+- Startkapital: 10000.0
+- Fee roundtrip: 0.0004
+- TP: 5%
+- SL: 1.5%
+- Loss-Cluster-Gate: 5 Verluste aus 10 Trades, Pause 35 Entry-Blocks
+
+### Ergebnis Score 4 only
+- final_equity: 12152.09
+- total_pnl: 2152.09
+- return_pct: 21.52%
+- num_trades: 299
+- winrate: 68.56%
+- profit_factor: 1.2094
+- avg_pnl: 7.1976
+- avg_duration_sec: 1994.05
+- max_drawdown_abs: 3140.75
+- max_drawdown_pct: 20.77%
+- sharpe_like: 2.0167
+
+### Vergleich zur finalen Baseline 200k @ offset 1,000,000
+Baseline:
+- return_pct: 2.88%
+- num_trades: 18
+- winrate: 83.33%
+- profit_factor: 6.4185
+- max_drawdown_pct: 0.37%
+
+Score 4 only:
+- return_pct: 21.52%
+- num_trades: 299
+- winrate: 68.56%
+- profit_factor: 1.2094
+- max_drawdown_pct: 20.77%
+
+### Bewertung
+Die Variante erzeugt deutlich mehr Return, aber auf Kosten der Strategiequalitaet.
+
+Problem:
+- Trade-Anzahl explodiert von 18 auf 299.
+- Profit Factor faellt massiv von 6.4185 auf 1.2094.
+- Max Drawdown steigt von 0.37% auf 20.77%.
+- Damit verliert die Variante den Sniper-Charakter und wird zu riskant.
+
+### Entscheidung
+Score 4 only ist verworfen.
+
+Die finale Baseline bleibt unveraendert:
+
+- Bad ATR LONG: 3x score >= +4
+- Normal ATR LONG: 3x score >= +3
+- Bad ATR SHORT: 3x score <= -4
+- Normal ATR SHORT: 3x score <= -3
+
+### Archivierte Dateien
+- `live_logs/archive/trades_score4only_FAIL_200k_offset1000000_2026-05-05.jsonl`
+- `live_logs/archive/analysis_score4only_FAIL_200k_offset1000000_2026-05-05.csv`
+
+### Naechster Schritt
+Keine weitere einfache Entry-Verschaerfung testen.
+
+Stattdessen gezielt STEP 2 pruefen:
+- nicht pauschal Score 4 only
+- sondern gezielte Fehlerbloecke aus der Regime-Analyse adressieren
+- insbesondere Score -3, lange Trades und SL-Cluster
 
 
 
