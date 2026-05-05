@@ -413,6 +413,196 @@ Stattdessen gezielt STEP 2 pruefen:
 - insbesondere Score -3, lange Trades und SL-Cluster
 
 
+## RUN - STEP 2 (Score -3 vollständig entfernt) - 200k @ offset 1,000,000
+
+### Ziel
+Gezieltes Entfernen des identifizierten Fehlerblocks:
+- Score -3 (negativer PF, Hauptverlusttreiber)
+
+Ansatz:
+- Nur Trades mit Score ±4 erlauben
+- Score ±3 komplett eliminieren
+
+### Änderung
+In `live_l1/core/intent.py`:
+
+Normal ATR wurde faktisch deaktiviert:
+- LONG: 3x score >= +3 -> entfernt
+- SHORT: 3x score <= -3 -> entfernt
+
+Aktiv bleibt nur:
+- LONG: 3x score >= +4
+- SHORT: 3x score <= -4
+
+### Setup
+- Gerät: Workstation
+- Environment: WSL
+- Marktdatei: `data/l1_full_run.csv`
+- Run: 200k ticks @ offset 1,000,000
+- Startkapital: 10000.0
+- TP: 5%
+- SL: 1.5%
+- Loss-Cluster-Gate: unverändert
+
+### Ergebnis
+- final_equity: 10123.39
+- total_pnl: 123.39
+- return_pct: 1.23%
+- num_trades: 6
+- winrate: 83.33%
+- profit_factor: 11.4215
+- avg_pnl: 20.5650
+- avg_duration_sec: 2330.00
+- max_drawdown_abs: 11.84
+- max_drawdown_pct: 0.12%
+
+### Bewertung
+Erwartung:
+- Eliminierung der Verlustquelle (Score -3)
+- Verbesserung von PF und DD
+
+Ergebnis:
+- PF und DD stark verbessert
+- aber Aktivität kollabiert (18 -> 6 Trades)
+- Return stark reduziert (2.88% -> 1.23%)
+
+### Interpretation
+Das vollständige Entfernen von Score ±3 ist zu aggressiv:
+- reduziert zwar Risiko
+- zerstört aber die Handelsfrequenz
+- verhindert ausreichend Kapitalrotation
+
+Die Strategie verliert dadurch ihren praktischen Nutzen.
+
+### Entscheidung
+STEP 2 wird verworfen.
+
+Die finale Baseline bleibt unverändert.
+
+### Zentrale Erkenntnis
+Das Problem liegt nicht im Score -3 allein, sondern in der Kombination:
+
+- Score -3
+- ATR-Zustand
+- Trade-Dauer
+
+Ein isoliertes Entfernen ist nicht ausreichend sinnvoll.
+
+### Nächster Schritt
+Gezielte Filterung statt harter Eliminierung:
+
+- Score -3 nur unter bestimmten Bedingungen blockieren
+- insbesondere abhängig von ATR (good_atr vs bad_atr)
+
+→ Vorbereitung für STEP 3
+
+
+## RUN - STEP 3 (SHORT normal ATR Score -4) - 200k @ offset 1,000,000
+
+### Ziel
+Gezielte Filterung des schwachen Fehlerblocks aus der Regime-Analyse:
+
+- `short_score_-3`
+- Score -3 war im 3M-Run negativ und wurde als potenzieller Verlusttreiber identifiziert.
+
+### Änderung
+In `live_l1/core/intent.py`:
+
+SHORT Entry bei normalem ATR wurde verschärft:
+
+- vorher: `3x score <= -3`
+- neu: `3x score <= -4`
+
+LONG Entry blieb unverändert:
+
+- bad ATR LONG: `3x score >= +4`
+- normal ATR LONG: `3x score >= +3`
+
+SHORT bad ATR blieb unverändert:
+
+- bad ATR SHORT: `3x score <= -4`
+
+### Setup
+- Geraet: Workstation
+- Environment: WSL
+- Marktdatei: `data/l1_full_run.csv`
+- Run: 200k ticks @ offset 1,000,000
+- Startkapital: 10000.0
+- TP: 5%
+- SL: 1.5%
+- Loss-Cluster-Gate: unveraendert
+
+### Ergebnis STEP 3
+- final_equity: 10151.01
+- total_pnl: 151.01
+- return_pct: 1.51%
+- num_trades: 12
+- winrate: 83.33%
+- profit_factor: 4.0136
+- avg_pnl: 12.5842
+- avg_duration_sec: 1930.00
+- max_drawdown_abs: 38.27
+- max_drawdown_pct: 0.38%
+- sharpe_like: 1.9053
+
+### Vergleich zur Baseline 200k @ offset 1,000,000
+Baseline:
+- return_pct: 2.88%
+- num_trades: 18
+- winrate: 83.33%
+- profit_factor: 6.4185
+- max_drawdown_pct: 0.37%
+
+STEP 3:
+- return_pct: 1.51%
+- num_trades: 12
+- winrate: 83.33%
+- profit_factor: 4.0136
+- max_drawdown_pct: 0.38%
+
+### Bewertung
+STEP 3 ist nicht besser als die Baseline.
+
+Negativ:
+- Return sinkt von 2.88% auf 1.51%.
+- Trade-Anzahl sinkt von 18 auf 12.
+- Profit Factor faellt von 6.4185 auf 4.0136.
+- Drawdown verbessert sich nicht.
+
+### Entscheidung
+STEP 3 wird verworfen.
+
+Die finale Baseline bleibt besser und wird wiederhergestellt:
+
+- bad ATR LONG: `3x score >= +4`
+- normal ATR LONG: `3x score >= +3`
+- bad ATR SHORT: `3x score <= -4`
+- normal ATR SHORT: `3x score <= -3`
+
+### Zentrale Erkenntnis
+Das einfache Entfernen von `short_score_-3` verbessert das System nicht.
+
+Der Fehlerblock aus dem 3M-Run ist wahrscheinlich nicht allein durch Entry-Score loesbar, sondern entsteht im Zusammenspiel aus:
+
+- Entry-Score
+- Trade-Dauer
+- Stop-Loss-Treffern
+- Marktphase nach Entry
+
+### Naechster Schritt
+Keine weitere pauschale Entry-Verschaerfung.
+
+Naechster sinnvoller Test:
+- Exit-/Time-Filter pruefen
+- insbesondere problematische lange Trades:
+  - `1h_to_4h`
+  - long/short getrennt
+  - SL-Cluster getrennt analysieren
+
+
+  
+
+
 
 
 
