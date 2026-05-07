@@ -1,54 +1,125 @@
-# LIVE REGIME CONTROL (V1)
+# LIVE REGIME CONTROL SPEC
 
 ## Ziel
-- Marktphase erkennen
-- passendes Modell aktivieren
-- stabile Wechsel erkennen
-- alles dokumentieren
 
----
+Regime-Erkennung fuer den spaeteren Live-Betrieb vorbereiten.
 
-## Grundlogik
+Das Ziel ist nicht, die Baseline sofort zu ersetzen, sondern zu entscheiden:
 
-Pro Tick:
+- wann Baseline aktiv bleibt
+- wann SHORT-lastiges Modell sinnvoll sein kann
+- wann Risiko reduziert oder Trading pausiert wird
 
-1. Regime berechnen
-2. Regime glätten (kein direktes Umschalten)
-3. wenn stabil -> Wechsel bestätigen
-4. Modell wechseln
-5. alles loggen
+## Aktueller Stand
 
----
+- Baseline ist stabil
+- STEP 5 LONG-TimeStop bleibt aktiv
+- Globale Entry-Tweaks wurden verworfen
+- SHORT-only ist stark in bestimmten Fenstern, aber nicht universell robust
 
-## Regime (V1)
+## Grundprinzip
 
-- UP_TREND
-- DOWN_TREND
-- SIDEWAYS
-- CRISIS
-- UNCLASSIFIED
+Keine harte Live-Schaltung ohne Validierung.
 
----
+Reihenfolge:
 
-## Regeln
+1. Regime nur beobachten
+2. Regime in Logs speichern
+3. Regime nach Runs auswerten
+4. erst danach Modell-Switching testen
 
-- Wechsel nur nach mehreren Bestätigungen (kein Flattern)
-- immer nur 1 aktives Modell
-- offener Trade bleibt beim ursprünglichen Modell
-- neues Modell gilt nur für neue Trades
+## Erste Regime-Klassen
 
----
+### BULL
 
-## Logs
+Merkmale:
+- ma200_signal == 1
+- bevorzugt LONG
 
-- regime_detection.jsonl
-- model_switches.jsonl
-- model_activity.jsonl
+Aktion vorerst:
+- Baseline aktiv lassen
+- SHORT nicht pauschal deaktivieren
 
----
+### BEAR
 
-## Nächster Schritt
+Merkmale:
+- ma200_signal == -1
+- bevorzugt SHORT
 
-Implementieren:
+Aktion vorerst:
+- Baseline aktiv lassen
+- SHORT-Performance getrennt beobachten
 
-live_l1/core/regime_detector.py
+### CHOP / UNSICHER
+
+Merkmale:
+- widerspruechliche Signale
+- viele Richtungswechsel
+- schwacher Profit Factor in Auswertung
+
+Aktion vorerst:
+- nur beobachten
+- spaeter moeglicher Risiko-Reduktionsmodus
+
+### HIGH RISK
+
+Merkmale:
+- Loss-Cluster aktiv
+- mehrere SL-Treffer
+- steigender Drawdown
+
+Aktion vorerst:
+- nicht neues Modell aktivieren
+- Entry-Pause oder Positionsreduktion spaeter pruefen
+
+## Modell-Idee
+
+### Modell A: Baseline
+
+Default-Modell.
+Bleibt Hauptmodell.
+
+### Modell B: SHORT-only
+
+Kein globaler Ersatz.
+Nur moeglicher Spezialmodus fuer klar bearische Marktphasen.
+
+### Modell C: Risk-Off
+
+Noch nicht implementiert.
+Spaeter fuer schlechte Marktphasen.
+
+## Wechselregeln - NICHT AKTIV
+
+Noch keine automatischen Wechsel.
+
+Geplante Reihenfolge:
+1. Regime-Label pro Tick erzeugen
+2. Regime-Label pro Trade speichern
+3. Performance je Regime analysieren
+4. stabile Regeln ableiten
+5. Switching nur im Paper-Modus testen
+
+## Mindestanforderungen vor Live-Nutzung
+
+Ein Regime-Switch darf nur aktiviert werden, wenn:
+
+- auf mehreren Offsets getestet
+- gegen Baseline verglichen
+- kein Drawdown-Anstieg
+- keine Trade-Explosion
+- deterministisch reproduzierbar
+- sauber dokumentiert
+
+## Naechster technischer Schritt
+
+Ein reines Analyse-/Logging-Modul erstellen:
+
+- kein Trading-Eingriff
+- kein Entry/Exit-Eingriff
+- nur Regime berechnen und loggen
+
+Moeglicher Dateiname:
+
+`live_l1/core/regime_detector.py`
+
