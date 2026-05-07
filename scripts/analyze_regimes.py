@@ -461,6 +461,88 @@ def add_pair_group_summaries(rows: List[Dict[str, Any]], df: pd.DataFrame, col_a
         rows.append(summarize_group(df=group, group_name=col_a + "_" + col_b, group_value=value, start_capital=start_capital))
 
 
+
+def parse_l1_kv_log_line(line: str) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for part in line.strip().split():
+        if "=" not in part:
+            continue
+        k, v = part.split("=", 1)
+        out[k.strip()] = v.strip()
+    return out
+
+
+def load_regime_log(path: str) -> pd.DataFrame:
+    rows: List[Dict[str, Any]] = []
+
+    if not path or not os.path.isfile(path):
+        return pd.DataFrame()
+
+    with open(path, "r", encoding="utf-8") as fh:
+        for raw in fh:
+            if "event=regime_snapshot" not in raw:
+                continue
+            kv = parse_l1_kv_log_line(raw)
+            ts = safe_text(kv.get("timestamp_utc", ""), "")
+            rows.append(
+                {
+                    "log_timestamp_utc_raw": ts,
+                    "log_ts": pd.to_datetime(ts.replace("_", " "), utc=True, errors="coerce"),
+                    "log_regime_label": safe_text(kv.get("regime_label", ""), ""),
+                    "log_risk_label": safe_text(kv.get("risk_label", ""), ""),
+                    "log_entry_score": safe_int(kv.get("entry_score", 0), 0),
+                    "log_ma200_signal": safe_int(kv.get("ma200_signal", 0), 0),
+                    "log_atr_signal": safe_int(kv.get("atr_signal", 0), 0),
+                    "log_mfi_signal": safe_int(kv.get("mfi_signal", 0), 0),
+                }
+            )
+
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows)
+    df = df.dropna(subset=["log_ts"]).sort_values("log_ts").reset_index(drop=True)
+    return df
+
+
+def add_log_regime_mapping(enriched: pd.DataFrame, regime_log: pd.DataFrame) -> pd.DataFrame:
+    out = enriched.copy()
+
+    out["log_regime_label"] = ""
+    out["log_risk_label"] = ""
+    out["log_entry_score"] = 0
+    out["log_mapping_status"] = "not_available"
+
+    if regime_log.empty:
+        return out
+
+    left = out.sort_values("entry_ts").reset_index().rename(columns={"index": "_orig_index"})
+    right = regime_log.sort_values("log_ts").reset_index(drop=True)
+
+    mapped = pd.merge_asof(
+        left,
+        right,
+        left_on="entry_ts",
+        right_on="log_ts",
+        direction="nearest",
+        tolerance=pd.Timedelta(minutes=2),
+    )
+
+    for _, row in mapped.iterrows():
+        idx = int(row["_orig_index"])
+        if pd.isna(row.get("log_ts")):
+            out.at[idx, "log_mapping_status"] = "missing"
+            continue
+
+        out.at[idx, "log_regime_label"] = safe_text(row.get("log_regime_label", ""), "")
+        out.at[idx, "log_risk_label"] = safe_text(row.get("log_risk_label", ""), "")
+        out.at[idx, "log_entry_score"] = safe_int(row.get("log_entry_score", 0), 0)
+        out.at[idx, "log_mapping_status"] = "matched"
+
+    return out
+
+
+
 def build_summary(enriched: pd.DataFrame, start_capital: float) -> pd.DataFrame:
     mapped = enriched[enriched["mapping_status"] == "exact"].copy()
     rows: List[Dict[str, Any]] = []
@@ -528,6 +610,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--start-capital", type=float, default=10000.0)
     p.add_argument("--chunk-size", type=int, default=250000)
     p.add_argument("--allow-missing-mapping", action="store_true")
+    p.add_argument("--l1-log-path", default="", help="optional l1_paper.log path for offline regime mapping")
 
     return p
 
@@ -567,6 +650,11 @@ def main() -> int:
         )
 
     enriched = add_equity_columns(enriched, float(args.start_capital))
+
+    if args.l1_log_path.strip():
+        regime_log = load_regime_log(args.l1_log_path.strip())
+        enriched = add_log_regime_mapping(enriched, regime_log)
+
     summary = build_summary(enriched, float(args.start_capital))
     dd_events = build_dd_events(enriched)
 
