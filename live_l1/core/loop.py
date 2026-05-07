@@ -18,6 +18,7 @@ from live_l1.state.state_validation import validate_loaded_state
 from live_l1.guards.guards import evaluate_guards
 from live_l1.core.clock import TickClock
 from live_l1.core.feature_snapshot import build_feature_snapshot
+from live_l1.core.regime_detector import detect_regime
 from live_l1.core.intent import compute_1m_intent_raw
 from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
@@ -203,6 +204,7 @@ def run_l1_loop_step1234567(
                 return 0
 
             features = build_feature_snapshot(snapshot)
+            regime = detect_regime(features)
 
             current_position = "FLAT"
             if hasattr(state, "s2_position") and hasattr(state.s2_position, "position"):
@@ -259,6 +261,24 @@ def run_l1_loop_step1234567(
                     "allow_long": int(features.allow_long),
                     "allow_short": int(features.allow_short),
                     "regime_v2": int(features.regime_v2),
+                },
+            )
+
+            log.log(
+                category="REGIME",
+                event="regime_snapshot",
+                severity="INFO",
+                system_state_id=state.system_state_id,
+                fields={
+                    "tick": tick.tick_id,
+                    "snapshot_id": features.snapshot_id,
+                    "timestamp_utc": features.timestamp_utc,
+                    "regime_label": regime.label,
+                    "risk_label": regime.risk_label,
+                    "ma200_signal": regime.ma200_signal,
+                    "atr_signal": regime.atr_signal,
+                    "mfi_signal": regime.mfi_signal,
+                    "entry_score": regime.score,
                 },
             )
 
