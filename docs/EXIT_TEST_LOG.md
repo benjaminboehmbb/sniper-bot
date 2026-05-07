@@ -601,6 +601,134 @@ Naechster sinnvoller Test:
 
 
   
+---
+
+## RUN - STEP 5 LONG Time-Stop 60m - Validierungsstand
+
+### Änderung
+In `live_l1/core/execution.py` wurde ein LONG-only Time-Stop nach 60 Minuten ergänzt.
+
+SHORT bleibt unverändert.
+
+### Ergebnisse
+
+| Run | Return | Trades | PF | DD | Bewertung |
+|---|---:|---:|---:|---:|---|
+| 200k @ 1,000,000 | 2.89% | 18 | 6.5189 | 0.37% | leicht besser |
+| 200k @ 0 | 2.47% | 30 | 1.5543 | 1.86% | identisch |
+| 200k @ 500,000 | 2.80% | 29 | 7.4537 | 0.33% | identisch |
+| 500k @ 1,500,000 | 15.08% | 47 | 2.5785 | 5.15% | identisch |
+| 1M @ 2,500,000 | 20.49% | 144 | 1.6102 | 7.84% | identisch |
+
+### Bewertung
+STEP 5 schadet in keinem getesteten Fenster.
+
+Der Nutzen ist klein:
+- leichte Verbesserung im 200k @ 1,000,000 Fenster
+- sonst keine messbare Veränderung
+
+### Entscheidung
+STEP 5 bleibt aktiv.
+
+### Zentrale Erkenntnis
+Lange LONG-Trades können problematisch sein, treten aber zu selten auf, um alleine großen Einfluss auf das Gesamtsystem zu haben.
+
+---
+
+## RUN - STEP 6 LONG normal ATR Score >= 4 - FAIL
+
+### Änderung
+LONG bei normalem ATR verschärft:
+
+- vorher: `3x score >= +3`
+- neu: `3x score >= +4`
+
+SHORT blieb unverändert.
+
+STEP 5 blieb aktiv.
+
+### Ergebnis 200k @ offset 1,000,000
+- return_pct: 2.61%
+- num_trades: 12
+- winrate: 83.33%
+- profit_factor: 18.4255
+- max_drawdown_pct: 0.12%
+
+### Ergebnis 200k @ offset 0
+- return_pct: -0.28%
+- num_trades: 13
+- winrate: 61.54%
+- profit_factor: 0.9040
+- max_drawdown_pct: 1.87%
+
+### Bewertung
+Offset 1M verbessert sich stark:
+- PF steigt massiv
+- DD sinkt massiv
+
+Aber:
+- offset 0 bricht komplett
+
+### Entscheidung
+STEP 6 verworfen.
+
+### Zentrale Erkenntnis
+Globale LONG-Verschärfung ist nicht robust über verschiedene Marktphasen.
+
+---
+
+## RUN - STEP 7A SHORT-only Modelltest - FAIL als globale Variante
+
+### Ziel
+Prüfung eines reinen SHORT-Modells als mögliches Regime-Teilmodell.
+
+### Änderung
+LONG Entries deaktiviert.
+
+SHORT unverändert:
+- bad ATR SHORT: `3x score <= -4`
+- normal ATR SHORT: `3x score <= -3`
+
+STEP 5 blieb aktiv.
+
+### Ergebnis 200k @ offset 1,000,000
+- return_pct: 2.38%
+- num_trades: 9
+- winrate: 88.89%
+- profit_factor: 77.0639
+- max_drawdown_pct: 0.03%
+
+### Ergebnis 200k @ offset 0
+- return_pct: 0.09%
+- num_trades: 11
+- winrate: 54.55%
+- profit_factor: 1.0294
+- max_drawdown_pct: 2.53%
+
+### Bewertung
+Im schwachen Fenster extrem stark:
+- extrem niedriger DD
+- extrem hoher PF
+
+Aber:
+- nicht universell robust
+- offset 0 deutlich schlechter als Baseline
+
+### Entscheidung
+STEP 7A verworfen als globale Strategie.
+
+### Zentrale Erkenntnis
+SHORT-only ist ein starkes Teilmodell für bestimmte Marktphasen, aber kein universeller Ersatz für das Gesamtmodell.
+
+Das bestätigt:
+- unterschiedliche Marktphasen benötigen unterschiedliche Modelle
+- Regime-Switching ist der nächste logische Entwicklungsschritt
+
+### Aktueller Stand
+- `intent.py`: Baseline
+- `execution.py`: STEP 5 aktiv
+
+
 
 
 
