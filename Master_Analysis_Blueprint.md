@@ -1152,3 +1152,20 @@ Ein **vollständig adaptiver Trading-Bot**, der:
 Der Sniper-Bot ist kein starres System, sondern ein **modularer, adaptiver Baukasten**, der mit jedem Schritt präziser, robuster und intelligenter wird – bis hin zum vollständig autonomen, marktintelligenten Live-Bot.
  
 
+
+## Weiterführende Live- und Robustheitsarchitektur
+
+Die langfristigen Robustheits-, Sicherheits- und Qualitätsziele des Projekts sind in folgendem Dokument definiert:
+
+`docs/LIVE_ROBUSTNESS_ROADMAP.md`
+
+Dieses Dokument beschreibt die geplanten zukünftigen Systeme für:
+- realistische Execution-Simulation,
+- Walk-Forward-/Out-of-Sample-Validierung,
+- Live-Sicherheitsarchitektur,
+- unabhängige Audit-Stufen,
+- und erweiterte Robustheitsanalysen.
+
+
+
+

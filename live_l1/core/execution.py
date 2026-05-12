@@ -484,6 +484,44 @@ def apply_paper_execution(
                     reason="LONG_TIME_STOP_HIT",
                 )
 
+    SHORT_TIME_STOP_SEC = 3600.0
+
+    if pos_before == "SHORT":
+        trade_snapshot = _capture_open_position_snapshot(state)
+
+        if _valid_trade_snapshot(trade_snapshot):
+            duration_sec = _compute_duration_sec(
+                _safe_text(trade_snapshot["entry_timestamp_utc"], ""),
+                ts,
+            )
+
+            if duration_sec >= SHORT_TIME_STOP_SEC:
+                _log_closed_trade(
+                    state=state,
+                    side="short",
+                    entry_price=float(trade_snapshot["entry_price"]),
+                    exit_price=float(px),
+                    entry_timestamp_utc=_safe_text(trade_snapshot["entry_timestamp_utc"], ""),
+                    exit_timestamp_utc=ts,
+                    size=float(trade_snapshot["size"]),
+                    fee_roundtrip=float(fee_roundtrip),
+                    exit_reason="SHORT_TIME_STOP",
+                    trade_log_path=trade_log_path,
+                )
+
+                _reset_to_flat(state)
+
+                return ExecutionDecision(
+                    action="CLOSE_SHORT",
+                    executed=True,
+                    position_before=pos_before,
+                    position_after="FLAT",
+                    side_after="",
+                    entry_price=None,
+                    entry_timestamp_utc="",
+                    reason="SHORT_TIME_STOP_HIT",
+                )
+
     if intent_final == "HOLD":
         return ExecutionDecision(
             action="NOOP",

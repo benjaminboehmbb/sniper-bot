@@ -729,9 +729,331 @@ Das bestätigt:
 - `execution.py`: STEP 5 aktiv
 
 
+## STEP 7D - Offline Regime Mapping
+
+Die Zuordnung von Trades zu Regimes soll bewusst nicht direkt in der Live-Execution erfolgen.
+
+Grund:
+- keine zusätzliche State-Komplexität
+- keine versteckten Seiteneffekte
+- keine Instabilität der Live-Engine
+
+Stattdessen:
+
+1. Regime werden pro Tick geloggt
+2. Trades behalten normale Zeitstempel
+3. analyse_regimes.py matched später:
+   - entry_timestamp_utc
+   - regime_snapshot timestamp_utc
+
+Vorteile:
+- deterministisch
+- reproduzierbar
+- einfacher debugbar
+- keine Veränderung der Trading-Engine
+
+Geplante spätere Erweiterung:
+- nearest-regime matching
+- rolling regime windows
+- regime confidence scoring
+- regime transition detection
+
+
+## STEP 8B - LONG_TIME_STOP_SEC = 1800
+
+Aenderung:
+- LONG_TIME_STOP_SEC von 3600s auf 1800s reduziert
+- SHORT unveraendert
+
+Tests:
+- 500k @ offset 1500000
+- 1M @ offset 2500000
+
+500k Ergebnis:
+- Return: 14.05%
+- PF: 2.40
+- DD: 5.20%
+- Trades: 47
+
+Vergleich zur Baseline:
+- leicht schlechter als 3600s
+- aber noch relativ stabil
+
+1M Ergebnis:
+- Return: 19.01%
+- PF: 1.545
+- DD: 7.93%
+- Trades: 144
+
+Baseline 3600 Vergleich:
+- Return vorher: 20.49%
+- PF vorher: 1.610
+- DD vorher: 7.84%
+
+Interpretation:
+- 1800s liefert keinen Vorteil gegenueber 3600s
+- leichte Verschlechterung bei PF und Return
+- keine Verbesserung beim Drawdown
+- globale aggressive LONG-Verkuerzung nicht sinnvoll
+
+Wichtige Erkenntnis:
+- schnelle LONGS bleiben stark
+- aber einige laengere Gewinner bleiben essenziell
+- LONG-Struktur komplexer als initial angenommen
+
+Schlussfolgerung:
+- 1800s verworfen
+- Rueckkehr zu 3600s Baseline
+
+
+## STEP 10A - LONG MOMENTUM FADE EXIT - START
+
+### Grundlage
+
+Der 4.3M-Full-Run von STEP 9A war insgesamt stark, zeigte aber ein Restproblem bei 15m_to_1h_long-Trades.
+
+### Hypothese
+
+Gute LONGs funktionieren schnell.
+Langsame LONGs verlieren Momentum.
+
+### Neue Testlogik
+
+In `live_l1/core/execution.py` wurde ergaenzt:
+
+- LONG_MOMENTUM_FADE_EXIT_SEC = 900.0
+- LONG wird nach 15 Minuten geschlossen, wenn unrealized PnL <= 0.0 ist
+- exit_reason = LONG_MOMENTUM_FADE_EXIT
+
+Unveraendert:
+
+- LONG_TIME_STOP_SEC = 3600.0
+- SHORT_TIME_STOP_SEC = 3600.0
+- TP = 5%
+- SL = 1.5%
+
+### Erster Test
+
+200k @ offset 1,000,000
+
+### Status
+
+Implementiert, Mini-Test laeuft bzw. wird als naechstes ausgewertet.
 
 
 
 
 
 
+
+
+
+---
+
+## STEP 10A - LONG MOMENTUM FADE EXIT - 200k @ offset 1,000,000
+
+### Setup
+
+- Device: G15 / AR15
+- Environment: WSL
+- Market data: data/l1_full_run.csv
+- Run length: 200,000 ticks
+- Offset: 1,000,000
+
+### Change
+
+Added LONG momentum fade exit:
+
+- LONG_MOMENTUM_FADE_EXIT_SEC = 900.0
+- If LONG duration >= 900 sec and unrealized PnL <= 0.0:
+  - close LONG
+  - exit_reason = LONG_MOMENTUM_FADE_EXIT
+
+Unchanged:
+
+- LONG_TIME_STOP_SEC = 3600.0
+- SHORT_TIME_STOP_SEC = 3600.0
+- TP = 5%
+- SL = 1.5%
+
+### Result
+
+- final_equity: 10144.00
+- total_pnl: 144.00
+- return_pct: 1.44%
+- num_trades: 13
+- winrate: 61.54%
+- profit_factor: 4.9989
+- avg_pnl: 11.0769
+- avg_duration_sec: 1929.23
+- max_drawdown_abs: 20.52
+- max_drawdown_pct: 0.20%
+- sharpe_like: 2.2491
+
+### Comparison to STEP 9A baseline on same window
+
+STEP 9A baseline:
+
+- return_pct: approx. 2.88%
+- profit_factor: approx. 6.42
+- max_drawdown_pct: approx. 0.37%
+- num_trades: 18
+
+STEP 10A:
+
+- return_pct: 1.44%
+- profit_factor: 4.9989
+- max_drawdown_pct: 0.20%
+- num_trades: 13
+
+### Evaluation
+
+STEP 10A reduced drawdown, but also reduced return, profit factor, and trade count.
+
+The hypothesis was directionally useful for risk reduction, but the rule is too restrictive or removes profitable recovery behavior.
+
+### Decision
+
+STEP 10A is rejected for now.
+
+No further validation runs with this rule.
+
+Return to STEP 9A execution baseline.
+## STEP 10A - LONG MOMENTUM FADE EXIT - 200k @ offset 1,000,000
+
+### Setup
+
+- Device: G15 / AR15
+- Environment: WSL
+- Market data: data/l1_full_run.csv
+- Run length: 200,000 ticks
+- Offset: 1,000,000
+
+### Change
+
+Added LONG momentum fade exit:
+
+- LONG_MOMENTUM_FADE_EXIT_SEC = 900.0
+- If LONG duration >= 900 sec and unrealized PnL <= 0.0:
+  - close LONG
+  - exit_reason = LONG_MOMENTUM_FADE_EXIT
+
+Unchanged:
+
+- LONG_TIME_STOP_SEC = 3600.0
+- SHORT_TIME_STOP_SEC = 3600.0
+- TP = 5%
+- SL = 1.5%
+
+### Result
+
+- final_equity: 10144.00
+- total_pnl: 144.00
+- return_pct: 1.44%
+- num_trades: 13
+- winrate: 61.54%
+- profit_factor: 4.9989
+- avg_pnl: 11.0769
+- avg_duration_sec: 1929.23
+- max_drawdown_abs: 20.52
+- max_drawdown_pct: 0.20%
+- sharpe_like: 2.2491
+
+### Comparison to STEP 9A baseline on same window
+
+STEP 9A baseline:
+
+- return_pct: approx. 2.88%
+- profit_factor: approx. 6.42
+- max_drawdown_pct: approx. 0.37%
+- num_trades: 18
+
+STEP 10A:
+
+- return_pct: 1.44%
+- profit_factor: 4.9989
+- max_drawdown_pct: 0.20%
+- num_trades: 13
+
+### Evaluation
+
+STEP 10A reduced drawdown, but also reduced return, profit factor, and trade count.
+
+The hypothesis was directionally useful for risk reduction, but the rule is too restrictive or removes profitable recovery behavior.
+
+### Decision
+
+STEP 10A is rejected for now.
+
+No further validation runs with this rule.
+
+Return to STEP 9A execution baseline.
+## STEP 10A - LONG MOMENTUM FADE EXIT - 200k @ offset 1,000,000
+
+### Setup
+
+- Device: G15 / AR15
+- Environment: WSL
+- Market data: data/l1_full_run.csv
+- Run length: 200,000 ticks
+- Offset: 1,000,000
+
+### Change
+
+Added LONG momentum fade exit:
+
+- LONG_MOMENTUM_FADE_EXIT_SEC = 900.0
+- If LONG duration >= 900 sec and unrealized PnL <= 0.0:
+  - close LONG
+  - exit_reason = LONG_MOMENTUM_FADE_EXIT
+
+Unchanged:
+
+- LONG_TIME_STOP_SEC = 3600.0
+- SHORT_TIME_STOP_SEC = 3600.0
+- TP = 5%
+- SL = 1.5%
+
+### Result
+
+- final_equity: 10144.00
+- total_pnl: 144.00
+- return_pct: 1.44%
+- num_trades: 13
+- winrate: 61.54%
+- profit_factor: 4.9989
+- avg_pnl: 11.0769
+- avg_duration_sec: 1929.23
+- max_drawdown_abs: 20.52
+- max_drawdown_pct: 0.20%
+- sharpe_like: 2.2491
+
+### Comparison to STEP 9A baseline on same window
+
+STEP 9A baseline:
+
+- return_pct: approx. 2.88%
+- profit_factor: approx. 6.42
+- max_drawdown_pct: approx. 0.37%
+- num_trades: 18
+
+STEP 10A:
+
+- return_pct: 1.44%
+- profit_factor: 4.9989
+- max_drawdown_pct: 0.20%
+- num_trades: 13
+
+### Evaluation
+
+STEP 10A reduced drawdown, but also reduced return, profit factor, and trade count.
+
+The hypothesis was directionally useful for risk reduction, but the rule is too restrictive or removes profitable recovery behavior.
+
+### Decision
+
+STEP 10A is rejected for now.
+
+No further validation runs with this rule.
+
+Return to STEP 9A execution baseline.
