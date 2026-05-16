@@ -5,9 +5,11 @@
 
 from __future__ import annotations
 
+import csv
 import os
 import time
 import uuid
+from datetime import datetime, timezone
 from dataclasses import dataclass
 
 from live_l1.logs.logger import L1Logger
@@ -113,6 +115,136 @@ def _warnings_to_text(warnings: list[str]) -> str:
     if not warnings:
         return ""
     return ",".join(str(w).strip() for w in warnings if str(w).strip() != "")
+
+def _safe_float_lifecycle(value: object, default: float = 0.0) -> float:
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def _parse_lifecycle_ts(value: object) -> datetime | None:
+    s = "" if value is None else str(value).strip()
+    if s == "":
+        return None
+    s = s.replace("_", " ")
+    try:
+        if s.endswith("Z"):
+            return datetime.fromisoformat(s[:-1] + "+00:00")
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _lifecycle_duration_sec(entry_ts: object, current_ts: object) -> float:
+    a = _parse_lifecycle_ts(entry_ts)
+    b = _parse_lifecycle_ts(current_ts)
+    if a is None or b is None:
+        return 0.0
+    out = (b - a).total_seconds()
+    return float(out) if out > 0.0 else 0.0
+
+
+def _append_trade_lifecycle_snapshot(
+    *,
+    repo_root: str,
+    tick_id: int,
+    timestamp_utc: str,
+    snapshot_id: str,
+    state,
+    features,
+    regime,
+) -> None:
+    if not hasattr(state, "s2_position"):
+        return
+
+    pos = str(getattr(state.s2_position, "position", "FLAT")).strip().upper()
+    if pos not in ("LONG", "SHORT"):
+        return
+
+    side = str(getattr(state.s2_position, "side", "")).strip().lower()
+    entry_price = _safe_float_lifecycle(getattr(state.s2_position, "entry_price", None), 0.0)
+    size = _safe_float_lifecycle(
+        getattr(
+            state.s2_position,
+            "position_size",
+            getattr(state.s2_position, "size", 0.0),
+        ),
+        0.0,
+    )
+    entry_ts = str(getattr(state.s2_position, "entry_timestamp_utc", "")).strip()
+
+    if side not in ("long", "short") or entry_price <= 0.0 or size <= 0.0 or entry_ts == "":
+        return
+
+    duration_sec = _lifecycle_duration_sec(entry_ts, timestamp_utc)
+
+    if duration_sec < 900.0:
+        return
+
+    if int(duration_sec) % 300 != 0:
+        return
+
+    current_price = _safe_float_lifecycle(getattr(features, "price", 0.0), 0.0)
+    if side == "long":
+        unrealized_pnl = (current_price - entry_price) * size
+    else:
+        unrealized_pnl = (entry_price - current_price) * size
+
+    out_path = os.path.join(repo_root, "live_logs", "trade_lifecycle_snapshots.csv")
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+    fieldnames = [
+        "timestamp_utc",
+        "tick",
+        "snapshot_id",
+        "side",
+        "duration_sec",
+        "entry_timestamp_utc",
+        "entry_price",
+        "current_price",
+        "position_size",
+        "unrealized_pnl",
+        "current_score",
+        "market_regime",
+        "atr_quality",
+        "ma200_signal",
+        "atr_signal",
+        "mfi_signal",
+    ]
+
+    write_header = not os.path.isfile(out_path)
+
+    with open(out_path, "a", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        if write_header:
+            writer.writeheader()
+        writer.writerow(
+            {
+                "timestamp_utc": timestamp_utc,
+                "tick": int(tick_id),
+                "snapshot_id": snapshot_id,
+                "side": side,
+                "duration_sec": float(duration_sec),
+                "entry_timestamp_utc": entry_ts,
+                "entry_price": float(entry_price),
+                "current_price": float(current_price),
+                "position_size": float(size),
+                "unrealized_pnl": float(unrealized_pnl),
+                "current_score": int(getattr(regime, "score", 0)),
+                "market_regime": str(getattr(regime, "label", "")),
+                "atr_quality": str(getattr(regime, "risk_label", "")),
+                "ma200_signal": int(getattr(regime, "ma200_signal", 0)),
+                "atr_signal": int(getattr(regime, "atr_signal", 0)),
+                "mfi_signal": int(getattr(regime, "mfi_signal", 0)),
+            }
+        )
+
 
 
 def run_l1_loop_step1234567(
@@ -302,6 +434,16 @@ def run_l1_loop_step1234567(
                     "vote_5m_seed_id": str(vote_v1.seed_id),
                     "vote_5m_strength": float(vote_v1.strength),
                 },
+            )
+
+            _append_trade_lifecycle_snapshot(
+                repo_root=repo_root,
+                tick_id=tick.tick_id,
+                timestamp_utc=str(features.timestamp_utc),
+                snapshot_id=str(features.snapshot_id),
+                state=state,
+                features=features,
+                regime=regime,
             )
 
             exec_decision = apply_paper_execution(
