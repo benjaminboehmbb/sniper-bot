@@ -841,6 +841,359 @@ Unveraendert:
 Implementiert, Mini-Test laeuft bzw. wird als naechstes ausgewertet.
 
 
+---
+
+## STEP 11A - TRADE LIFECYCLE SNAPSHOT ANALYSIS - FULL 4.3M RUN
+
+### Objective
+
+Goal of STEP 11A was not strategy optimization itself, but collection of detailed lifecycle telemetry for long-running trades.
+
+A new lifecycle snapshot logger was added to:
+
+live_l1/core/loop.py
+
+The logger writes periodic snapshots of open positions to:
+
+live_logs/trade_lifecycle_snapshots.csv
+
+Snapshots are recorded every 300 seconds once trade duration exceeds 900 seconds.
+
+Collected fields include:
+
+- side
+- duration_sec
+- unrealized_pnl
+- current_score
+- market_regime
+- atr_quality
+- ma200_signal
+- atr_signal
+- mfi_signal
+
+### Full Run
+
+Run configuration:
+
+- Device: G15 / AR15
+- Environment: WSL
+- Dataset: data/l1_full_run.csv
+- Full dataset run (~4.3M ticks)
+- decision_tick_seconds = 0.0
+
+### Final Result
+
+- final_equity: 24022.01
+- total_pnl: 14022.01
+- return_pct: 140.22%
+- num_trades: 556
+- winrate: 69.96%
+- profit_factor: 1.6859
+- avg_pnl: 25.2194
+- avg_duration_sec: 1642.01
+- max_drawdown_abs: 2307.25
+- max_drawdown_pct: 15.56%
+- sharpe_like: 2.3841
+
+### Lifecycle Snapshot Dataset
+
+Generated file:
+
+live_logs/archive/STEP11A_LIFECYCLE_FULL_43M_2026-05-16_22-12_lifecycle.csv
+
+Rows collected:
+
+- 1793 lifecycle snapshots
+
+### Major Findings
+
+Analysis focused on LONG trades in duration bucket:
+
+15m_to_1h
+
+Strong structural degradation was identified once LONG trades remained open for extended durations while market regime shifted into bear conditions.
+
+Observed behavior:
+
+- LONG trades >= 1500 sec became increasingly negative over time.
+- Mean unrealized PnL deteriorated significantly with duration.
+- LONG trades surviving into 2700-3600 sec windows were almost universally negative.
+- Bear-regime persistence was a particularly strong signal.
+
+Key result:
+
+Condition:
+
+- LONG
+- duration >= 1500 sec
+- unrealized_pnl <= 0
+- market_regime == bear
+- previous snapshot also bear
+
+Produced:
+
+- 159 negative lifecycle snapshots
+- 62 affected trades
+- virtually zero false positives
+- no meaningful recovery behavior observed afterward
+
+Average unrealized PnL under this condition:
+
+approximately -182.6
+
+Maximum observed value:
+
+-0.23
+
+This strongly suggests that prolonged LONG trades trapped in persistent bear regimes almost never recover meaningfully.
+
+### STEP 11B Hypothesis
+
+New candidate exit logic identified:
+
+Exit LONG if:
+
+- duration >= 1500 sec
+- unrealized_pnl <= 0
+- current_regime == bear
+- previous_regime == bear
+
+This differs fundamentally from STEP 10A:
+
+- not a pure timer
+- not a blind momentum fade
+- regime-aware
+- persistence-aware
+- strongly data-backed from lifecycle telemetry
+
+### STEP 11B Implementation
+
+STEP 11B was implemented safely in:
+
+live_l1/core/loop.py
+
+NOT in execution.py.
+
+Reason:
+
+execution.py has no access to regime context.
+
+Implementation details:
+
+- current and previous regime labels tracked
+- force exit triggers SELL intent while LONG is open
+- exit reason overwritten to:
+
+STEP11B_LONG_BEAR_REGIME_EXIT
+
+### Current Status
+
+STEP11B implementation completed.
+
+Next step:
+
+Controlled validation run:
+
+- 200k ticks
+- offset 1,000,000
+- decision_tick_seconds = 0.0
+
+before any larger validation.
+
+
+## STEP 11B - LONG BEAR REGIME EXIT - 200k @ offset 0
+
+### Setup
+
+- Device: G15 / AR15
+- Environment: WSL
+- Market data: data/l1_full_run.csv
+- Run length: 200,000 ticks
+- Offset: 0
+- decision_tick_seconds: 0.0
+
+### Change
+
+STEP11B was active in `live_l1/core/loop.py`.
+
+Exit hypothesis:
+
+- LONG position open
+- duration >= 1500 sec
+- unrealized_pnl <= 0.0
+- current market_regime == bear
+- previous market_regime == bear
+
+Then force LONG close via SELL intent.
+
+### Result
+
+- final_equity: 10009.08
+- total_pnl: 9.08
+- return_pct: 0.09%
+- num_trades: 30
+- winrate: 63.33%
+- profit_factor: 1.0158
+- avg_pnl: 0.3027
+- avg_duration_sec: 1420.00
+- max_drawdown_abs: 225.64
+- max_drawdown_pct: 2.23%
+- sharpe_like: -0.0252
+
+### STEP11B Trigger Check
+
+Checked `live_logs/trades_l1.jsonl` for:
+
+STEP11B_LONG_BEAR_REGIME_EXIT
+
+Result:
+
+- count: 0
+
+### Evaluation
+
+STEP11B did not trigger in this run.
+
+Therefore, the weak result is not caused by STEP11B. The 200k @ offset 0 window remains structurally weak under the current STEP9A/STEP11B logic.
+
+### Decision
+
+No rejection of STEP11B based on this run.
+
+Continue validation with:
+
+- 200k @ offset 500,000
+
+
+## STEP 11B - LONG BEAR REGIME EXIT - 200k @ offset 500,000
+
+### Setup
+
+- Device: G15 / AR15
+- Environment: WSL
+- Market data: data/l1_full_run.csv
+- Run length: 200,000 ticks
+- Offset: 500,000
+- decision_tick_seconds: 0.0
+
+### Change
+
+STEP11B was active in `live_l1/core/loop.py`.
+
+Exit hypothesis:
+
+- LONG position open
+- duration >= 1500 sec
+- unrealized_pnl <= 0.0
+- current market_regime == bear
+- previous market_regime == bear
+
+Then force LONG close via SELL intent.
+
+### Result
+
+- final_equity: 10123.24
+- total_pnl: 123.24
+- return_pct: 1.23%
+- num_trades: 16
+- winrate: 62.50%
+- profit_factor: 4.7357
+- avg_pnl: 7.7025
+- avg_duration_sec: 1728.75
+- max_drawdown_abs: 21.97
+- max_drawdown_pct: 0.22%
+- sharpe_like: 2.0973
+
+### Evaluation
+
+The run is clearly positive and stable.
+
+Compared with the weak offset 0 result, STEP11B does not show broad instability. Drawdown remains very low, profit factor is strong, and trade count remains selective.
+
+### Current Validation State
+
+- 200k @ offset 1,000,000: strong improvement / 1 STEP11B trigger
+- 200k @ offset 0: weak window, but STEP11B trigger count = 0
+- 200k @ offset 500,000: positive and stable
+
+### Decision
+
+STEP11B remains a valid candidate.
+
+Next validation step:
+
+- 500k @ offset 1,500,000
+
+
+## STEP 11B - LONG BEAR REGIME EXIT - 500k @ offset 1,500,000
+
+### Setup
+
+- Device: G15 / AR15
+- Environment: WSL
+- Market data: data/l1_full_run.csv
+- Run length: 500,000 ticks
+- Offset: 1,500,000
+- decision_tick_seconds: 0.0
+
+### Change
+
+STEP11B active in `live_l1/core/loop.py`.
+
+Exit hypothesis:
+
+- LONG position open
+- duration >= 1500 sec
+- unrealized_pnl <= 0.0
+- current market_regime == bear
+- previous market_regime == bear
+
+Then force LONG close via SELL intent.
+
+### Result
+
+- final_equity: 11267.16
+- total_pnl: 1267.16
+- return_pct: 12.67%
+- num_trades: 46
+- winrate: 65.22%
+- profit_factor: 1.9771
+- avg_pnl: 27.5470
+- avg_duration_sec: 1480.43
+- max_drawdown_abs: 440.04
+- max_drawdown_pct: 4.24%
+- sharpe_like: 2.0015
+
+### Evaluation
+
+STEP11B remains stable on the historically important 500k @ offset 1.5M window.
+
+The average duration of 1480.43 sec is close to the STEP11B 1500 sec threshold, which supports the lifecycle hypothesis that late degrading LONG trades are being controlled earlier.
+
+The result shows:
+
+- positive return
+- controlled drawdown
+- acceptable trade count
+- no obvious overfiltering
+- no strategy collapse
+
+### Current Validation State
+
+- 200k @ offset 1,000,000: strong result, 1 STEP11B trigger
+- 200k @ offset 0: weak window, but STEP11B trigger count = 0
+- 200k @ offset 500,000: stable positive result
+- 500k @ offset 1,500,000: stable positive result
+
+### Decision
+
+STEP11B remains a valid candidate.
+
+Next validation step:
+
+- 1M @ offset 2,500,000
+
+
 
 
 

@@ -446,13 +446,68 @@ def run_l1_loop_step1234567(
                 regime=regime,
             )
 
+            current_regime_label = str(getattr(regime, "label", "")).strip().lower()
+            prev_regime_label = str(getattr(state, "prev_market_regime_label", "")).strip().lower()
+
+            force_long_bear_exit = False
+
+            if hasattr(state, "s2_position"):
+                pos_for_exit = str(getattr(state.s2_position, "position", "FLAT")).strip().upper()
+
+                if pos_for_exit == "LONG":
+                    entry_ts_for_exit = str(getattr(state.s2_position, "entry_timestamp_utc", "")).strip()
+                    entry_price_for_exit = _safe_float_lifecycle(getattr(state.s2_position, "entry_price", None), 0.0)
+                    size_for_exit = _safe_float_lifecycle(
+                        getattr(
+                            state.s2_position,
+                            "position_size",
+                            getattr(state.s2_position, "size", 0.0),
+                        ),
+                        0.0,
+                    )
+
+                    duration_for_exit = _lifecycle_duration_sec(
+                        entry_ts_for_exit,
+                        str(features.timestamp_utc),
+                    )
+
+                    unrealized_for_exit = (
+                        (float(features.price) - entry_price_for_exit) * size_for_exit
+                    )
+
+                    if (
+                        duration_for_exit >= 1500.0
+                        and unrealized_for_exit <= 0.0
+                        and current_regime_label == "bear"
+                        and prev_regime_label == "bear"
+                    ):
+                        force_long_bear_exit = True
+
+            intent_for_execution = fused.intent_final
+            if force_long_bear_exit:
+                intent_for_execution = "SELL"
+
             exec_decision = apply_paper_execution(
                 state=state,
-                intent_final=fused.intent_final,
+                intent_final=intent_for_execution,
                 price=float(features.price),
                 timestamp_utc=str(features.timestamp_utc),
                 position_size=1.0,
             )
+
+            if force_long_bear_exit and exec_decision.action == "CLOSE_LONG":
+                exec_decision = type(exec_decision)(
+                    action=exec_decision.action,
+                    executed=exec_decision.executed,
+                    position_before=exec_decision.position_before,
+                    position_after=exec_decision.position_after,
+                    side_after=exec_decision.side_after,
+                    entry_price=exec_decision.entry_price,
+                    entry_timestamp_utc=exec_decision.entry_timestamp_utc,
+                    reason="STEP11B_LONG_BEAR_REGIME_EXIT",
+                )
+
+            setattr(state, "prev_market_regime_label", current_regime_label)
 
             log.log(
                 category="L5",
