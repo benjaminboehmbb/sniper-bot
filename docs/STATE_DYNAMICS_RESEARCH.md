@@ -407,3 +407,279 @@ Markets behave less like:
 
 and more like:
 - nonlinear probabilistic state systems.
+
+
+
+# 11. State Mobility Findings
+
+A major structural finding emerged from the state mobility analysis:
+
+Profitability strongly correlates with regime-compatible state mobility.
+
+Observed structure:
+
+- profitable SHORT trajectories showed:
+  - high state mobility
+  - high transition frequency
+  - adaptive traversal behavior
+  - dynamic progression through compatible bear regimes
+
+Meanwhile:
+
+- unprofitable LONG trajectories showed:
+  - extreme instability during bear regimes
+  - destructive mobility
+  - chaotic state traversal
+  - persistent degradation
+
+Critical finding:
+
+State mobility itself is neither positive nor negative.
+
+Instead:
+
+Mobility quality depends on:
+- side
+- regime compatibility
+- transition direction
+- timing context
+
+Important conclusion:
+
+Profitable trajectories often:
+- move dynamically through the state space
+
+while toxic trajectories often:
+- become trapped inside degrading regions.
+
+This suggests:
+
+Markets may reward adaptive state traversal rather than static persistence.
+
+---
+
+# 12. Regime Compatibility Findings
+
+One of the strongest findings of the research:
+
+Directional profitability depends heavily on dynamic regime compatibility.
+
+Strongly compatible structures:
+
+- SHORT + bear_stable
+- SHORT + bull_to_bear
+
+Strongly incompatible structures:
+
+- SHORT + bull_stable
+- LONG + bear_stable
+- LONG + bull_to_bear
+
+Observed effects included:
+
+Compatible structures:
+- high profitability
+- stable recovery behavior
+- positive health dynamics
+- adaptive mobility
+
+Incompatible structures:
+- persistent deterioration
+- negative health dynamics
+- collapse persistence
+- structural instability
+
+Critical insight:
+
+Direction alone is insufficient.
+
+Regime alone is insufficient.
+
+Instead:
+
+The interaction between:
+- direction
+- regime
+- transition timing
+- regime dynamics
+
+appears to determine structural compatibility.
+
+This increasingly suggests that:
+
+Markets behave as dynamically compatible or incompatible state environments,
+rather than static directional systems.
+
+
+# Research Status Matrix
+
+| Module | Status | Notes |
+|---|---|---|
+| Lifecycle Telemetry | STABLE | Core telemetry infrastructure operational |
+| State Transition Graph | STABLE | Transition topology validated |
+| Mobility Research | STABLE | Strong asymmetry findings reproduced |
+| Regime Compatibility Matrix | STABLE | Structural compatibility confirmed |
+| Structural Stability Ranking | STABLE | Elite vs collapse structures identified |
+| Shadow Risk Engine | EXPERIMENTAL | Passive-only risk overlay |
+| Toxic Persistence Model | EXPERIMENTAL | Persistence stronger than single toxicity |
+| Time-weighted Toxicity | EXPERIMENTAL | Time-weighted collapse dynamics validated |
+| Adaptive Execution Integration | NOT INTEGRATED | No live execution logic yet |
+| Dynamic Position Sizing | NOT INTEGRATED | Future research stage |
+| Adaptive Exit Logic | NOT INTEGRATED | Future research stage |
+
+---
+# Structural Stability Ranking Findings
+
+The structural stability ranking introduced a hierarchical evaluation of the probabilistic state-space.
+
+The strongest structures consistently emerged from:
+
+- SHORT + BEAR regimes
+- HIGH / EXTREME mobility
+- late-stage compatible transitions
+- stable bear persistence structures
+
+The weakest structures consistently emerged from:
+
+- LONG + BEAR regimes
+- unstable high-mobility long trajectories
+- persistent toxic long structures
+- incompatible bull/bear transition states
+
+One of the most important findings was that extreme mobility is not universally beneficial.
+
+Instead:
+
+- compatible structures become highly adaptive and profitable under extreme mobility
+- incompatible structures collapse faster under extreme mobility
+
+This suggests that mobility amplifies structural compatibility rather than acting as an independent positive factor.
+
+---
+# Shadow Risk Engine
+
+A passive Shadow Risk Engine was introduced to operationalize structural state quality without affecting execution logic.
+
+The engine currently classifies evolving trade structures into:
+
+- SAFE
+- WARNING
+- TOXIC
+- COLLAPSE_RISK
+
+The Shadow Risk Engine is currently:
+
+- passive
+- observational
+- non-executing
+- research-only
+
+No adaptive exits, forced closes, or position changes are currently connected to this system.
+
+The objective is to validate whether structural toxicity can:
+
+- identify future collapse trajectories
+- detect destabilization early
+- classify probabilistic trade health
+- distinguish temporary instability from persistent structural deterioration
+
+Initial findings showed strong separation between:
+
+- SAFE trajectories
+- TOXIC trajectories
+- persistent collapse structures
+
+However, false positive analysis demonstrated that temporary toxicity alone is insufficient as an execution trigger.
+
+---
+# Toxic Persistence Findings
+
+Research evolved from detecting isolated toxic states toward modeling toxic persistence over time.
+
+The most important finding was:
+
+Persistent toxicity is significantly more dangerous than temporary toxicity.
+
+Temporary toxicity frequently appeared inside otherwise profitable trajectories.
+
+By contrast:
+
+- persistent toxic dominance
+- repeated toxic transitions
+- long toxic streaks
+
+strongly correlated with:
+
+- large drawdowns
+- structural collapse
+- low winrate
+- negative expectancy
+
+This represented a major conceptual shift:
+
+The system state itself may carry predictive information about future trade degradation.
+
+---
+# Time-weighted Toxicity Findings
+
+Time-weighted toxicity modeling introduced duration-aware structural degradation analysis.
+
+Instead of measuring only:
+
+- toxic occurrence frequency
+
+the model additionally evaluated:
+
+- toxic duration
+- longest toxic streak
+- persistence continuity
+- early toxic emergence
+
+The strongest collapse structures consistently showed:
+
+- high toxic time ratios
+- long uninterrupted toxic streaks
+- early toxic persistence
+- persistent structural incompatibility
+
+The most important finding was:
+
+Time-weighted toxic persistence produced significantly cleaner collapse separation than raw toxic ratios alone.
+
+This improved:
+
+- collapse identification
+- false positive reduction
+- probabilistic risk stratification
+
+and moved the framework closer toward adaptive state-aware risk modeling.
+
+---
+# Operationalization Path
+
+Current research remains strictly separated from live execution logic.
+
+The operationalization strategy follows:
+
+Research -> Passive Observation -> Validation -> Controlled Integration
+
+This separation is intentional and designed to reduce:
+
+- overfitting risk
+- premature adaptive behavior
+- unstable execution dynamics
+- hidden regime dependency
+
+Future integration stages may eventually include:
+
+- adaptive risk overlays
+- dynamic position sizing
+- probabilistic entry filtering
+- adaptive execution gating
+- state-aware exit modulation
+
+However, no execution-level integration is currently active.
+
+The framework remains in research and validation phase.
+
+---
