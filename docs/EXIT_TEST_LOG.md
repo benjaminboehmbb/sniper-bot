@@ -1410,3 +1410,29 @@ STEP 10A is rejected for now.
 No further validation runs with this rule.
 
 Return to STEP 9A execution baseline.
+
+
+
+## STEP11A Research Transition Note
+
+STEP11A began as an exit validation and lifecycle telemetry experiment.
+
+However, the research evolved far beyond classical exit testing and led to the discovery of:
+- dynamic trade health structures
+- persistence asymmetry
+- nonlinear recovery behavior
+- momentum-driven recovery dynamics
+- probabilistic recovery modeling
+
+The research increasingly indicated that:
+- markets behave as nonlinear probabilistic state systems
+rather than:
+- static linear signal systems.
+
+As a result, STEP11A became the foundation for a broader state dynamics research framework.
+
+See:
+
+docs/STATE_DYNAMICS_RESEARCH.md
+
+

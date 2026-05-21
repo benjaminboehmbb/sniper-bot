@@ -1167,5 +1167,33 @@ Dieses Dokument beschreibt die geplanten zukünftigen Systeme für:
 - und erweiterte Robustheitsanalysen.
 
 
+## STEP11A State Dynamics Research Extension
+
+The STEP11A lifecycle telemetry research evolved significantly beyond classical exit testing.
+
+The project transitioned from:
+- static indicator optimization
+towards:
+- probabilistic market state dynamics research.
+
+Key findings included:
+- directional persistence asymmetry
+- nonlinear recovery behavior
+- dynamic health state evolution
+- recovery probability modeling
+- collapse/recovery topology research
+
+The research strongly suggests that:
+- trades behave as dynamic state processes
+- persistence structures matter more than isolated snapshots
+- recovery probability is context dependent
+- static threshold exits are structurally limited
+
+See detailed research documentation:
+
+docs/STATE_DYNAMICS_RESEARCH.md
+
+
+
 
 
