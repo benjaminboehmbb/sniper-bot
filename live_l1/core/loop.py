@@ -150,6 +150,137 @@ def _lifecycle_duration_sec(entry_ts: object, current_ts: object) -> float:
     return float(out) if out > 0.0 else 0.0
 
 
+
+
+def _passive_shadow_risk_from_context(side: str, regime: str, atr_quality: str, current_score: int) -> tuple[int, str, str]:
+    side_l = str(side).strip().lower()
+    regime_l = str(regime).strip().lower()
+    atr_l = str(atr_quality).strip().lower()
+
+    reasons = []
+
+    risk = 0
+
+    if side_l == "long" and regime_l == "bear":
+        risk = max(risk, 2)
+        reasons.append("long_bear_incompatibility")
+
+    if side_l == "short" and regime_l == "bull":
+        risk = max(risk, 2)
+        reasons.append("short_bull_incompatibility")
+
+    if side_l == "short" and regime_l == "bear":
+        risk = max(risk, 0)
+        reasons.append("short_bear_compatible")
+
+    if side_l == "long" and regime_l == "bull":
+        risk = max(risk, 0)
+        reasons.append("long_bull_compatible")
+
+    if atr_l == "bad_atr":
+        risk = max(risk, 1)
+        reasons.append("bad_atr")
+
+    if side_l == "long" and current_score <= -3:
+        risk = max(risk, 2)
+        reasons.append("long_adverse_score")
+
+    if side_l == "short" and current_score >= 3:
+        risk = max(risk, 2)
+        reasons.append("short_adverse_score")
+
+    if risk >= 3:
+        name = "COLLAPSE_RISK"
+    elif risk == 2:
+        name = "TOXIC"
+    elif risk == 1:
+        name = "WARNING"
+    else:
+        name = "SAFE"
+
+    return risk, name, "|".join(reasons)
+
+
+def _append_passive_shadow_risk_snapshot(
+    repo_root: str,
+    tick_id: int,
+    timestamp_utc: str,
+    snapshot_id: str,
+    state,
+    features,
+    regime: str,
+) -> None:
+    position = str(getattr(state.s2_position, "position", "FLAT")).strip().upper()
+
+    if position not in ("LONG", "SHORT"):
+        return
+
+    side = position.lower()
+
+    current_score = int(
+        features.signal("rsi_signal")
+        + features.signal("bollinger_signal")
+        + features.signal("stoch_signal")
+        + features.signal("cci_signal")
+    )
+
+    atr_sig = int(features.signal("atr_signal"))
+    atr_quality = "bad_atr" if atr_sig == -1 else "good_atr"
+
+    regime_label = str(getattr(regime, "label", regime)).strip().lower()
+
+    risk_level, risk_name, reason = _passive_shadow_risk_from_context(
+        side=side,
+        regime=regime_label,
+        atr_quality=atr_quality,
+        current_score=current_score,
+    )
+
+    out_path = os.path.join(repo_root, "live_logs", "passive_shadow_risk_snapshots.csv")
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+    fieldnames = [
+        "tick_id",
+        "timestamp_utc",
+        "snapshot_id",
+        "entry_timestamp_utc",
+        "side",
+        "position",
+        "price",
+        "current_score",
+        "market_regime",
+        "atr_quality",
+        "shadow_risk_level",
+        "shadow_risk_name",
+        "shadow_risk_reason",
+    ]
+
+    exists = os.path.exists(out_path)
+
+    with open(out_path, "a", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+
+        if not exists:
+            writer.writeheader()
+
+        writer.writerow(
+            {
+                "tick_id": int(tick_id),
+                "timestamp_utc": str(timestamp_utc),
+                "snapshot_id": str(snapshot_id),
+                "entry_timestamp_utc": str(getattr(state.s2_position, "entry_timestamp_utc", "")),
+                "side": side,
+                "position": position,
+                "price": float(getattr(features, "price", 0.0)),
+                "current_score": int(current_score),
+                "market_regime": regime_label,
+                "atr_quality": atr_quality,
+                "shadow_risk_level": int(risk_level),
+                "shadow_risk_name": str(risk_name),
+                "shadow_risk_reason": str(reason),
+            }
+        )
+
 def _append_trade_lifecycle_snapshot(
     *,
     repo_root: str,
@@ -437,6 +568,16 @@ def run_l1_loop_step1234567(
             )
 
             _append_trade_lifecycle_snapshot(
+                repo_root=repo_root,
+                tick_id=tick.tick_id,
+                timestamp_utc=str(features.timestamp_utc),
+                snapshot_id=str(features.snapshot_id),
+                state=state,
+                features=features,
+                regime=regime,
+            )
+
+            _append_passive_shadow_risk_snapshot(
                 repo_root=repo_root,
                 tick_id=tick.tick_id,
                 timestamp_utc=str(features.timestamp_utc),
