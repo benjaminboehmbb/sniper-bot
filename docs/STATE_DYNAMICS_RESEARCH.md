@@ -683,3 +683,167 @@ However, no execution-level integration is currently active.
 The framework remains in research and validation phase.
 
 ---
+
+# STEP11B - Passive Shadow Risk Research
+
+RUN - STEP11B Persistence-Aware Shadow Risk Research (200k @ Offset 1,000,000)
+
+Environment
+- Device: G15 (AR15)
+- Environment: WSL
+- Branch: main
+- Baseline HEAD before STEP11B:
+  d6c2d4b - Finalize STEP11A lifecycle state research baseline
+
+Objective
+The objective of STEP11B was to extend the existing STEP11A state-space research into a passive live-shadow framework without changing execution behavior. The focus was not adaptive trading logic, but structural observation of market-state evolution during real paper-trading runs.
+
+Implementation Scope
+The following additions were implemented:
+
+1. Passive Shadow Snapshot Logging
+File:
+- live_l1/core/loop.py
+
+A new passive logging layer was inserted directly before:
+- apply_paper_execution(...)
+
+This layer writes:
+- shadow_risk_level
+- shadow_risk_name
+- market_regime
+- atr_quality
+- current_score
+- structural reasoning tags
+
+into:
+- live_logs/passive_shadow_risk_snapshots.csv
+
+Important:
+- No execution logic was modified
+- No entries/exits were changed
+- No adaptive decisions were introduced
+- TP/SL remained unchanged
+- Existing baseline behavior remained deterministic
+
+2. Passive Shadow Risk Analysis
+File:
+- scripts/analyze_passive_shadow_risk.py
+
+This script introduced:
+- SAFE/WARNING/TOXIC aggregation
+- trade-level shadow summaries
+- PnL comparison by risk class
+- initial false-positive analysis
+
+Result:
+Local TOXIC states alone proved insufficient for reliable structural classification.
+
+3. Compatibility-Aware Shadow Analysis (V2)
+File:
+- scripts/analyze_passive_shadow_risk_v2.py
+
+This version introduced:
+- compatibility-aware interpretation
+- structural context integration
+- LONG/BEAR vs SHORT/BEAR differentiation
+- false-positive detection
+
+Key discovery:
+SHORT + BEAR structures frequently remained profitable despite local TOXIC snapshots.
+
+Critical Result:
+Local toxicity != structural toxicity.
+
+4. Persistence-Aware Shadow Research
+File:
+- scripts/analyze_shadow_persistence.py
+
+This became the most important STEP11B advancement.
+
+New metrics:
+- toxic_ratio
+- longest_toxic_streak
+- recovery_ratio
+- persistent_toxicity_class
+
+Main Findings
+
+1. Persistent toxicity strongly correlated with losing trades
+Example:
+- LONG EXTREME_PERSISTENT_TOXICITY
+- toxic_ratio = 0.833
+- longest_toxic_streak = 35
+- recovery_ratio = 0.081
+- final pnl = -37.45
+
+Interpretation:
+The trade did not fail because of isolated toxic moments, but because of prolonged structural deterioration and failed recovery dynamics.
+
+2. Profitable SHORT trades often showed temporary instability, but strong recovery
+Example:
+- SHORT RECOVERING_STRUCTURE
+- winrate = 1.0
+- avg_recovery_ratio = 0.768
+- longest_toxic_streak = 1.5
+
+Interpretation:
+Profitable SHORT structures were not permanently stable.
+Instead, they demonstrated:
+- short-lived instability
+- strong recovery behavior
+- low toxicity persistence
+
+3. Recovery dynamics became more important than local snapshot state
+The research increasingly indicates:
+- recovery capability
+- persistence behavior
+- structural compatibility
+
+are significantly more important than:
+- isolated negative scores
+- temporary toxic states
+- single snapshots
+
+Strategic Conclusion
+
+The STEP11B research strongly suggests that future adaptive systems must focus on:
+- persistence
+- transition direction
+- recovery capability
+- structural compatibility
+
+rather than:
+- rigid local toxicity detection
+- snapshot-only classification
+- static threshold logic
+
+Current Safety Status
+At the end of STEP11B:
+- no adaptive execution exists
+- no live gating exists
+- no live trade blocking exists
+- no autonomous intervention exists
+
+The entire system remains:
+- passive
+- observational
+- reproducible
+- safe for continued baseline validation
+
+Current Research Direction
+Most promising next step:
+- Transition-Momentum / Recovery-Momentum research
+
+Focus:
+Not:
+- "Is the structure toxic?"
+
+But:
+- "Is the structure recovering?"
+- "Is deterioration accelerating?"
+- "Is the system stabilizing or collapsing?"
+
+This represents the transition from static state analysis toward dynamic structural evolution research.
+
+
