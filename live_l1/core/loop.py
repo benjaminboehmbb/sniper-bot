@@ -25,6 +25,7 @@ from live_l1.core.intent import compute_1m_intent_raw
 from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
 from live_l1.core.execution import apply_paper_execution
+from live_l1.meta_state.meta_state_shadow import build_meta_state_shadow
 
 
 @dataclass(frozen=True)
@@ -253,6 +254,10 @@ def _append_passive_shadow_risk_snapshot(
         "shadow_risk_level",
         "shadow_risk_name",
         "shadow_risk_reason",
+        "meta_state_score",
+        "meta_state_bucket",
+        "position_multiplier",
+        "meta_state_enabled",
     ]
 
     exists = os.path.exists(out_path)
@@ -278,6 +283,10 @@ def _append_passive_shadow_risk_snapshot(
                 "shadow_risk_level": int(risk_level),
                 "shadow_risk_name": str(risk_name),
                 "shadow_risk_reason": str(reason),
+                "meta_state_score": float(current_score),
+                "meta_state_bucket": build_meta_state_shadow(float(current_score))["meta_state_bucket"],
+                "position_multiplier": build_meta_state_shadow(float(current_score))["position_multiplier"],
+                "meta_state_enabled": 0,
             }
         )
 
