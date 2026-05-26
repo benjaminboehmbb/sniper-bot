@@ -283,9 +283,9 @@ def _append_passive_shadow_risk_snapshot(
                 "shadow_risk_level": int(risk_level),
                 "shadow_risk_name": str(risk_name),
                 "shadow_risk_reason": str(reason),
-                "meta_state_score": float(current_score),
-                "meta_state_bucket": build_meta_state_shadow(float(current_score))["meta_state_bucket"],
-                "position_multiplier": build_meta_state_shadow(float(current_score))["position_multiplier"],
+                "meta_state_score": build_meta_state_shadow(int(current_score))["meta_state_score"],
+                "meta_state_bucket": build_meta_state_shadow(int(current_score))["meta_state_bucket"],
+                "position_multiplier": build_meta_state_shadow(int(current_score))["position_multiplier"],
                 "meta_state_enabled": 0,
             }
         )

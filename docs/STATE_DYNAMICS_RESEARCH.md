@@ -1906,3 +1906,126 @@ No active live behavior is justified until:
 - disabled mode equals current baseline exactly
 - shadow-vs-active simulations remain stable across validation windows
 
+
+---
+
+# STEP16B - PASSIVE LIVE SHADOW INTEGRATION
+
+## Goal
+
+STEP16B introduced the first live-compatible probabilistic meta-state layer into the L1 system.
+
+Important:
+- no execution changes
+- no live exposure changes
+- no strategy mutation
+- no adaptive sizing activation
+
+The layer operates strictly in:
+- passive
+- deterministic
+- shadow-only mode
+
+---
+
+# STEP16B Architecture
+
+New module:
+
+live_l1/meta_state/meta_state_shadow.py
+
+Main responsibilities:
+- normalize live score
+- classify meta-state bucket
+- map probabilistic exposure multiplier
+- expose deterministic shadow metadata
+
+---
+
+# Current Live Shadow Mapping
+
+STRONG_POSITIVE -> 1.00
+POSITIVE        -> 0.75
+NEUTRAL         -> 0.50
+NEGATIVE        -> 0.25
+STRONG_NEGATIVE -> 0.00
+
+Current live normalization:
+
+raw timing score:
+-4 .. +4
+
+normalized:
+-1.0 .. +1.0
+
+Important:
+- this is still a temporary deterministic placeholder
+- not yet the final probabilistic STEP15 scoring model
+
+---
+
+# STEP16B Logging Integration
+
+The passive shadow layer was integrated into:
+
+live_l1/core/loop.py
+
+without modifying:
+- entry logic
+- execution logic
+- exit logic
+- TP/SL behavior
+- position sizing
+
+New passive logging fields:
+
+meta_state_score
+meta_state_bucket
+position_multiplier
+meta_state_enabled
+
+---
+
+# STEP16B Validation
+
+Validation run:
+
+200k @ offset 1M
+
+Result:
+- baseline trade results remained identical
+- no execution drift
+- no side effects
+- no determinism issues
+- shadow logging worked correctly
+
+Observed bucket distribution:
+
+NEUTRAL            dominant
+POSITIVE           moderate
+NEGATIVE           moderate
+STRONG states      rare
+
+This distribution appeared structurally plausible and stable.
+
+---
+
+# STEP16B Conclusion
+
+STEP16B successfully established:
+
+first live-compatible probabilistic meta-state infrastructure
+
+inside the production L1 architecture.
+
+Current status:
+- passive
+- deterministic
+- reproducible
+- isolated
+- safely testable
+- execution-independent
+
+No live exposure adaptation is active yet.
+
+
