@@ -1220,3 +1220,689 @@ contextual structural weighting
 meta-state interpretation layers
 
 
+# STEP13 - PRE-TOXIC TRANSITION AND DEGRADATION RESEARCH
+
+## Research Goal
+
+After STEP12 showed that:
+- naive toxic gates
+- direct trade blocking
+- confirmed toxic persistence exits
+
+did not generalize well under no-lookahead conditions, the research focus shifted toward:
+
+- pre-toxic transition dynamics
+- structural degradation speed
+- toxic expansion acceleration
+- recovery failure behavior
+- transition-based market instability
+
+The goal of STEP13 was therefore no longer:
+- "detect toxicity"
+
+but instead:
+
+- "understand how structural collapse develops"
+
+
+---
+
+# STEP13A - Pre-Toxic Transition Analysis
+
+## Major Observation
+
+A new transition category called:
+
+```text
+SAFE_COLLAPSE
+
+emerged as one of the most dangerous structural patterns.
+
+Definition:
+
+trade initially dominated by SAFE structure
+later abrupt transition into TOXIC structure
+followed by strong persistent toxicity
+
+This was fundamentally different from:
+
+gradual WARNING drift
+temporary instability
+immediate toxicity at trade start
+SAFE_COLLAPSE Results
+Long Side
+EXTREME_PERSISTENT_TOXICITY
+total_pnl: -4186.55
+winrate: 0%
+avg_first_toxic_snapshot: 3.7
+HIGH_PERSISTENT_TOXICITY
+total_pnl: -1692.52
+winrate: 40%
+avg_first_toxic_snapshot: 8.2
+Short Side
+EXTREME_PERSISTENT_TOXICITY
+total_pnl: -2900.08
+winrate: 13.3%
+avg_first_toxic_snapshot: 5.7
+HIGH_PERSISTENT_TOXICITY
+total_pnl: +17.77
+winrate: 57.1%
+avg_first_toxic_snapshot: 6.7
+STEP13A Interpretation
+
+The key insight was:
+
+Markets appear capable of:
+
+temporary instability
+temporary toxicity
+warning phases
+
+without fully collapsing structurally.
+
+However:
+
+SAFE -> sudden TOXIC collapse
+
+appeared substantially more dangerous than:
+
+gradual degradation
+warning drift
+immediate toxicity
+
+This suggested that:
+
+abrupt structural failure
+rapid toxic expansion
+failed stabilization
+
+may be more important than toxicity itself.
+
+STEP13B - SAFE_COLLAPSE Exit Research
+
+A no-lookahead SAFE_COLLAPSE early-exit simulation was tested.
+
+Hypothesis:
+
+exit immediately after first early toxic collapse
+preserve profits before full structural breakdown
+
+Result:
+
+Return:
+140.2% -> 141.3%
+
+PF:
+1.69 -> 1.78
+
+DD:
+15.6% -> 12.5%
+
+Interpretation:
+
+slight improvement
+meaningful DD reduction
+but many profitable trades were exited too early
+
+This demonstrated:
+
+The first TOXIC event alone is not sufficient for reliable exits.
+
+STEP13C - Confirmed Toxic Persistence Research
+
+A second hypothesis tested:
+
+multiple TOXIC confirmations
++
+weak recovery
+
+as a structural exit trigger.
+
+Result:
+
+Return:
+140.2% -> 93.4%
+
+PF:
+1.69 -> 1.44
+
+DD:
+15.6% -> 16.8%
+
+Interpretation:
+
+confirmed toxicity arrives too late
+damage is often already realized
+persistence confirmation destroys too much profitable structure
+STEP13D - Degradation Acceleration Research
+
+Research focus shifted toward:
+
+transition velocity
+toxic expansion acceleration
+warning acceleration
+safe degradation speed
+Correlations With PNL
+max_warning_acceleration:
++0.114
+
+max_toxic_acceleration:
+-0.226
+
+final_toxic_ratio:
+-0.473
+
+This became one of the most important findings of STEP13.
+
+Major STEP13 Insight
+
+The data strongly suggested:
+
+WARNING acceleration is NOT inherently dangerous.
+
+In many successful trades:
+
+WARNING increased temporarily
+instability appeared briefly
+structure degraded partially
+
+BUT:
+
+recovery occurred
+toxic dominance did not emerge
+
+In contrast:
+
+rapid TOXIC expansion
+
+was strongly associated with:
+
+structural failure
+persistent degradation
+failed recovery
+large losses
+STEP13E - Toxic Dominance Exit Simulation
+
+A toxic dominance partial-exit model was tested.
+
+Trigger logic:
+
+recent window dominated by TOXIC states
+previously low toxic exposure
+
+Result:
+
+Return:
+140.2% -> 75.7%
+
+PF:
+1.69 -> 1.39
+
+Winrate:
+69.9% -> 48.4%
+
+Interpretation:
+
+trigger fired far too often
+many profitable trades were interrupted
+toxic dominance alone is insufficient
+Final STEP13 Interpretation
+
+STEP13 fundamentally changed the interpretation of structural toxicity.
+
+The strongest emerging conclusion became:
+
+Markets can survive:
+
+WARNING phases
+temporary instability
+temporary toxicity
+structural degradation
+
+What appears most dangerous is instead:
+
+rapid toxic expansion
+failed recovery
+abrupt SAFE collapse
+persistent toxic dominance after collapse
+STEP13 Current Conclusion
+
+The following approaches are currently NOT supported by evidence:
+
+first toxic exits
+confirmed toxic persistence exits
+toxic dominance exits
+naive toxicity blocking
+
+The following areas remain promising:
+
+SAFE collapse dynamics
+degradation acceleration
+toxic expansion speed
+recovery failure prediction
+transition-based structural forecasting
+Current Research Direction
+
+Future work should focus on:
+
+early structural degradation forecasting
+transition acceleration prediction
+recovery probability estimation
+probabilistic transition modeling
+contextual meta-state interpretation
+
+rather than:
+
+direct live toxicity blocking
+hard structural gates
+naive adaptive exits
+
+
+# STEP15 - PROBABILISTIC META-STATE ADAPTATION
+
+## Research Goal
+
+After STEP11-STEP13 showed that:
+- hard toxic exits
+- deterministic toxicity gates
+- binary structural blocking
+
+do not generalize reliably under no-lookahead conditions, the research direction shifted toward:
+
+- probabilistic structure evaluation
+- adaptive exposure weighting
+- continuous meta-state interpretation
+- structural risk compression
+
+The core hypothesis became:
+
+Structural market quality may be more useful for:
+- exposure modulation
+than for:
+- deterministic trade blocking
+
+---
+
+# STEP15A - Adaptive Position Sizing
+
+## Core Idea
+
+Instead of:
+- blocking trades
+- forcing exits
+- terminating structures
+
+the system only adjusts exposure size based on probabilistic structure quality.
+
+Initial exposure mapping:
+
+STRONG_POSITIVE -> 1.00x
+POSITIVE        -> 0.75x
+NEUTRAL         -> 0.50x
+NEGATIVE        -> 0.25x
+STRONG_NEGATIVE -> 0.00x
+
+Important:
+- no entries changed
+- no exits changed
+- no live execution logic changed
+- only hypothetical exposure weighting was simulated offline
+
+---
+
+# STEP15A - Fullscale 4.3M Validation
+
+## Baseline
+
+Return: 140.2%
+PF: 1.69
+DD: 15.6%
+
+## Adaptive Position Sizing
+
+Return: 185.7%
+PF: 2.50
+DD: 9.2%
+
+## Main Interpretation
+
+The strongest effect came from:
+- heavily reducing exposure during structurally negative phases
+- preserving exposure during stable compatible structures
+
+without:
+- hard exits
+- deterministic toxicity prediction
+- aggressive adaptive gating
+
+The improvement mechanism appears to be:
+
+risk compression
+
+NOT:
+return amplification.
+
+---
+
+# STEP15B - Robustness Validation
+
+## Goal
+
+Validate whether STEP15A generalizes beyond the 4.3M fullscale dataset.
+
+Important:
+- no new market runs were generated
+- only archived datasets were reanalyzed
+
+Fully reanalyzable datasets:
+- 1M @ offset 2.5M
+- 4.3M @ offset 0
+
+Incomplete archival datasets:
+- 200k @ offset 1M
+- 500k @ offset 1.5M
+
+Important workflow lesson:
+
+Future major runs must archive:
+- trades jsonl
+- auto analysis csv
+- passive shadow snapshot csv
+
+to preserve future probabilistic reanalysis capability.
+
+---
+
+# STEP15B - 1M Offset 2.5M Validation
+
+## Baseline
+
+Return: 26.5%
+PF: 2.02
+DD: 4.78%
+
+## Adaptive Position Sizing
+
+Return: 30.1%
+PF: 2.66
+DD: 4.38%
+
+## Interpretation
+
+The improvement direction remained fully consistent with the 4.3M validation:
+- higher profitability
+- higher PF
+- slightly lower DD
+
+This strongly reinforced the interpretation:
+
+probabilistic exposure adaptation
+generalizes substantially better
+than hard structural gating.
+
+---
+
+# STEP15C - Multiplier Robustness Research
+
+## Goal
+
+Validate whether STEP15 improvements depend on:
+- one lucky multiplier configuration
+or:
+- structural probabilistic information itself
+
+Three exposure mappings were tested:
+
+## Conservative
+
+1.00 / 0.75 / 0.50 / 0.25 / 0.00
+
+## Moderate
+
+1.00 / 0.85 / 0.60 / 0.35 / 0.10
+
+## Aggressive
+
+1.00 / 1.00 / 0.75 / 0.25 / 0.00
+
+---
+
+# STEP15C Results
+
+## Conservative
+
+Return: 140.2% -> 185.7%
+PF: 1.69 -> 2.50
+DD: 15.6% -> 9.2%
+
+## Moderate
+
+Return: 140.2% -> 178.1%
+PF: 1.69 -> 2.29
+DD: 15.6% -> 9.7%
+
+## Aggressive
+
+Return: 140.2% -> 174.1%
+PF: 1.69 -> 2.21
+DD: 15.6% -> 10.8%
+
+---
+
+# STEP15C Interpretation
+
+All tested variants improved simultaneously:
+- return
+- PF
+- DD
+
+This strongly suggests:
+
+The improvement does NOT depend
+on one fragile multiplier mapping.
+
+Instead:
+- probabilistic structure evaluation itself
+appears structurally valuable.
+
+The strongest configuration remained:
+
+conservative sizing
+
+because it achieved:
+- highest return
+- highest PF
+- lowest DD
+
+while also being:
+- simplest
+- most conservative
+- likely most robust live-compatible variant
+
+---
+
+# Current STEP15 Conclusion
+
+The current evidence strongly supports:
+
+continuous probabilistic exposure adaptation
+
+as the most promising direction discovered so far in the state-dynamics research branch.
+
+Strongly supported:
+- probabilistic meta-state scoring
+- adaptive exposure weighting
+- continuous structure evaluation
+- probabilistic risk compression
+
+Currently NOT supported:
+- hard toxic exits
+- deterministic toxicity blocking
+- binary structural gating
+- aggressive adaptive exits
+
+---
+
+# Current Best Architecture Direction
+
+core strategy
++
+continuous probabilistic meta-state layer
++
+adaptive exposure compression
+
+Where:
+- the base strategy remains unchanged
+- the probabilistic layer acts only as:
+  - exposure modulator
+  - structural quality estimator
+  - dynamic risk compression layer
+
+  
+---
+
+# STEP16A - CONTROLLED INTEGRATION DESIGN FOR META-STATE EXPOSURE LAYER
+
+## Goal
+
+STEP16A defines the controlled integration path for the probabilistic meta-state exposure layer.
+
+Important:
+- no live execution integration yet
+- no active position-size modification yet
+- no entry changes
+- no exit changes
+- no adaptive order behavior
+
+STEP16A is only an architecture and safety design step.
+
+---
+
+# Core Design Principle
+
+The base strategy remains the source of trade intent.
+
+The meta-state layer must not replace:
+- entry logic
+- exit logic
+- TP/SL logic
+- MA200/MFI/ATR logic
+- score confirmation logic
+
+The meta-state layer may later act only as:
+
+probabilistic exposure modifier
+
+not as:
+- hard trade blocker
+- deterministic exit engine
+- replacement strategy
+
+---
+
+# Current Best Exposure Mapping
+
+The currently strongest offline mapping is the conservative STEP15C variant:
+
+STRONG_POSITIVE -> 1.00x
+POSITIVE        -> 0.75x
+NEUTRAL         -> 0.50x
+NEGATIVE        -> 0.25x
+STRONG_NEGATIVE -> 0.00x
+
+Reason:
+- best return
+- best PF
+- lowest DD
+- simplest mapping
+- strongest risk-compression behavior
+
+---
+
+# Mandatory Safety Requirements
+
+Before any active integration, the system must support:
+
+1. global enable/disable switch
+2. passive shadow mode
+3. deterministic logging
+4. per-trade multiplier logging
+5. no hidden execution side effects
+6. unchanged baseline behavior when disabled
+7. explicit documentation of every multiplier decision
+
+---
+
+# Required Future Logging Fields
+
+A future implementation must log at least:
+
+meta_state_score
+meta_state_bucket
+position_multiplier
+multiplier_reason
+meta_state_enabled
+base_position_size
+effective_position_size
+
+This is mandatory for:
+- reproducibility
+- debugging
+- post-run analysis
+- live safety review
+
+---
+
+# Integration Boundary
+
+The correct future integration point is after trade intent is created but before order sizing is finalized.
+
+Correct conceptual flow:
+
+strategy intent
+-> execution sizing preparation
+-> meta-state multiplier
+-> final simulated/live order size
+
+The meta-state layer must not mutate:
+- signal values
+- market features
+- strategy decisions
+- exit reason logic
+
+---
+
+# First Integration Mode
+
+The first implementation must be:
+
+PASSIVE_SHADOW_ONLY
+
+Meaning:
+- compute multiplier
+- log multiplier
+- do not apply multiplier
+- compare baseline vs hypothetical exposure offline
+
+Only after this mode is validated may active sizing be considered.
+
+---
+
+# STEP16A Conclusion
+
+STEP15 identified the strongest practical architecture so far:
+
+core strategy
++
+continuous probabilistic meta-state layer
++
+adaptive exposure compression
+
+STEP16A defines the safety boundary for future integration.
+
+No active live behavior is justified until:
+- passive implementation is deterministic
+- logs are complete
+- disabled mode equals current baseline exactly
+- shadow-vs-active simulations remain stable across validation windows
+
