@@ -1,0 +1,5 @@
+real_total_pnl: 214.03999999999996
+dynamic_total_pnl: 269.5210646592988
+delta_pnl: 55.48106465929885
+avg_live_multiplier: 0.8294882135322313
+corr_live_mult_vs_pnl: 0.7180574909473862

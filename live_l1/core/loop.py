@@ -26,6 +26,7 @@ from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
 from live_l1.core.execution import apply_paper_execution
 from live_l1.meta_state.meta_state_shadow import build_meta_state_shadow
+from live_l1.meta_state.meta_state_runtime import resolve_position_multiplier
 
 
 @dataclass(frozen=True)
@@ -159,7 +160,6 @@ def _passive_shadow_risk_from_context(side: str, regime: str, atr_quality: str, 
     atr_l = str(atr_quality).strip().lower()
 
     reasons = []
-
     risk = 0
 
     if side_l == "long" and regime_l == "bear":
@@ -171,11 +171,9 @@ def _passive_shadow_risk_from_context(side: str, regime: str, atr_quality: str, 
         reasons.append("short_bull_incompatibility")
 
     if side_l == "short" and regime_l == "bear":
-        risk = max(risk, 0)
         reasons.append("short_bear_compatible")
 
     if side_l == "long" and regime_l == "bull":
-        risk = max(risk, 0)
         reasons.append("long_bull_compatible")
 
     if atr_l == "bad_atr":
@@ -200,6 +198,40 @@ def _passive_shadow_risk_from_context(side: str, regime: str, atr_quality: str, 
         name = "SAFE"
 
     return risk, name, "|".join(reasons)
+
+
+def _passive_shadow_risk_components(side: str, regime: str, atr_quality: str, current_score: int) -> dict:
+    side_l = str(side).strip().lower()
+    regime_l = str(regime).strip().lower()
+    atr_l = str(atr_quality).strip().lower()
+    score = int(current_score)
+
+    regime_mismatch_score = 0.0
+    if side_l == "long" and regime_l == "bear":
+        regime_mismatch_score = 1.0
+    elif side_l == "short" and regime_l == "bull":
+        regime_mismatch_score = 1.0
+
+    atr_stress_score = 1.0 if atr_l == "bad_atr" else 0.0
+
+    adverse_score_pressure = 0.0
+    if side_l == "long":
+        adverse_score_pressure = max(0.0, min(1.0, abs(min(score, 0)) / 4.0))
+    elif side_l == "short":
+        adverse_score_pressure = max(0.0, min(1.0, max(score, 0) / 4.0))
+
+    shadow_risk_score = (
+        0.50 * regime_mismatch_score
+        + 0.30 * atr_stress_score
+        + 0.20 * adverse_score_pressure
+    )
+
+    return {
+        "shadow_risk_score": float(shadow_risk_score),
+        "regime_mismatch_score": float(regime_mismatch_score),
+        "atr_stress_score": float(atr_stress_score),
+        "adverse_score_pressure": float(adverse_score_pressure),
+    }
 
 
 def _append_passive_shadow_risk_snapshot(
@@ -236,6 +268,12 @@ def _append_passive_shadow_risk_snapshot(
         atr_quality=atr_quality,
         current_score=current_score,
     )
+    risk_components = _passive_shadow_risk_components(
+        side=side,
+        regime=regime_label,
+        atr_quality=atr_quality,
+        current_score=current_score,
+    )
 
     out_path = os.path.join(repo_root, "live_logs", "passive_shadow_risk_snapshots.csv")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -254,9 +292,14 @@ def _append_passive_shadow_risk_snapshot(
         "shadow_risk_level",
         "shadow_risk_name",
         "shadow_risk_reason",
+        "shadow_risk_score",
+        "regime_mismatch_score",
+        "atr_stress_score",
+        "adverse_score_pressure",
         "meta_state_score",
         "meta_state_bucket",
         "position_multiplier",
+        "runtime_position_multiplier",
         "meta_state_enabled",
     ]
 
@@ -283,12 +326,212 @@ def _append_passive_shadow_risk_snapshot(
                 "shadow_risk_level": int(risk_level),
                 "shadow_risk_name": str(risk_name),
                 "shadow_risk_reason": str(reason),
+                "shadow_risk_score": float(risk_components["shadow_risk_score"]),
+                "regime_mismatch_score": float(risk_components["regime_mismatch_score"]),
+                "atr_stress_score": float(risk_components["atr_stress_score"]),
+                "adverse_score_pressure": float(risk_components["adverse_score_pressure"]),
                 "meta_state_score": build_meta_state_shadow(int(current_score))["meta_state_score"],
                 "meta_state_bucket": build_meta_state_shadow(int(current_score))["meta_state_bucket"],
                 "position_multiplier": build_meta_state_shadow(int(current_score))["position_multiplier"],
+                "runtime_position_multiplier": resolve_position_multiplier(int(current_score))[0],
                 "meta_state_enabled": 0,
             }
         )
+
+def _append_passive_shadow_entry_multiplier(
+    *,
+    repo_root: str,
+    tick_id: int,
+    timestamp_utc: str,
+    snapshot_id: str,
+    exec_decision,
+    current_score: int,
+) -> None:
+    action = str(getattr(exec_decision, "action", "")).strip().upper()
+    executed = int(getattr(exec_decision, "executed", 0))
+
+    if executed != 1:
+        return
+
+    if action not in ("OPEN_LONG", "OPEN_SHORT", "BUY", "SELL"):
+        return
+
+    side_after = str(getattr(exec_decision, "side_after", "")).strip().lower()
+
+    side_aware_score = int(current_score)
+    if side_after == "short":
+        side_aware_score = -side_aware_score
+
+    shadow = build_meta_state_shadow(int(side_aware_score))
+    effective_multiplier = resolve_position_multiplier(int(side_aware_score))[0]
+
+    out_path = os.path.join(repo_root, "live_logs", "passive_shadow_entry_multipliers.csv")
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+    fieldnames = [
+        "tick_id",
+        "timestamp_utc",
+        "snapshot_id",
+        "action",
+        "entry_timestamp_utc",
+        "entry_price",
+        "side_after",
+        "current_score",
+        "side_aware_score",
+        "entry_meta_state_score",
+        "entry_meta_state_bucket",
+        "entry_shadow_multiplier",
+        "entry_effective_runtime_multiplier",
+        "meta_state_enabled",
+    ]
+
+    exists = os.path.exists(out_path)
+
+    with open(out_path, "a", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+
+        if not exists:
+            writer.writeheader()
+
+        writer.writerow(
+            {
+                "tick_id": int(tick_id),
+                "timestamp_utc": str(timestamp_utc),
+                "snapshot_id": str(snapshot_id),
+                "action": action,
+                "entry_timestamp_utc": str(getattr(exec_decision, "entry_timestamp_utc", "")),
+                "entry_price": "" if getattr(exec_decision, "entry_price", None) is None else float(exec_decision.entry_price),
+                "side_after": str(getattr(exec_decision, "side_after", "")),
+                "current_score": int(current_score),
+                "side_aware_score": int(side_aware_score),
+                "entry_meta_state_score": float(shadow["meta_state_score"]),
+                "entry_meta_state_bucket": str(shadow["meta_state_bucket"]),
+                "entry_shadow_multiplier": float(shadow["position_multiplier"]),
+                "entry_effective_runtime_multiplier": float(effective_multiplier),
+                "meta_state_enabled": 0,
+            }
+        )
+
+
+
+def _append_passive_shadow_close_accounting(
+    *,
+    repo_root: str,
+    tick_id: int,
+    timestamp_utc: str,
+    snapshot_id: str,
+    exec_decision,
+) -> None:
+    action = str(getattr(exec_decision, "action", "")).strip().upper()
+    executed = int(getattr(exec_decision, "executed", 0))
+
+    if executed != 1:
+        return
+
+    if not action.startswith("CLOSE") and not action.startswith("SL") and not action.startswith("TP"):
+        return
+
+    trades_path = os.path.join(repo_root, "live_logs", "trades_l1.jsonl")
+    entry_path = os.path.join(repo_root, "live_logs", "passive_shadow_entry_multipliers.csv")
+    out_path = os.path.join(repo_root, "live_logs", "passive_shadow_close_accounting.csv")
+
+    if not os.path.exists(trades_path):
+        return
+
+    if not os.path.exists(entry_path):
+        return
+
+    import json
+
+    last_trade = None
+    with open(trades_path, "r", encoding="utf-8") as fh:
+        for line in fh:
+            s = line.strip()
+            if s:
+                last_trade = json.loads(s)
+
+    if not last_trade:
+        return
+
+    entry_ts = str(last_trade.get("entry_timestamp_utc", "")).strip()
+    side = str(last_trade.get("side", "")).strip().lower()
+    real_pnl = float(last_trade.get("pnl", 0.0))
+
+    entry_multiplier = None
+
+    with open(entry_path, "r", newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            if (
+                str(row.get("entry_timestamp_utc", "")).strip() == entry_ts
+                and str(row.get("side_after", "")).strip().lower() == side
+            ):
+                entry_multiplier = float(row.get("entry_shadow_multiplier", 1.0))
+
+    if entry_multiplier is None:
+        entry_multiplier = 1.0
+
+    shadow_pnl = real_pnl * entry_multiplier
+
+    start_capital = 10000.0
+    previous_shadow_equity = start_capital
+
+    if os.path.exists(out_path):
+        try:
+            import pandas as pd
+            prev_df = pd.read_csv(out_path)
+            if len(prev_df) > 0 and "shadow_equity_after" in prev_df.columns:
+                previous_shadow_equity = float(prev_df["shadow_equity_after"].iloc[-1])
+        except Exception:
+            previous_shadow_equity = start_capital
+
+    shadow_equity_before = previous_shadow_equity
+    shadow_equity_after = shadow_equity_before + shadow_pnl
+    shadow_return_pct = (shadow_equity_after - start_capital) / start_capital
+
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+    fieldnames = [
+        "tick_id",
+        "timestamp_utc",
+        "snapshot_id",
+        "action",
+        "entry_timestamp_utc",
+        "side",
+        "real_pnl",
+        "entry_shadow_multiplier",
+        "shadow_pnl",
+        "shadow_equity_before",
+        "shadow_equity_after",
+        "shadow_return_pct",
+    ]
+
+    exists = os.path.exists(out_path)
+
+    with open(out_path, "a", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+
+        if not exists:
+            writer.writeheader()
+
+        writer.writerow(
+            {
+                "tick_id": int(tick_id),
+                "timestamp_utc": str(timestamp_utc),
+                "snapshot_id": str(snapshot_id),
+                "action": action,
+                "entry_timestamp_utc": entry_ts,
+                "side": side,
+                "real_pnl": float(real_pnl),
+                "entry_shadow_multiplier": float(entry_multiplier),
+                "shadow_pnl": float(shadow_pnl),
+                "shadow_equity_before": float(shadow_equity_before),
+                "shadow_equity_after": float(shadow_equity_after),
+                "shadow_return_pct": float(shadow_return_pct),
+            }
+        )
+
+
 
 def _append_trade_lifecycle_snapshot(
     *,
@@ -602,6 +845,23 @@ def run_l1_loop_step1234567(
                 price=float(features.price),
                 timestamp_utc=str(features.timestamp_utc),
                 position_size=1.0,
+            )
+
+            _append_passive_shadow_entry_multiplier(
+                repo_root=repo_root,
+                tick_id=tick.tick_id,
+                timestamp_utc=str(features.timestamp_utc),
+                snapshot_id=str(features.snapshot_id),
+                exec_decision=exec_decision,
+                current_score=int(regime.score),
+            )
+
+            _append_passive_shadow_close_accounting(
+                repo_root=repo_root,
+                tick_id=tick.tick_id,
+                timestamp_utc=str(features.timestamp_utc),
+                snapshot_id=str(features.snapshot_id),
+                exec_decision=exec_decision,
             )
 
             log.log(
