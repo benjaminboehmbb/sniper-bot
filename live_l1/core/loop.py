@@ -567,10 +567,10 @@ def _append_trade_lifecycle_snapshot(
 
     duration_sec = _lifecycle_duration_sec(entry_ts, timestamp_utc)
 
-    if duration_sec < 900.0:
+    if duration_sec < 60.0:
         return
 
-    if int(duration_sec) % 300 != 0:
+    if int(duration_sec) % 60 != 0:
         return
 
     current_price = _safe_float_lifecycle(getattr(features, "price", 0.0), 0.0)
