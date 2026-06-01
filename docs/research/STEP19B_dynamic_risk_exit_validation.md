@@ -109,3 +109,62 @@ Next validation step:
 - 500k @ offset 1500000
 - repeat STEP19B replay
 - evaluate robustness before any live integration
+
+---
+
+## 500k Validation
+
+500k ticks @ offset 1500000
+
+Original
+
+- pnl: 1463.55
+- pf: 2.4644
+- max_dd_pct: 0.0517
+
+STEP19B
+
+- pnl: 1115.80
+- pf: 1.8705
+- max_dd_pct: 0.0544
+
+Result
+
+- pnl worse
+- pf worse
+- drawdown worse
+
+Additional threshold sweep:
+
+0.5 / 3
+- pnl: 1115.80
+- pf: 1.8705
+
+0.5 / 5
+- pnl: 1072.78
+- pf: 1.7989
+
+0.6 / 3
+- pnl: 1060.21
+- pf: 1.7927
+
+0.6 / 5
+- pnl: 1081.41
+- pf: 1.8106
+
+0.7 / 3
+- pnl: 1060.21
+- pf: 1.7927
+
+Conclusion
+
+The positive results observed on the three 200k windows did not generalize to the larger 500k validation window.
+
+Current status:
+
+- STEP19 Entry Gate: rejected
+- STEP19 Dynamic Exit: not validated
+
+Key finding:
+
+shadow_risk_score contains predictive information for trade quality analysis but currently does not provide a robust standalone trading rule.
