@@ -133,3 +133,31 @@ Next validation step:
 - 1M @ offset 2500000
 - repeat STEP20A replay
 - evaluate robustness before live integration
+
+---
+
+## Validation Window 5
+
+1M ticks @ offset 2500000
+
+Original
+
+- pnl: 2648.74
+- pf: 2.0156
+- max_dd_pct: 0.0478
+
+STEP20A
+
+- pnl: 3490.28
+- pf: 3.9539
+- max_dd_pct: 0.0228
+
+Result
+
+- pnl improved
+- pf improved strongly
+- drawdown reduced strongly
+
+Updated conclusion:
+
+STEP20A remains positive on the first 1M validation window and is currently the strongest validated state-research candidate.
