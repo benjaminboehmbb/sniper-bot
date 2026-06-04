@@ -161,3 +161,39 @@ Result
 Updated conclusion:
 
 STEP20A remains positive on the first 1M validation window and is currently the strongest validated state-research candidate.
+
+---
+
+## Validation Window 6
+
+4.3M ticks @ offset 0
+
+Original
+
+- pnl: 14022.01
+- pf: 1.6859
+- max_dd_pct: 0.1556
+
+STEP20A
+
+- pnl: 22389.30
+- pf: 3.4704
+- max_dd_pct: 0.0322
+
+Multiplier distribution
+
+- 0.25x: 73 trades
+- 0.50x: 173 trades
+- 1.00x: 310 trades
+
+Result
+
+- pnl improved strongly
+- pf improved strongly
+- drawdown reduced massively
+
+Final current conclusion:
+
+STEP20A position sizing is confirmed on the 4.3M full-history run and is currently the strongest validated state-research candidate.
+
+It should not yet be integrated live without a dedicated implementation design, but it is now justified as a serious STEP20B implementation candidate.
