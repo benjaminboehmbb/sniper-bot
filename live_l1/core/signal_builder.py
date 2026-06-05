@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # live_l1/core/signal_builder.py
-# Online 1m signal builder for Live L1.
+# Online GS-compatible 1m signal builder for Live L1.
 # ASCII-only.
 
 from __future__ import annotations
-
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -13,17 +11,17 @@ import pandas as pd
 
 REQUIRED_COLUMNS = ["timestamp_utc", "open", "high", "low", "close", "volume"]
 
-SIGNAL_KEYS = [
+SIGNAL_COLUMNS = [
     "rsi_signal",
-    "bollinger_signal",
-    "stoch_signal",
-    "cci_signal",
-    "ma200_signal",
-    "mfi_signal",
-    "atr_signal",
     "macd_signal",
+    "bollinger_signal",
+    "ma200_signal",
+    "stoch_signal",
+    "atr_signal",
     "ema50_signal",
     "adx_signal",
+    "cci_signal",
+    "mfi_signal",
     "obv_signal",
     "roc_signal",
 ]
@@ -35,18 +33,14 @@ def _safe_ewm(series: pd.Series, span: int) -> pd.Series:
     return series.ewm(span=span, adjust=False, min_periods=span).mean()
 
 
-def _to_int_signal(value: Any, threshold_pos: float = 0.0, threshold_neg: float = 0.0) -> int:
-    try:
-        v = float(value)
-    except Exception:
-        return 0
-    if not np.isfinite(v):
-        return 0
-    if v > threshold_pos:
-        return 1
-    if v < threshold_neg:
-        return -1
-    return 0
+def _to_signal_score(series: pd.Series, lo: float, hi: float) -> pd.Series:
+    s = series.copy()
+    s = s.clip(lower=lo, upper=hi)
+    mid = (lo + hi) / 2.0
+    half = (hi - lo) / 2.0
+    if half == 0.0:
+        half = 1.0
+    return ((s - mid) / half).clip(-1.0, 1.0)
 
 
 def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
@@ -150,7 +144,7 @@ def _adx(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) ->
     return dx.rolling(period, min_periods=period).mean()
 
 
-def _validate_input(df: pd.DataFrame) -> None:
+def _validate_input(df: pd.DataFrame, min_rows: int = MIN_ROWS) -> None:
     if not isinstance(df, pd.DataFrame):
         raise TypeError("df must be a pandas DataFrame")
 
@@ -158,19 +152,26 @@ def _validate_input(df: pd.DataFrame) -> None:
     if missing:
         raise KeyError("Missing required columns: " + ",".join(missing))
 
-    if len(df) < MIN_ROWS:
-        raise ValueError(f"Need at least {MIN_ROWS} rows, got {len(df)}")
+    if len(df) < min_rows:
+        raise ValueError(f"Need at least {min_rows} rows, got {len(df)}")
 
 
-def build_online_signals(df: pd.DataFrame, include_debug: bool = False) -> dict:
+def _to_live_int(value: object) -> int:
+    try:
+        return int(float(value))
+    except Exception:
+        return 0
+
+
+def build_signal_frame(df: pd.DataFrame) -> pd.DataFrame:
     _validate_input(df)
 
-    work = df.copy()
+    out = df.copy()
 
-    close = pd.to_numeric(work["close"], errors="coerce")
-    high = pd.to_numeric(work["high"], errors="coerce")
-    low = pd.to_numeric(work["low"], errors="coerce")
-    volume = pd.to_numeric(work["volume"], errors="coerce").fillna(0.0)
+    close = pd.to_numeric(out["close"], errors="coerce")
+    high = pd.to_numeric(out["high"], errors="coerce")
+    low = pd.to_numeric(out["low"], errors="coerce")
+    volume = pd.to_numeric(out["volume"], errors="coerce").fillna(0.0)
 
     if close.isna().any() or high.isna().any() or low.isna().any():
         raise ValueError("NaN detected in OHLC after numeric conversion")
@@ -188,43 +189,29 @@ def build_online_signals(df: pd.DataFrame, include_debug: bool = False) -> dict:
     mfi_v = _mfi(high, low, close, volume, 14)
     adx_v = _adx(high, low, close, 14)
 
-    last_close = float(close.iloc[-1])
-    last_ma200 = float(ma200.iloc[-1]) if np.isfinite(ma200.iloc[-1]) else np.nan
-    last_ema50 = float(ema50.iloc[-1]) if np.isfinite(ema50.iloc[-1]) else np.nan
-    last_atr_rel = float(atr_v.iloc[-1] / last_close) if last_close > 0.0 and np.isfinite(atr_v.iloc[-1]) else np.nan
-    last_obv_delta = float(obv_v.diff().iloc[-1]) if len(obv_v) >= 2 and np.isfinite(obv_v.diff().iloc[-1]) else 0.0
+    ma_rel = (close - ma200) / ma200.replace(0.0, np.nan)
+    ema_rel = (close - ema50) / ema50.replace(0.0, np.nan)
+    atr_rel = atr_v / close.replace(0.0, np.nan)
+    obv_roc = (obv_v - obv_v.shift(50)) / obv_v.shift(50).replace(0.0, np.nan)
 
-    out = {
-        "rsi_signal": 1 if float(rsi_v.iloc[-1]) < 30.0 else (-1 if float(rsi_v.iloc[-1]) > 70.0 else 0),
-        "bollinger_signal": 1 if float(boll_z.iloc[-1]) < -2.0 else (-1 if float(boll_z.iloc[-1]) > 2.0 else 0),
-        "stoch_signal": 1 if float(stoch_v.iloc[-1]) < 20.0 else (-1 if float(stoch_v.iloc[-1]) > 80.0 else 0),
-        "cci_signal": 1 if float(cci_v.iloc[-1]) < -100.0 else (-1 if float(cci_v.iloc[-1]) > 100.0 else 0),
-        "ma200_signal": 1 if last_close > last_ma200 else (-1 if last_close < last_ma200 else 0),
-        "mfi_signal": 1 if float(mfi_v.iloc[-1]) < 20.0 else (-1 if float(mfi_v.iloc[-1]) > 80.0 else 0),
-        "atr_signal": -1 if np.isfinite(last_atr_rel) and last_atr_rel > 0.05 else 0,
-        "macd_signal": _to_int_signal(macd_h.iloc[-1]),
-        "ema50_signal": 1 if last_close > last_ema50 else (-1 if last_close < last_ema50 else 0),
-        "adx_signal": 1 if float(adx_v.iloc[-1]) >= 20.0 else 0,
-        "obv_signal": _to_int_signal(last_obv_delta),
-        "roc_signal": _to_int_signal(roc_v.iloc[-1]),
-    }
-
-    if include_debug:
-        out.update(
-            {
-                "rsi": float(rsi_v.iloc[-1]) if np.isfinite(rsi_v.iloc[-1]) else np.nan,
-                "bollinger_z": float(boll_z.iloc[-1]) if np.isfinite(boll_z.iloc[-1]) else np.nan,
-                "stoch_k": float(stoch_v.iloc[-1]) if np.isfinite(stoch_v.iloc[-1]) else np.nan,
-                "cci": float(cci_v.iloc[-1]) if np.isfinite(cci_v.iloc[-1]) else np.nan,
-                "ma200": last_ma200,
-                "mfi": float(mfi_v.iloc[-1]) if np.isfinite(mfi_v.iloc[-1]) else np.nan,
-                "atr": float(atr_v.iloc[-1]) if np.isfinite(atr_v.iloc[-1]) else np.nan,
-                "macd_hist": float(macd_h.iloc[-1]) if np.isfinite(macd_h.iloc[-1]) else np.nan,
-                "ema50": last_ema50,
-                "adx": float(adx_v.iloc[-1]) if np.isfinite(adx_v.iloc[-1]) else np.nan,
-                "obv": float(obv_v.iloc[-1]) if np.isfinite(obv_v.iloc[-1]) else np.nan,
-                "roc": float(roc_v.iloc[-1]) if np.isfinite(roc_v.iloc[-1]) else np.nan,
-            }
-        )
+    out["rsi_signal"] = _to_signal_score(rsi_v, 0.0, 100.0)
+    out["macd_signal"] = _to_signal_score(macd_h, -1.0, 1.0)
+    out["bollinger_signal"] = _to_signal_score(boll_z, -3.0, 3.0)
+    out["ma200_signal"] = _to_signal_score(ma_rel, -0.2, 0.2)
+    out["stoch_signal"] = _to_signal_score(stoch_v, 0.0, 100.0)
+    out["atr_signal"] = -_to_signal_score(atr_rel, 0.0, 0.05)
+    out["ema50_signal"] = _to_signal_score(ema_rel, -0.1, 0.1)
+    out["adx_signal"] = _to_signal_score(adx_v, 0.0, 60.0)
+    out["cci_signal"] = _to_signal_score(cci_v, -200.0, 200.0)
+    out["mfi_signal"] = _to_signal_score(mfi_v, 0.0, 100.0)
+    out["obv_signal"] = _to_signal_score(obv_roc, -0.2, 0.2)
+    out["roc_signal"] = _to_signal_score(roc_v, -10.0, 10.0)
 
     return out
+
+
+def build_online_signals(df: pd.DataFrame) -> dict[str, int]:
+    frame = build_signal_frame(df)
+    last = frame.iloc[-1]
+
+    return {col: _to_live_int(last.get(col, 0)) for col in SIGNAL_COLUMNS}
