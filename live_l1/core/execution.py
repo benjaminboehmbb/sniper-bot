@@ -28,7 +28,6 @@
 #
 # Intentionally still not implemented:
 # - flip in one step
-# - fees deducted from pnl
 # - partial close
 
 from __future__ import annotations
@@ -281,8 +280,10 @@ def _log_closed_trade(
     system_state_id = _safe_text(getattr(state, "system_state_id", ""), "")
     trade_id = _build_trade_id(system_state_id, entry_timestamp_utc)
     duration_sec = _compute_duration_sec(entry_timestamp_utc, exit_timestamp_utc)
-    pnl = _compute_pnl(side, entry_price, exit_price, size)
-    pnl_pct = _compute_pnl_pct(pnl, entry_price, size)
+    pnl_gross = _compute_pnl(side, entry_price, exit_price, size)
+    pnl_pct_gross = _compute_pnl_pct(pnl_gross, entry_price, size)
+    pnl_net = pnl_gross - float(fee_roundtrip)
+    pnl_pct_net = _compute_pnl_pct(pnl_net, entry_price, size)
 
     payload = {
         "system_state_id": system_state_id,
@@ -294,8 +295,10 @@ def _log_closed_trade(
         "exit_timestamp_utc": _safe_text(exit_timestamp_utc, ""),
         "duration_sec": float(duration_sec),
         "size": float(size),
-        "pnl": float(pnl),
-        "pnl_pct": float(pnl_pct),
+        "pnl": float(pnl_gross),
+        "pnl_pct": float(pnl_pct_gross),
+        "pnl_net": float(pnl_net),
+        "pnl_pct_net": float(pnl_pct_net),
         "fee_roundtrip": float(fee_roundtrip),
         "exit_reason": _safe_text(exit_reason, ""),
     }
@@ -306,7 +309,7 @@ def _log_closed_trade(
         return
 
     _append_jsonl(path, payload)
-    _loss_gate_register_closed_trade(float(pnl))
+    _loss_gate_register_closed_trade(float(pnl_net))
 
 
 def _capture_open_position_snapshot(state) -> dict:
