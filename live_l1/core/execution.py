@@ -21,6 +21,7 @@
 #
 # Added:
 # - configurable TP/SL exits via L1_TP_PCT / L1_SL_PCT (defaults: TP=5.0%, SL=1.5%)
+# - configurable time stops via L1_LONG_TIME_STOP_SEC / L1_SHORT_TIME_STOP_SEC (defaults: 3600 sec)
 # - TP/SL is checked before signal-based exit
 # - loss-cluster gate:
 #   if 5 of last 10 closed trades are losses, block next 35 entry attempts
@@ -349,6 +350,16 @@ def _blocked_entry_decision(pos_before: str, side_after: str, entry_price, entry
     )
 
 
+def _resolve_time_stop_sec() -> tuple[float, float]:
+    long_sec = _safe_float(os.environ.get("L1_LONG_TIME_STOP_SEC"), 3600.0)
+    short_sec = _safe_float(os.environ.get("L1_SHORT_TIME_STOP_SEC"), 3600.0)
+    if long_sec <= 0.0:
+        long_sec = 3600.0
+    if short_sec <= 0.0:
+        short_sec = 3600.0
+    return float(long_sec), float(short_sec)
+
+
 def _resolve_tp_sl_pct() -> tuple[float, float]:
     tp_pct = _safe_float(os.environ.get("L1_TP_PCT"), 0.05)
     sl_pct = _safe_float(os.environ.get("L1_SL_PCT"), 0.015)
@@ -458,7 +469,7 @@ def apply_paper_execution(
                 reason="TP_SHORT_HIT" if px <= tp_price_short else "SL_SHORT_HIT",
             )
 
-    LONG_TIME_STOP_SEC = 3600.0
+    LONG_TIME_STOP_SEC, SHORT_TIME_STOP_SEC = _resolve_time_stop_sec()
 
     if pos_before == "LONG":
         trade_snapshot = _capture_open_position_snapshot(state)
@@ -495,8 +506,6 @@ def apply_paper_execution(
                     entry_timestamp_utc="",
                     reason="LONG_TIME_STOP_HIT",
                 )
-
-    SHORT_TIME_STOP_SEC = 3600.0
 
     if pos_before == "SHORT":
         trade_snapshot = _capture_open_position_snapshot(state)
