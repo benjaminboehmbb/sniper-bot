@@ -421,6 +421,12 @@ def _valid_trade_snapshot(snapshot: dict) -> bool:
 
 
 def _blocked_entry_decision(pos_before: str, side_after: str, entry_price, entry_timestamp_utc: str) -> ExecutionDecision:
+    _append_audit_event({
+        "event": "ENTRY_BLOCKED",
+        "reason": "LOSS_CLUSTER_GATE_BLOCKED_ENTRY",
+        "position_before": pos_before,
+        "position_after": pos_before,
+    })
     return ExecutionDecision(
         action="NOOP",
         executed=False,
@@ -655,6 +661,16 @@ def apply_paper_execution(
             state.s2_position.entry_price = float(px)
             state.s2_position.entry_timestamp_utc = ts
 
+            _append_audit_event({
+                "event": "ENTRY_ACCEPTED",
+                "reason": "BUY_FROM_FLAT",
+                "timestamp_utc": ts,
+                "side": "long",
+                "price": float(px),
+                "position_before": "FLAT",
+                "position_after": "LONG",
+            })
+
             return ExecutionDecision(
                 action="OPEN_LONG",
                 executed=True,
@@ -724,6 +740,16 @@ def apply_paper_execution(
             state.s2_position.position_size = float(size_new)
             state.s2_position.entry_price = float(px)
             state.s2_position.entry_timestamp_utc = ts
+
+            _append_audit_event({
+                "event": "ENTRY_ACCEPTED",
+                "reason": "SELL_FROM_FLAT",
+                "timestamp_utc": ts,
+                "side": "short",
+                "price": float(px),
+                "position_before": "FLAT",
+                "position_after": "SHORT",
+            })
 
             return ExecutionDecision(
                 action="OPEN_SHORT",
