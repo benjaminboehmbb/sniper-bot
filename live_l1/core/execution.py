@@ -20,7 +20,7 @@
 # - HOLD         -> NOOP
 #
 # Added:
-# - fixed TP/SL exits (TP=5.0%, SL=1.5%)
+# - configurable TP/SL exits via L1_TP_PCT / L1_SL_PCT (defaults: TP=5.0%, SL=1.5%)
 # - TP/SL is checked before signal-based exit
 # - loss-cluster gate:
 #   if 5 of last 10 closed trades are losses, block next 35 entry attempts
@@ -349,6 +349,19 @@ def _blocked_entry_decision(pos_before: str, side_after: str, entry_price, entry
     )
 
 
+def _resolve_tp_sl_pct() -> tuple[float, float]:
+    tp_pct = _safe_float(os.environ.get("L1_TP_PCT"), 0.05)
+    sl_pct = _safe_float(os.environ.get("L1_SL_PCT"), 0.015)
+
+    if tp_pct <= 0.0:
+        tp_pct = 0.05
+
+    if sl_pct <= 0.0:
+        sl_pct = 0.015
+
+    return float(tp_pct), float(sl_pct)
+
+
 def apply_paper_execution(
     *,
     state,
@@ -373,8 +386,7 @@ def apply_paper_execution(
     if size_new <= 0.0:
         size_new = 1.0
 
-    tp_pct = 0.05
-    sl_pct = 0.015
+    tp_pct, sl_pct = _resolve_tp_sl_pct()
 
     entry_price_current = _safe_optional_float(getattr(state.s2_position, "entry_price", None))
 
