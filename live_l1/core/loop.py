@@ -28,6 +28,7 @@ from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
 from live_l1.core.execution import apply_paper_execution
 from live_l1.tools.recover_runtime_state import recover_runtime_state
 from live_l1.tools.reconcile_runtime_state import run_reconciliation
+from live_l1.tools.startup_validator import validate_startup
 from live_l1.meta_state.meta_state_shadow import build_meta_state_shadow
 from live_l1.meta_state.meta_state_runtime import resolve_position_multiplier
 
@@ -740,6 +741,28 @@ def run_l1_loop_step1234567(
 
     cfg = load_runtime_config(repo_root)
     log = L1Logger(cfg.log_path)
+
+    startup_validation = validate_startup(
+        repo_root=Path(cfg.repo_root),
+        market_csv_path=str(cfg.market_csv_path),
+        seeds_5m_csv=str(cfg.seeds_5m_csv),
+        require_wsl=_env_bool("L1_REQUIRE_WSL", True),
+    )
+
+    if not startup_validation.passed:
+        log.log(
+            category="L1",
+            event="system_stop",
+            severity="ERROR",
+            system_state_id=system_state_id,
+            fields={
+                "reason": "startup_validation_failed",
+                "startup_validation_failed_checks": ",".join(x.code for x in startup_validation.issues),
+                "startup_validation_failed_details": " | ".join(x.code + ":" + x.detail for x in startup_validation.issues),
+            },
+        )
+        log.close()
+        return 1
 
     state = load_or_init_state(cfg.state_dir, system_state_id=system_state_id)
     validation = validate_loaded_state(state)
