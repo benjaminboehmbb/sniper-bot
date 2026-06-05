@@ -25,6 +25,7 @@ from live_l1.core.intent import compute_1m_intent_raw
 from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
 from live_l1.core.execution import apply_paper_execution
+from live_l1.tools.recover_runtime_state import recover_runtime_state
 from live_l1.meta_state.meta_state_shadow import build_meta_state_shadow
 from live_l1.meta_state.meta_state_runtime import resolve_position_multiplier
 
@@ -75,6 +76,66 @@ def _env_float(key: str, default: float) -> float:
         return float(v)
     except Exception:
         return default
+
+
+def _apply_startup_recovery_to_state(cfg: RuntimeConfig, state) -> dict:
+    if not _env_bool("L1_STARTUP_RECOVERY", False):
+        return {"enabled": 0, "applied": 0, "reason": "disabled"}
+
+    recovered = recover_runtime_state(
+        audit_log_path=os.environ.get(
+            "L1_AUDIT_LOG_PATH",
+            os.path.join(cfg.repo_root, "live_logs", "execution_audit.jsonl"),
+        ),
+        loss_cluster_state_path=os.environ.get(
+            "L1_LOSS_CLUSTER_STATE_PATH",
+            os.path.join(cfg.repo_root, "live_state", "loss_cluster_state.json"),
+        ),
+    )
+
+    if int(recovered.execution_bad_json_lines) != 0:
+        return {
+            "enabled": 1,
+            "applied": 0,
+            "reason": "bad_execution_audit_json",
+            "bad_json_lines": int(recovered.execution_bad_json_lines),
+        }
+
+    if recovered.position not in ("LONG", "SHORT", "FLAT"):
+        return {"enabled": 1, "applied": 0, "reason": "invalid_recovered_position"}
+
+    if recovered.position == "FLAT":
+        state.s2_position.position = "FLAT"
+        state.s2_position.side = ""
+        state.s2_position.size = 0.0
+        state.s2_position.position_size = 0.0
+        state.s2_position.entry_price = None
+        state.s2_position.entry_timestamp_utc = ""
+    else:
+        state.s2_position.position = recovered.position
+        state.s2_position.side = recovered.side
+        state.s2_position.entry_price = recovered.entry_price
+        state.s2_position.entry_timestamp_utc = recovered.entry_timestamp_utc
+
+        size = float(getattr(state.s2_position, "position_size", 0.0) or 0.0)
+        if size <= 0.0:
+            size = 1.0
+
+        state.s2_position.size = size
+        state.s2_position.position_size = size
+
+    return {
+        "enabled": 1,
+        "applied": 1,
+        "reason": "startup_recovery_applied",
+        "position": str(recovered.position),
+        "side": str(recovered.side),
+        "entry_price": "" if recovered.entry_price is None else float(recovered.entry_price),
+        "entry_timestamp_utc": str(recovered.entry_timestamp_utc),
+        "execution_events_read": int(recovered.execution_events_read),
+        "loss_cluster_state_loaded": int(recovered.loss_cluster_state_loaded),
+    }
+
 
 
 def load_runtime_config(repo_root: str) -> RuntimeConfig:
@@ -642,6 +703,7 @@ def run_l1_loop_step1234567(
 
     state = load_or_init_state(cfg.state_dir, system_state_id=system_state_id)
     validation = validate_loaded_state(state)
+    startup_recovery = _apply_startup_recovery_to_state(cfg, state)
 
     market = CSVMarketFeed(
         csv_path=os.path.join(repo_root, cfg.market_csv_path),
@@ -690,6 +752,10 @@ def run_l1_loop_step1234567(
                 "max_run_seconds": max_run_seconds,
                 "recovery_mode": validation.recovery_mode,
                 "resume_after_snapshot_id": str(getattr(state, "last_snapshot_id", "")),
+                "startup_recovery_enabled": int(startup_recovery.get("enabled", 0)),
+                "startup_recovery_applied": int(startup_recovery.get("applied", 0)),
+                "startup_recovery_reason": str(startup_recovery.get("reason", "")),
+                "startup_recovery_position": str(startup_recovery.get("position", "")),
             },
         )
 
