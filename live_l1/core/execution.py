@@ -25,6 +25,7 @@
 # - TP/SL is checked before signal-based exit
 # - loss-cluster gate:
 #   if 5 of last 10 closed trades are losses, block next 35 entry attempts
+# - persistent loss-cluster state via live_state/loss_cluster_state.json
 #
 # Intentionally still not implemented:
 # - flip in one step
@@ -66,9 +67,68 @@ class _LossClusterGateState:
 
 
 _LOSS_GATE_STATE = _LossClusterGateState()
+_LOSS_GATE_STATE_LOADED = False
+
+
+def _loss_gate_state_path() -> str:
+    return os.environ.get("L1_LOSS_CLUSTER_STATE_PATH", "live_state/loss_cluster_state.json").strip() or "live_state/loss_cluster_state.json"
+
+
+def _persist_loss_gate_state() -> None:
+    try:
+        path = _loss_gate_state_path()
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        payload = {
+            "version": 1,
+            "recent_closed_trade_pnls": [float(x) for x in _LOSS_GATE_STATE.recent_closed_trade_pnls[-LOSS_CLUSTER_LOOKBACK:]],
+            "pause_entries_remaining": int(max(0, _LOSS_GATE_STATE.pause_entries_remaining)),
+            "updated_utc": datetime.now(timezone.utc).isoformat(),
+        }
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=True, sort_keys=True, indent=2)
+    except Exception:
+        return
+
+
+def _load_loss_gate_state_once() -> None:
+    global _LOSS_GATE_STATE_LOADED
+    if _LOSS_GATE_STATE_LOADED:
+        return
+    _LOSS_GATE_STATE_LOADED = True
+
+    path = _loss_gate_state_path()
+    if not os.path.isfile(path):
+        return
+
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            obj = json.load(fh)
+        if not isinstance(obj, dict):
+            return
+
+        raw_pnls = obj.get("recent_closed_trade_pnls", [])
+        if isinstance(raw_pnls, list):
+            vals = []
+            for x in raw_pnls[-LOSS_CLUSTER_LOOKBACK:]:
+                try:
+                    vals.append(float(x))
+                except Exception:
+                    continue
+            _LOSS_GATE_STATE.recent_closed_trade_pnls = vals
+
+        pause = obj.get("pause_entries_remaining", 0)
+        try:
+            _LOSS_GATE_STATE.pause_entries_remaining = max(0, int(pause))
+        except Exception:
+            _LOSS_GATE_STATE.pause_entries_remaining = 0
+    except Exception:
+        return
 
 
 def _loss_gate_register_closed_trade(pnl: float) -> None:
+    _load_loss_gate_state_once()
     _LOSS_GATE_STATE.recent_closed_trade_pnls.append(float(pnl))
 
     if len(_LOSS_GATE_STATE.recent_closed_trade_pnls) > LOSS_CLUSTER_LOOKBACK:
@@ -83,10 +143,14 @@ def _loss_gate_register_closed_trade(pnl: float) -> None:
         _LOSS_GATE_STATE.pause_entries_remaining = LOSS_CLUSTER_PAUSE_ENTRIES
         _LOSS_GATE_STATE.recent_closed_trade_pnls = []
 
+    _persist_loss_gate_state()
+
 
 def _loss_gate_allows_entry() -> bool:
+    _load_loss_gate_state_once()
     if _LOSS_GATE_STATE.pause_entries_remaining > 0:
         _LOSS_GATE_STATE.pause_entries_remaining -= 1
+        _persist_loss_gate_state()
         return False
     return True
 
