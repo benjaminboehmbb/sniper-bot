@@ -224,6 +224,22 @@ def _reset_to_flat(state) -> None:
     state.s2_position.entry_timestamp_utc = ""
 
 
+def _resolve_audit_log_path() -> str:
+    env_path = os.environ.get("L1_AUDIT_LOG_PATH", "").strip()
+    if env_path != "":
+        return env_path
+    return "live_logs/execution_audit.jsonl"
+
+
+def _append_audit_event(payload: dict) -> None:
+    try:
+        path = _resolve_audit_log_path()
+        _append_jsonl(path, payload)
+    except Exception:
+        pass
+
+
+
 def _resolve_trade_log_path(trade_log_path: Optional[str]) -> str:
     if trade_log_path is not None and str(trade_log_path).strip() != "":
         return str(trade_log_path).strip()
