@@ -27,7 +27,7 @@ Thumbs.db
 # local archives
 sniper-bot_archiv/
 _archive_OLD/
-archive/
+/archive/
 _archive_2025-10-24/
 \!data/.gitkeep
 
@@ -42,6 +42,22 @@ cache_np/
 # python caches
 __pycache__/
 *.pyc
-live_logs/
-live_state/
 __pycache__/
+
+# Runtime artifacts - Live L1
+__pycache__/
+*.pyc
+
+live_l1_alert.flag
+
+live_logs/*.log
+live_logs/*.jsonl
+live_logs/*.csv
+
+live_state/*.json
+live_state/*.jsonl
+
+tmp/
+
+# Local archived runtime/run artifacts
+live_logs/archive/
