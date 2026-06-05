@@ -141,6 +141,14 @@ def _loss_gate_register_closed_trade(pnl: float) -> None:
         and losses >= LOSS_CLUSTER_MIN_LOSSES
     ):
         _LOSS_GATE_STATE.pause_entries_remaining = LOSS_CLUSTER_PAUSE_ENTRIES
+
+        _append_audit_event({
+            "event": "LOSS_CLUSTER_TRIGGERED",
+            "losses": int(losses),
+            "lookback": int(LOSS_CLUSTER_LOOKBACK),
+            "pause_entries": int(LOSS_CLUSTER_PAUSE_ENTRIES),
+        })
+
         _LOSS_GATE_STATE.recent_closed_trade_pnls = []
 
     _persist_loss_gate_state()
@@ -149,6 +157,12 @@ def _loss_gate_register_closed_trade(pnl: float) -> None:
 def _loss_gate_allows_entry() -> bool:
     _load_loss_gate_state_once()
     if _LOSS_GATE_STATE.pause_entries_remaining > 0:
+
+        _append_audit_event({
+            "event": "LOSS_CLUSTER_ACTIVE",
+            "remaining_before": int(_LOSS_GATE_STATE.pause_entries_remaining),
+        })
+
         _LOSS_GATE_STATE.pause_entries_remaining -= 1
         _persist_loss_gate_state()
         return False
