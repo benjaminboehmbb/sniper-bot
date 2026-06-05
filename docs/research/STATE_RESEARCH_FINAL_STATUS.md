@@ -363,3 +363,163 @@ Future work:
 
 OPTIONAL
 
+
+---
+
+# LIVE L1 AUDIT ADDENDUM
+
+Date:
+
+- 2026-06-05
+
+Purpose:
+
+Document the complete Live-L1 audit series performed after completion of the state-research track.
+
+Related documents:
+
+- docs/research/LIVE_L1_ENTRY_AUDIT_2026-06-05.md
+- docs/research/LIVE_L1_REGIME_AUDIT_2026-06-05.md
+- docs/research/LIVE_L1_EXIT_AUDIT_2026-06-05.md
+- docs/research/LIVE_L1_DATA_AUDIT_2026-06-05.md
+- docs/research/LIVE_L1_GAP_ANALYSIS_2026-06-05.md
+
+## Summary
+
+A complete audit of the current Live-L1 implementation was performed.
+
+Covered areas:
+
+- entry logic
+- 5m timing fusion
+- regime generation
+- allow_long / allow_short gates
+- execution engine
+- exit logic
+- data pipeline
+- documentation consistency
+
+Result:
+
+No critical production bug was identified.
+
+The audited implementation is internally consistent and matches the intended architecture.
+
+## Key Findings
+
+### Entry Logic
+
+Validated.
+
+Current logic:
+
+- LONG entries:
+  - ma200_signal == 1
+  - mfi_signal == 1
+  - score confirmation
+
+- SHORT entries:
+  - ma200_signal == -1
+  - mfi_signal == -1
+  - score confirmation
+
+Implementation matches documented behavior.
+
+### Intent Fusion
+
+Validated.
+
+Current asymmetric fusion behavior was confirmed to be intentional.
+
+Replay comparison:
+
+- 28,571 audited decisions
+- 9 differences versus historical strict policy
+- difference rate ≈ 0.03%
+
+No unintended behavior detected.
+
+### Regime Pipeline
+
+Validated.
+
+Source of regime_v1 successfully reconstructed.
+
+Regime definition:
+
+- bull:
+  close > ma200 AND ma200_slope > 0
+
+- bear:
+  close < ma200 AND ma200_slope < 0
+
+- side:
+  otherwise
+
+allow_long and allow_short generation also verified.
+
+### Exit Logic
+
+Validated.
+
+Observed exit distribution:
+
+- CLOSE_LONG: 322
+- CLOSE_SHORT: 154
+- SHORT_TIME_STOP: 63
+- SL_LONG: 8
+- SL_SHORT: 7
+- LONG_TIME_STOP: 2
+
+Observation:
+
+Signal exits dominate.
+
+TP exits are effectively unused.
+
+No execution bug identified.
+
+### Data Pipeline
+
+Validated.
+
+Current Live-L1 consumes:
+
+- precomputed signals
+- precomputed regime labels
+- precomputed allow flags
+
+This is acceptable for paper-mode operation.
+
+Future live deployment requires online signal and regime generation.
+
+## Remaining Gaps
+
+Remaining gaps are implementation-readiness gaps, not production bugs.
+
+Highest-priority future items:
+
+P1
+
+- online signal builder
+- online regime builder
+- online allow_long / allow_short generation
+
+P2
+
+- fee-adjusted net-pnl reporting
+- configurable TP/SL and time-stop parameters
+
+P3
+
+- persistent loss-cluster state
+- TP effectiveness research
+
+## Overall Conclusion
+
+The state-research program remains completed.
+
+The subsequent Live-L1 audit confirms that the current production candidate is internally coherent and free of known critical implementation defects.
+
+Future work should focus on live-readiness improvements rather than corrective bug fixing.
+
