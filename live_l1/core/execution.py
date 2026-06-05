@@ -618,15 +618,15 @@ def apply_paper_execution(
                 _reset_to_flat(state)
 
                 _append_audit_event({
-                "event": "EXIT_EXECUTED",
-                "reason": "LONG_TIME_STOP_HIT",
-                "timestamp_utc": ts,
-                "side": "long",
-                "price": float(px),
-                "position_after": "FLAT",
-            })
+                    "event": "EXIT_EXECUTED",
+                    "reason": "LONG_TIME_STOP_HIT",
+                    "timestamp_utc": ts,
+                    "side": "long",
+                    "price": float(px),
+                    "position_after": "FLAT",
+                })
 
-            return ExecutionDecision(
+                return ExecutionDecision(
                     action="CLOSE_LONG",
                     executed=True,
                     position_before=pos_before,
@@ -663,15 +663,15 @@ def apply_paper_execution(
                 _reset_to_flat(state)
 
                 _append_audit_event({
-                "event": "EXIT_EXECUTED",
-                "reason": "SHORT_TIME_STOP_HIT",
-                "timestamp_utc": ts,
-                "side": "short",
-                "price": float(px),
-                "position_after": "FLAT",
-            })
+                    "event": "EXIT_EXECUTED",
+                    "reason": "SHORT_TIME_STOP_HIT",
+                    "timestamp_utc": ts,
+                    "side": "short",
+                    "price": float(px),
+                    "position_after": "FLAT",
+                })
 
-            return ExecutionDecision(
+                return ExecutionDecision(
                     action="CLOSE_SHORT",
                     executed=True,
                     position_before=pos_before,
