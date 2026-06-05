@@ -225,3 +225,49 @@ Goal:
 - reduce exposure only after risk thresholds are triggered
 - never increase exposure again during the same trade
 - calculate realized PnL segment by segment using lifecycle prices
+
+---
+
+## STEP20E True Dynamic Exposure Replay Result
+
+STEP20E corrected the methodological limitation of STEP20D v1.
+
+Instead of applying the final multiplier retroactively to the full trade, STEP20E simulated exposure reductions over time using lifecycle prices.
+
+4.3M full-history result:
+
+Original
+
+- pnl: 14022.01
+- pf: 1.6859
+- max_dd_pct: 0.1556
+
+STEP20E
+
+- pnl: 9597.75
+- pf: 1.5180
+- max_dd_pct: 0.1084
+
+Result
+
+- pnl worse
+- pf worse
+- drawdown improved but not enough
+- winrate reduced
+
+Conclusion
+
+The naive true dynamic exposure scaling model is not validated.
+
+Key interpretation:
+
+shadow_risk_score contains useful trade-quality information, but the current live-compatible scaling mechanics reduce too much profitable exposure.
+
+Current status:
+
+- STEP20A: validated research result, but not live-compatible
+- STEP20C: live-compatible entry sizing, not sufficient
+- STEP20D v1: proof of concept, methodologically optimistic
+- STEP20E: true dynamic replay, not validated
+
+Next research direction should focus on selective scaling, not broad automatic scaling.
