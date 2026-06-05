@@ -11,6 +11,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from dataclasses import dataclass
+from pathlib import Path
 
 from live_l1.logs.logger import L1Logger
 from live_l1.io.market import CSVMarketFeed
@@ -26,6 +27,7 @@ from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
 from live_l1.core.execution import apply_paper_execution
 from live_l1.tools.recover_runtime_state import recover_runtime_state
+from live_l1.tools.reconcile_runtime_state import run_reconciliation
 from live_l1.meta_state.meta_state_shadow import build_meta_state_shadow
 from live_l1.meta_state.meta_state_runtime import resolve_position_multiplier
 
@@ -81,6 +83,44 @@ def _env_float(key: str, default: float) -> float:
 def _apply_startup_recovery_to_state(cfg: RuntimeConfig, state) -> dict:
     if not _env_bool("L1_STARTUP_RECOVERY", False):
         return {"enabled": 0, "applied": 0, "reason": "disabled"}
+
+    if _env_bool("L1_STARTUP_RECONCILIATION_GATE", False):
+        audit_path = os.environ.get(
+            "L1_AUDIT_LOG_PATH",
+            os.path.join(cfg.repo_root, "live_logs", "execution_audit.jsonl"),
+        )
+        loss_path = os.environ.get(
+            "L1_LOSS_CLUSTER_STATE_PATH",
+            os.path.join(cfg.repo_root, "live_state", "loss_cluster_state.json"),
+        )
+        s2_path = os.environ.get(
+            "L1_S2_POSITION_PATH",
+            os.path.join(cfg.repo_root, "live_state", "s2_position.jsonl"),
+        )
+        trades_path = os.environ.get(
+            "L1_TRADE_LOG_PATH",
+            os.path.join(cfg.repo_root, "live_logs", "trades_l1.jsonl"),
+        )
+
+        reconciliation_results = run_reconciliation(
+            audit_path=Path(audit_path),
+            s2_path=Path(s2_path),
+            trades_path=Path(trades_path),
+            loss_path=Path(loss_path),
+        )
+
+        failed = [x for x in reconciliation_results if not x.passed]
+
+        if failed:
+            return {
+                "enabled": 1,
+                "applied": 0,
+                "reason": "startup_reconciliation_failed",
+                "reconciliation_gate_enabled": 1,
+                "reconciliation_failed_checks": ",".join(x.name for x in failed),
+                "reconciliation_failed_details": " | ".join(x.name + ":" + x.detail for x in failed),
+                "hard_fail": 1,
+            }
 
     recovered = recover_runtime_state(
         audit_log_path=os.environ.get(
@@ -704,6 +744,23 @@ def run_l1_loop_step1234567(
     state = load_or_init_state(cfg.state_dir, system_state_id=system_state_id)
     validation = validate_loaded_state(state)
     startup_recovery = _apply_startup_recovery_to_state(cfg, state)
+
+    if int(startup_recovery.get("hard_fail", 0)) == 1:
+        log.log(
+            category="L1",
+            event="system_stop",
+            severity="ERROR",
+            system_state_id=getattr(state, "system_state_id", system_state_id),
+            fields={
+                "reason": str(startup_recovery.get("reason", "startup_hard_fail")),
+                "startup_recovery_enabled": int(startup_recovery.get("enabled", 0)),
+                "startup_recovery_applied": int(startup_recovery.get("applied", 0)),
+                "reconciliation_failed_checks": str(startup_recovery.get("reconciliation_failed_checks", "")),
+                "reconciliation_failed_details": str(startup_recovery.get("reconciliation_failed_details", "")),
+            },
+        )
+        log.close()
+        return 1
 
     market = CSVMarketFeed(
         csv_path=os.path.join(repo_root, cfg.market_csv_path),
