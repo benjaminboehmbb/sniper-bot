@@ -20,10 +20,10 @@
 # - HOLD         -> NOOP
 #
 # Added:
-# - fixed TP/SL exits
+# - fixed TP/SL exits (TP=5.0%, SL=1.5%)
 # - TP/SL is checked before signal-based exit
 # - loss-cluster gate:
-#   if 5 of last 10 closed trades are losses, block next 25 entry attempts
+#   if 5 of last 10 closed trades are losses, block next 35 entry attempts
 #
 # Intentionally still not implemented:
 # - flip in one step
