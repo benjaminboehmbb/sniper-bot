@@ -169,3 +169,59 @@ Create:
 
 scripts/state_research/analyze_step20D_dynamic_exposure_scaling.py
 
+
+---
+
+## STEP20D v1 Result
+
+The first STEP20D proof-of-concept replay showed strong results on the 4.3M full-history run.
+
+Original:
+
+- pnl: 14022.01
+- pf: 1.6859
+- max_dd_pct: 0.1556
+
+STEP20D v1:
+
+- pnl: 19564.81
+- pf: 4.1823
+- max_dd_pct: 0.0283
+
+Sensitivity:
+
+D1:
+- pnl: 19564.81
+- pf: 4.1823
+- max_dd_pct: 0.0283
+
+D2:
+- pnl: 19051.15
+- pf: 2.9016
+- max_dd_pct: 0.0437
+
+D3:
+- pnl: 19670.07
+- pf: 2.6093
+- max_dd_pct: 0.0634
+
+## Methodological Limitation
+
+STEP20D v1 applies the final multiplier retroactively to the full trade.
+
+This is not live-accurate.
+
+A correct live-compatible replay must simulate exposure reductions over time during the trade.
+
+## Next Step
+
+Create STEP20E:
+
+scripts/state_research/analyze_step20E_true_dynamic_exposure_replay.py
+
+Goal:
+
+- start every trade at 1.00x
+- reduce exposure only after risk thresholds are triggered
+- never increase exposure again during the same trade
+- calculate realized PnL segment by segment using lifecycle prices
