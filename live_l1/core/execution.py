@@ -632,6 +632,8 @@ def apply_paper_execution(
                     "position_after": "FLAT",
                 })
 
+                _reset_to_flat(state)
+
                 return ExecutionDecision(
                     action="CLOSE_LONG",
                     executed=True,
@@ -676,6 +678,8 @@ def apply_paper_execution(
                     "price": float(px),
                     "position_after": "FLAT",
                 })
+
+                _reset_to_flat(state)
 
                 return ExecutionDecision(
                     action="CLOSE_SHORT",
