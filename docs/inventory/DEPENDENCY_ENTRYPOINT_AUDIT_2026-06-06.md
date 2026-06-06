@@ -32,7 +32,7 @@ imported_by_count: 1
 
 ### live_l1.io.validate
 
-path: live_l1/io/validate.py
+path: 
 
 imported_by_count: 0
 
@@ -105,7 +105,6 @@ imported_by_count: 0
 - live_l1/core/regime_v2_builder.py
 - live_l1/core/signal_builder.py
 - live_l1/guards/cost_guards.py
-- live_l1/io/validate.py
 - live_l1/tools/create_runtime_backup.py
 - live_l1/tools/monitor_runtime.py
 - live_l1/tools/monitor_summary.py

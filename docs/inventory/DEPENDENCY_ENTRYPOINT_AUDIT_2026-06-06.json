@@ -103,7 +103,6 @@
     "live_l1/core/regime_v2_builder.py",
     "live_l1/core/signal_builder.py",
     "live_l1/guards/cost_guards.py",
-    "live_l1/io/validate.py",
     "live_l1/tools/create_runtime_backup.py",
     "live_l1/tools/monitor_runtime.py",
     "live_l1/tools/monitor_summary.py",
@@ -149,7 +148,7 @@
     "live_l1.io.validate": {
       "imported_by": [],
       "imported_by_count": 0,
-      "path": "live_l1/io/validate.py"
+      "path": ""
     },
     "live_l1.tools.monitor_runtime": {
       "imported_by": [],
