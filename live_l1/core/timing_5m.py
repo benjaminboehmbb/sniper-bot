@@ -117,19 +117,27 @@ def _read_seeds_csv(path: str) -> List[SeedRow]:
     return rows
 
 
-def _seed_score(seed: SeedRow) -> float:
-    base = 0.0
+def _seed_score(seed: SeedRow, signals: dict[str, float]) -> float:
+    score = 0.0
 
-    for _, w in seed.comb.items():
-        base += _safe_float(w, 0.0)
-
-    if seed.direction == "short":
-        return -abs(base)
-
-    if seed.direction == "none":
+    if seed.direction not in ("long", "short"):
         return 0.0
 
-    return abs(base)
+    for key, weight in seed.comb.items():
+        signal_key = str(key).strip() + "_signal"
+
+        if signal_key not in signals:
+            return 0.0
+
+        sig = _safe_float(signals.get(signal_key), 0.0)
+        w = _safe_float(weight, 0.0)
+
+        if seed.direction == "long":
+            score += w * sig
+        elif seed.direction == "short":
+            score += w * (-sig)
+
+    return float(score)
 
 
 def _strength_from_score(score: float) -> float:
@@ -144,25 +152,40 @@ def _strength_from_score(score: float) -> float:
     return a
 
 
-def _pick_best_seed(seeds: List[SeedRow]) -> Tuple[Optional[SeedRow], float]:
+def _pick_best_seed(
+    seeds: List[SeedRow],
+    signals: dict[str, float],
+    thresh: float,
+) -> Tuple[Optional[SeedRow], float]:
     best: Optional[SeedRow] = None
     best_score = 0.0
 
     for s in seeds:
-        sc = _seed_score(s)
+        sc = _seed_score(s, signals)
+        strength = _strength_from_score(sc)
+
+        if sc <= 0.0 or strength < thresh:
+            continue
 
         if best is None:
             best = s
             best_score = sc
             continue
 
-        if abs(sc) > abs(best_score):
+        best_strength = _strength_from_score(best_score)
+
+        if strength > best_strength:
             best = s
             best_score = sc
             continue
 
-        if abs(sc) == abs(best_score):
-            if s.seed_id < best.seed_id:
+        if strength == best_strength:
+            if sc > best_score:
+                best = s
+                best_score = sc
+                continue
+
+            if sc == best_score and s.seed_id < best.seed_id:
                 best = s
                 best_score = sc
 
@@ -182,20 +205,26 @@ def compute_5m_timing_vote(
     """
     API expected by live_l1/core/loop.py
     """
-
     _ = repo_root
     _ = symbol
     _ = now_utc
     _ = timeframe
-    _ = thresh
-    _ = kwargs
+
+    threshold = _safe_float(thresh, 0.6)
+    if threshold <= 0.0:
+        threshold = 0.6
+
+    signals: dict[str, float] = {}
+    for key, value in kwargs.items():
+        if str(key).endswith("_signal"):
+            signals[str(key)] = _safe_float(value, 0.0)
 
     seeds = _read_seeds_csv(seeds_csv)
 
     if not seeds:
         return TimingVote(direction="none", strength=0.0, seed_id=None)
 
-    best, score = _pick_best_seed(seeds)
+    best, score = _pick_best_seed(seeds, signals, threshold)
 
     if best is None:
         return TimingVote(direction="none", strength=0.0, seed_id=None)
