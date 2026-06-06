@@ -190,6 +190,7 @@ def persist_state(state_dir: str, state: L1State) -> None:
     _atomic_append_jsonl(
         s2_path,
         {
+            "schema_version": 1,
             "system_state_id": state.system_state_id,
             "symbol": state.s2_position.symbol,
             "position": state.s2_position.position,
@@ -209,6 +210,7 @@ def persist_state(state_dir: str, state: L1State) -> None:
     _atomic_append_jsonl(
         s4_path,
         {
+            "schema_version": 1,
             "system_state_id": state.system_state_id,
             "kill_level": state.s4_risk.kill_level,
             "cooldown_until_utc": state.s4_risk.cooldown_until_utc,

@@ -81,6 +81,7 @@ def _persist_loss_gate_state() -> None:
         if parent:
             os.makedirs(parent, exist_ok=True)
         payload = {
+            "schema_version": 1,
             "version": 1,
             "recent_closed_trade_pnls": [float(x) for x in _LOSS_GATE_STATE.recent_closed_trade_pnls[-LOSS_CLUSTER_LOOKBACK:]],
             "pause_entries_remaining": int(max(0, _LOSS_GATE_STATE.pause_entries_remaining)),
@@ -273,6 +274,11 @@ def _ensure_parent_dir(path: str) -> None:
 
 def _append_jsonl(path: str, payload: dict) -> None:
     _ensure_parent_dir(path)
+
+    if "schema_version" not in payload:
+        payload = dict(payload)
+        payload["schema_version"] = 1
+
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(payload, ensure_ascii=True, sort_keys=True) + "\n")
 
