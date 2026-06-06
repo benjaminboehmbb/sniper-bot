@@ -1,0 +1,3449 @@
+[
+  {
+    "classification": "ACTIVE_OR_ANALYSIS_ENGINE",
+    "imported_by": [
+      "scripts/analyze_GS_k12_long_CANONICAL.py",
+      "scripts/analyze_GS_k3_long.py",
+      "scripts/analyze_GS_k3_long_weighted.py",
+      "scripts/analyze_GS_k4_long.py",
+      "scripts/analyze_GS_k5_long.py",
+      "scripts/analyze_GS_k7_long.py",
+      "scripts/analyze_GS_k8_long.py",
+      "scripts/build_GS_k12_long_FINAL_CANONICAL.py",
+      "scripts/build_GS_k12_short_RESULTS_CANONICAL.py",
+      "scripts/post_gs_h1_fee_cost_sensitivity.py",
+      "scripts/post_gs_h2_timeframe_transfer.py",
+      "scripts/post_gs_h3_asset_transfer_run.py",
+      "scripts/post_gs_h4_regime_controller_run.py",
+      "scripts/post_gs_h5_execution_realism_run.py",
+      "tools/gs_long_short_diagnostics.py",
+      "tools/gs_policy_entry_runner.py",
+      "tools/gs_policy_hold_runner.py",
+      "tools/gs_regression_gate.py",
+      "tools/gs_run_with_manifest.py",
+      "tools/gs_short_diagnostics.py",
+      "tools/gs_smoke_suite.py"
+    ],
+    "imported_by_count": 21,
+    "imports": [],
+    "module": "engine",
+    "path": "engine/__init__.py"
+  },
+  {
+    "classification": "ACTIVE_OR_ANALYSIS_ENGINE",
+    "imported_by": [
+      "scripts/analyze_GS_k12_long_CANONICAL.py",
+      "scripts/build_GS_k12_long_FINAL_CANONICAL.py",
+      "scripts/build_GS_k12_short_RESULTS_CANONICAL.py",
+      "tools/gs_long_short_diagnostics.py",
+      "tools/gs_policy_hold_runner.py",
+      "tools/gs_regression_gate.py",
+      "tools/gs_short_diagnostics.py",
+      "tools/gs_smoke_suite.py"
+    ],
+    "imported_by_count": 8,
+    "imports": [
+      "__future__",
+      "numpy",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "engine.simtraderGS",
+    "path": "engine/simtraderGS.py"
+  },
+  {
+    "classification": "ACTIVE_OR_ANALYSIS_ENGINE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "glob",
+      "os",
+      "sys"
+    ],
+    "module": "engine.validators",
+    "path": "engine/validators.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/intent.py",
+      "live_l1/core/loop.py",
+      "live_l1/core/regime_detector.py",
+      "live_l1/core/timing_5m.py",
+      "live_l1/guards/guards.py",
+      "live_l1/io/validate.py",
+      "live_l1/meta_state/meta_state_runtime.py",
+      "live_l1/state/state_store.py",
+      "live_l1/tools/monitor_runtime.py",
+      "live_l1/tools/operational_health_report.py",
+      "live_l1/tools/reconcile_runtime_state.py",
+      "live_l1/tools/recover_runtime_state.py",
+      "live_l1/tools/safe_launch.py",
+      "scripts/run_live_l1_paper.py",
+      "tools/test_timing_5m_v2_minimal.py"
+    ],
+    "imported_by_count": 15,
+    "imports": [],
+    "module": "live_l1",
+    "path": "live_l1/__init__.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/intent.py",
+      "live_l1/core/loop.py",
+      "live_l1/core/regime_detector.py",
+      "live_l1/core/timing_5m.py",
+      "live_l1/guards/guards.py",
+      "live_l1/tools/safe_launch.py",
+      "scripts/run_live_l1_paper.py",
+      "tools/test_timing_5m_v2_minimal.py"
+    ],
+    "imported_by_count": 8,
+    "imports": [],
+    "module": "live_l1.core",
+    "path": "live_l1/core/__init__.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "datetime",
+      "time",
+      "typing"
+    ],
+    "module": "live_l1.core.clock",
+    "path": "live_l1/core/clock.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "datetime",
+      "json",
+      "os",
+      "typing"
+    ],
+    "module": "live_l1.core.execution",
+    "path": "live_l1/core/execution.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/intent.py",
+      "live_l1/core/loop.py",
+      "live_l1/core/regime_detector.py"
+    ],
+    "imported_by_count": 3,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "module": "live_l1.core.feature_snapshot",
+    "path": "live_l1/core/feature_snapshot.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "dataclasses"
+    ],
+    "module": "live_l1.core.gate_builder",
+    "path": "live_l1/core/gate_builder.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/guards/guards.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "json",
+      "live_l1.core.feature_snapshot",
+      "os",
+      "typing"
+    ],
+    "module": "live_l1.core.intent",
+    "path": "live_l1/core/intent.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/core/timing_5m.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing",
+      "uuid"
+    ],
+    "module": "live_l1.core.intent_fusion",
+    "path": "live_l1/core/intent_fusion.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/tools/safe_launch.py",
+      "scripts/run_live_l1_paper.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [
+      "__future__",
+      "csv",
+      "dataclasses",
+      "datetime",
+      "json",
+      "live_l1.core.clock",
+      "live_l1.core.execution",
+      "live_l1.core.feature_snapshot",
+      "live_l1.core.intent",
+      "live_l1.core.intent_fusion",
+      "live_l1.core.regime_detector",
+      "live_l1.core.timing_5m",
+      "live_l1.guards.guards",
+      "live_l1.io.market",
+      "live_l1.io.valid",
+      "live_l1.logs.logger",
+      "live_l1.meta_state.meta_state_runtime",
+      "live_l1.meta_state.meta_state_shadow",
+      "live_l1.state.state_store",
+      "live_l1.state.state_validation",
+      "live_l1.tools.reconcile_runtime_state",
+      "live_l1.tools.recover_runtime_state",
+      "live_l1.tools.startup_validator",
+      "os",
+      "pandas",
+      "pathlib",
+      "time",
+      "uuid"
+    ],
+    "module": "live_l1.core.loop",
+    "path": "live_l1/core/loop.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "pandas"
+    ],
+    "module": "live_l1.core.regime_builder",
+    "path": "live_l1/core/regime_builder.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "live_l1.core.feature_snapshot"
+    ],
+    "module": "live_l1.core.regime_detector",
+    "path": "live_l1/core/regime_detector.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "numpy"
+    ],
+    "module": "live_l1.core.regime_v2_builder",
+    "path": "live_l1/core/regime_v2_builder.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "numpy",
+      "pandas"
+    ],
+    "module": "live_l1.core.signal_builder",
+    "path": "live_l1/core/signal_builder.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "argparse",
+      "ast",
+      "csv",
+      "dataclasses",
+      "live_l1.core.intent_fusion",
+      "os",
+      "typing"
+    ],
+    "module": "live_l1.core.timing_5m",
+    "path": "live_l1/core/timing_5m.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "tools/test_timing_5m_v2_minimal.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "module": "live_l1.core.timing_5m_v2",
+    "path": "live_l1/core/timing_5m_v2.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [],
+    "module": "live_l1.guards",
+    "path": "live_l1/guards/__init__.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "dataclasses",
+      "datetime",
+      "typing"
+    ],
+    "module": "live_l1.guards.cost_guards",
+    "path": "live_l1/guards/cost_guards.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "live_l1.core.intent",
+      "typing"
+    ],
+    "module": "live_l1.guards.guards",
+    "path": "live_l1/guards/guards.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/io/validate.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [],
+    "module": "live_l1.io",
+    "path": "live_l1/io/__init__.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/io/validate.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [
+      "__future__",
+      "csv",
+      "dataclasses",
+      "os",
+      "typing"
+    ],
+    "module": "live_l1.io.market",
+    "path": "live_l1/io/market.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "os"
+    ],
+    "module": "live_l1.io.valid",
+    "path": "live_l1/io/valid.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "live_l1.io.market",
+      "typing"
+    ],
+    "module": "live_l1.io.validate",
+    "path": "live_l1/io/validate.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [],
+    "module": "live_l1.logs",
+    "path": "live_l1/logs/__init__.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "datetime",
+      "os",
+      "sys",
+      "time",
+      "typing"
+    ],
+    "module": "live_l1.logs.logger",
+    "path": "live_l1/logs/logger.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/meta_state/meta_state_runtime.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [],
+    "module": "live_l1.meta_state",
+    "path": "live_l1/meta_state/__init__.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "live_l1.meta_state.meta_state_shadow"
+    ],
+    "module": "live_l1.meta_state.meta_state_runtime",
+    "path": "live_l1/meta_state/meta_state_runtime.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/meta_state/meta_state_runtime.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [
+      "__future__",
+      "math"
+    ],
+    "module": "live_l1.meta_state.meta_state_shadow",
+    "path": "live_l1/meta_state/meta_state_shadow.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/tools/monitor_runtime.py",
+      "live_l1/tools/safe_launch.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [
+      "__future__",
+      "os"
+    ],
+    "module": "live_l1.operational_profiles",
+    "path": "live_l1/operational_profiles.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/state/state_store.py"
+    ],
+    "imported_by_count": 2,
+    "imports": [],
+    "module": "live_l1.state",
+    "path": "live_l1/state/__init__.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/state/state_store.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "module": "live_l1.state.models",
+    "path": "live_l1/state/models.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/state/state_store.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "json",
+      "os",
+      "tempfile",
+      "typing"
+    ],
+    "module": "live_l1.state.persist",
+    "path": "live_l1/state/persist.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "json",
+      "live_l1.state.models",
+      "live_l1.state.persist",
+      "os",
+      "typing"
+    ],
+    "module": "live_l1.state.state_store",
+    "path": "live_l1/state/state_store.py"
+  },
+  {
+    "classification": "ACTIVE_CORE",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "typing"
+    ],
+    "module": "live_l1.state.state_validation",
+    "path": "live_l1/state/state_validation.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "datetime",
+      "hashlib",
+      "json",
+      "pathlib",
+      "shutil"
+    ],
+    "module": "live_l1.tools.create_runtime_backup",
+    "path": "live_l1/tools/create_runtime_backup.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "datetime",
+      "json",
+      "live_l1.operational_profiles",
+      "live_l1.tools.reconcile_runtime_state",
+      "live_l1.tools.replay_execution_state",
+      "live_l1.tools.startup_validator",
+      "pathlib",
+      "subprocess",
+      "sys",
+      "typing"
+    ],
+    "module": "live_l1.tools.monitor_runtime",
+    "path": "live_l1/tools/monitor_runtime.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "json",
+      "pathlib",
+      "typing"
+    ],
+    "module": "live_l1.tools.monitor_summary",
+    "path": "live_l1/tools/monitor_summary.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "json",
+      "live_l1.tools.reconcile_runtime_state",
+      "live_l1.tools.replay_execution_state",
+      "live_l1.tools.startup_validator",
+      "pathlib",
+      "sys"
+    ],
+    "module": "live_l1.tools.operational_health_report",
+    "path": "live_l1/tools/operational_health_report.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/tools/monitor_runtime.py",
+      "live_l1/tools/operational_health_report.py",
+      "live_l1/tools/safe_launch.py"
+    ],
+    "imported_by_count": 4,
+    "imports": [
+      "__future__",
+      "argparse",
+      "dataclasses",
+      "json",
+      "live_l1.tools.replay_execution_state",
+      "pathlib",
+      "sys",
+      "typing"
+    ],
+    "module": "live_l1.tools.reconcile_runtime_state",
+    "path": "live_l1/tools/reconcile_runtime_state.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [
+      "live_l1/core/loop.py"
+    ],
+    "imported_by_count": 1,
+    "imports": [
+      "__future__",
+      "argparse",
+      "dataclasses",
+      "json",
+      "live_l1.tools.replay_execution_state",
+      "pathlib",
+      "sys"
+    ],
+    "module": "live_l1.tools.recover_runtime_state",
+    "path": "live_l1/tools/recover_runtime_state.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [
+      "live_l1/tools/monitor_runtime.py",
+      "live_l1/tools/operational_health_report.py",
+      "live_l1/tools/reconcile_runtime_state.py",
+      "live_l1/tools/recover_runtime_state.py"
+    ],
+    "imported_by_count": 4,
+    "imports": [
+      "__future__",
+      "argparse",
+      "dataclasses",
+      "json",
+      "pathlib"
+    ],
+    "module": "live_l1.tools.replay_execution_state",
+    "path": "live_l1/tools/replay_execution_state.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "datetime",
+      "json",
+      "pathlib",
+      "subprocess",
+      "sys",
+      "time"
+    ],
+    "module": "live_l1.tools.runtime_control_loop",
+    "path": "live_l1/tools/runtime_control_loop.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "live_l1.core.loop",
+      "live_l1.operational_profiles",
+      "live_l1.tools.reconcile_runtime_state",
+      "live_l1.tools.startup_validator",
+      "os",
+      "pathlib",
+      "sys"
+    ],
+    "module": "live_l1.tools.safe_launch",
+    "path": "live_l1/tools/safe_launch.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [
+      "live_l1/core/loop.py",
+      "live_l1/tools/monitor_runtime.py",
+      "live_l1/tools/operational_health_report.py",
+      "live_l1/tools/safe_launch.py"
+    ],
+    "imported_by_count": 4,
+    "imports": [
+      "__future__",
+      "argparse",
+      "dataclasses",
+      "os",
+      "pathlib",
+      "platform",
+      "sys"
+    ],
+    "module": "live_l1.tools.startup_validator",
+    "path": "live_l1/tools/startup_validator.py"
+  },
+  {
+    "classification": "TEST_TOOL",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "json",
+      "pathlib",
+      "shutil",
+      "subprocess",
+      "sys",
+      "tempfile"
+    ],
+    "module": "live_l1.tools.test_monitor_failure_injection",
+    "path": "live_l1/tools/test_monitor_failure_injection.py"
+  },
+  {
+    "classification": "TEST_TOOL",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "os",
+      "pathlib",
+      "subprocess",
+      "sys"
+    ],
+    "module": "live_l1.tools.test_operational_profiles",
+    "path": "live_l1/tools/test_operational_profiles.py"
+  },
+  {
+    "classification": "TEST_TOOL",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "json",
+      "os",
+      "pathlib",
+      "subprocess",
+      "sys"
+    ],
+    "module": "live_l1.tools.test_unattended_operation",
+    "path": "live_l1/tools/test_unattended_operation.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "hashlib",
+      "json",
+      "pathlib"
+    ],
+    "module": "live_l1.tools.validate_runtime_backup",
+    "path": "live_l1/tools/validate_runtime_backup.py"
+  },
+  {
+    "classification": "ACTIVE_TOOL_OR_ENTRYPOINT",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "dataclasses",
+      "json",
+      "pathlib",
+      "typing"
+    ],
+    "module": "live_l1.tools.validate_runtime_schema",
+    "path": "live_l1/tools/validate_runtime_schema.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [],
+    "module": "scripts",
+    "path": "scripts/__init__.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k10_long",
+    "path": "scripts/analyze_GS_k10_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k10_short",
+    "path": "scripts/analyze_GS_k10_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k11_long",
+    "path": "scripts/analyze_GS_k11_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k11_short",
+    "path": "scripts/analyze_GS_k11_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k12_long",
+    "path": "scripts/analyze_GS_k12_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "engine.simtraderGS",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k12_long_CANONICAL",
+    "path": "scripts/analyze_GS_k12_long_CANONICAL.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k12_short",
+    "path": "scripts/analyze_GS_k12_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "engine",
+      "itertools",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "scripts.analyze_GS_k3_long",
+    "path": "scripts/analyze_GS_k3_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "engine",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "scripts.analyze_GS_k3_long_weighted",
+    "path": "scripts/analyze_GS_k3_long_weighted.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k3_short",
+    "path": "scripts/analyze_GS_k3_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "engine",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "scripts.analyze_GS_k4_long",
+    "path": "scripts/analyze_GS_k4_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k4_short",
+    "path": "scripts/analyze_GS_k4_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "engine",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "scripts.analyze_GS_k5_long",
+    "path": "scripts/analyze_GS_k5_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k5_short",
+    "path": "scripts/analyze_GS_k5_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k6_short",
+    "path": "scripts/analyze_GS_k6_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "engine",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "scripts.analyze_GS_k7_long",
+    "path": "scripts/analyze_GS_k7_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k7_short",
+    "path": "scripts/analyze_GS_k7_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "engine",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "scripts.analyze_GS_k8_long",
+    "path": "scripts/analyze_GS_k8_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k8_short",
+    "path": "scripts/analyze_GS_k8_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k9_long",
+    "path": "scripts/analyze_GS_k9_long.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "importlib",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.analyze_GS_k9_short",
+    "path": "scripts/analyze_GS_k9_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "dataclasses",
+      "datetime",
+      "json",
+      "math",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "typing"
+    ],
+    "module": "scripts.analyze_btc_regimes",
+    "path": "scripts/analyze_btc_regimes.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_collapse_recovery_patterns",
+    "path": "scripts/analyze_collapse_recovery_patterns.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_health_future_outcomes",
+    "path": "scripts/analyze_health_future_outcomes.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_health_momentum",
+    "path": "scripts/analyze_health_momentum.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_loop_persistence",
+    "path": "scripts/analyze_loop_persistence.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_recovery_triggers",
+    "path": "scripts/analyze_recovery_triggers.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_regime_mobility",
+    "path": "scripts/analyze_regime_mobility.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_regime_transitions",
+    "path": "scripts/analyze_regime_transitions.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "csv",
+      "json",
+      "os",
+      "pandas",
+      "pathlib",
+      "typing"
+    ],
+    "module": "scripts.analyze_regimes",
+    "path": "scripts/analyze_regimes.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_state_mobility",
+    "path": "scripts/analyze_state_mobility.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_state_paths",
+    "path": "scripts/analyze_state_paths.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_state_transitions",
+    "path": "scripts/analyze_state_transitions.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "math",
+      "numpy",
+      "pandas",
+      "pathlib",
+      "typing"
+    ],
+    "module": "scripts.analyze_strategy_by_regime",
+    "path": "scripts/analyze_strategy_by_regime.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_structure_false_positives",
+    "path": "scripts/analyze_structure_false_positives.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_structure_overlay_warning_power",
+    "path": "scripts/analyze_structure_overlay_warning_power.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_trade_lifecycle",
+    "path": "scripts/analyze_trade_lifecycle.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_transition_persistence",
+    "path": "scripts/analyze_transition_persistence.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.analyze_transition_timing",
+    "path": "scripts/analyze_transition_timing.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.apply_structure_labels_to_lifecycle",
+    "path": "scripts/apply_structure_labels_to_lifecycle.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "engine.simtraderGS",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.build_GS_k12_long_FINAL_CANONICAL",
+    "path": "scripts/build_GS_k12_long_FINAL_CANONICAL.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "engine.simtraderGS",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.build_GS_k12_short_RESULTS_CANONICAL",
+    "path": "scripts/build_GS_k12_short_RESULTS_CANONICAL.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_market_phase_segments",
+    "path": "scripts/build_market_phase_segments.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_meta_structure_model",
+    "path": "scripts/build_meta_structure_model.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_recovery_probability_engine",
+    "path": "scripts/build_recovery_probability_engine.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_regime_compatibility_matrix",
+    "path": "scripts/build_regime_compatibility_matrix.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_regime_native_segments",
+    "path": "scripts/build_regime_native_segments.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_shadow_risk_engine",
+    "path": "scripts/build_shadow_risk_engine.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_state_transition_graph",
+    "path": "scripts/build_state_transition_graph.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_structural_stability_ranking",
+    "path": "scripts/build_structural_stability_ranking.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_time_weighted_toxic_persistence",
+    "path": "scripts/build_time_weighted_toxic_persistence.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_toxic_persistence_model",
+    "path": "scripts/build_toxic_persistence_model.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.build_trade_health_model",
+    "path": "scripts/build_trade_health_model.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.classify_trade_states",
+    "path": "scripts/classify_trade_states.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "dataclasses",
+      "datetime",
+      "hashlib",
+      "os",
+      "pathlib",
+      "sys",
+      "typing",
+      "urllib.request"
+    ],
+    "module": "scripts.download_btcusdt_1m_binance_bulk",
+    "path": "scripts/download_btcusdt_1m_binance_bulk.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.generate_GS_k10_long_from_k9_seeds",
+    "path": "scripts/generate_GS_k10_long_from_k9_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k10_short_from_k9_seeds",
+    "path": "scripts/generate_GS_k10_short_from_k9_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.generate_GS_k11_long_from_k10_seeds",
+    "path": "scripts/generate_GS_k11_long_from_k10_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k11_short_from_k10_seeds",
+    "path": "scripts/generate_GS_k11_short_from_k10_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.generate_GS_k12_long_from_k11_seeds",
+    "path": "scripts/generate_GS_k12_long_from_k11_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k12_short_from_k11_seeds",
+    "path": "scripts/generate_GS_k12_short_from_k11_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "scripts.generate_GS_k3_long_weighted",
+    "path": "scripts/generate_GS_k3_long_weighted.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "csv",
+      "datetime",
+      "itertools",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k3_short",
+    "path": "scripts/generate_GS_k3_short.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "scripts.generate_GS_k4_long_from_k3_weighted",
+    "path": "scripts/generate_GS_k4_long_from_k3_weighted.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k4_short_from_k3_seeds",
+    "path": "scripts/generate_GS_k4_short_from_k3_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "scripts.generate_GS_k5_long_from_k4_seeds",
+    "path": "scripts/generate_GS_k5_long_from_k4_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k5_short_from_k4_seeds",
+    "path": "scripts/generate_GS_k5_short_from_k4_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k6_short_from_k5_seeds",
+    "path": "scripts/generate_GS_k6_short_from_k5_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "scripts.generate_GS_k7_long_from_k6_seeds",
+    "path": "scripts/generate_GS_k7_long_from_k6_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k7_short_from_k6_seeds",
+    "path": "scripts/generate_GS_k7_short_from_k6_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "datetime",
+      "json",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "scripts.generate_GS_k8_long_from_k7_seeds",
+    "path": "scripts/generate_GS_k8_long_from_k7_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k8_short_from_k7_seeds",
+    "path": "scripts/generate_GS_k8_short_from_k7_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.generate_GS_k9_long_from_k8_seeds",
+    "path": "scripts/generate_GS_k9_long_from_k8_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "os"
+    ],
+    "module": "scripts.generate_GS_k9_short_from_k8_seeds",
+    "path": "scripts/generate_GS_k9_short_from_k8_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "datetime",
+      "itertools",
+      "math",
+      "os",
+      "sys"
+    ],
+    "module": "scripts.generate_combinations_universal",
+    "path": "scripts/generate_combinations_universal.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "glob",
+      "json",
+      "os",
+      "shutil",
+      "subprocess",
+      "sys",
+      "time",
+      "yaml"
+    ],
+    "module": "scripts.pipeline_orchestrator",
+    "path": "scripts/pipeline_orchestrator.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "ast",
+      "datetime",
+      "engine",
+      "glob",
+      "hashlib",
+      "json",
+      "os",
+      "pandas",
+      "pathlib",
+      "sys",
+      "time",
+      "traceback",
+      "typing"
+    ],
+    "module": "scripts.post_gs_h1_fee_cost_sensitivity",
+    "path": "scripts/post_gs_h1_fee_cost_sensitivity.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "ast",
+      "datetime",
+      "engine",
+      "glob",
+      "hashlib",
+      "inspect",
+      "json",
+      "os",
+      "pandas",
+      "pathlib",
+      "re",
+      "sys",
+      "time",
+      "traceback",
+      "typing"
+    ],
+    "module": "scripts.post_gs_h2_timeframe_transfer",
+    "path": "scripts/post_gs_h2_timeframe_transfer.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "ast",
+      "datetime",
+      "engine",
+      "glob",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "time"
+    ],
+    "module": "scripts.post_gs_h3_asset_transfer_run",
+    "path": "scripts/post_gs_h3_asset_transfer_run.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "glob",
+      "hashlib",
+      "pandas",
+      "pathlib",
+      "sys",
+      "typing",
+      "zipfile"
+    ],
+    "module": "scripts.post_gs_h3_build_eth_1m_gs_compat",
+    "path": "scripts/post_gs_h3_build_eth_1m_gs_compat.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "glob",
+      "numpy",
+      "os",
+      "pandas",
+      "pathlib",
+      "sys"
+    ],
+    "module": "scripts.post_gs_h3_build_eth_signals_regime_gs_compat",
+    "path": "scripts/post_gs_h3_build_eth_signals_regime_gs_compat.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "pandas",
+      "pathlib",
+      "sys"
+    ],
+    "module": "scripts.post_gs_h3_fix_eth_rawonly_timestamps",
+    "path": "scripts/post_gs_h3_fix_eth_rawonly_timestamps.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "ast",
+      "datetime",
+      "engine",
+      "glob",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "time"
+    ],
+    "module": "scripts.post_gs_h4_regime_controller_run",
+    "path": "scripts/post_gs_h4_regime_controller_run.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "ast",
+      "datetime",
+      "engine",
+      "glob",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "sys",
+      "time"
+    ],
+    "module": "scripts.post_gs_h5_execution_realism_run",
+    "path": "scripts/post_gs_h5_execution_realism_run.py"
+  },
+  {
+    "classification": "LIVE_ENTRYPOINT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "live_l1.core.loop",
+      "os",
+      "pathlib"
+    ],
+    "module": "scripts.run_live_l1_paper",
+    "path": "scripts/run_live_l1_paper.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "numpy",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k10_long_top250_for_k11_seeds",
+    "path": "scripts/select_GS_k10_long_top250_for_k11_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k10_short_top66_for_k11_seeds",
+    "path": "scripts/select_GS_k10_short_top66_for_k11_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "numpy",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k11_long_top250_for_k12_seeds",
+    "path": "scripts/select_GS_k11_long_top250_for_k12_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "scripts.select_GS_k12_long_TOP250_CANONICAL",
+    "path": "scripts/select_GS_k12_long_TOP250_CANONICAL.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "numpy",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k12_long_top250_FINAL",
+    "path": "scripts/select_GS_k12_long_top250_FINAL.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k3_short_top300_for_k4_seeds",
+    "path": "scripts/select_GS_k3_short_top300_for_k4_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "scripts.select_GS_k4_long_top300_for_k5_seeds",
+    "path": "scripts/select_GS_k4_long_top300_for_k5_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k4_short_top300_for_k5_seeds",
+    "path": "scripts/select_GS_k4_short_top300_for_k5_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "scripts.select_GS_k5_long_top250_for_k6_seeds",
+    "path": "scripts/select_GS_k5_long_top250_for_k6_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k5_short_top300_for_k6_seeds",
+    "path": "scripts/select_GS_k5_short_top300_for_k6_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k6_short_top300_for_k7_seeds",
+    "path": "scripts/select_GS_k6_short_top300_for_k7_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "datetime",
+      "json",
+      "os",
+      "pandas",
+      "typing"
+    ],
+    "module": "scripts.select_GS_k7_long_top250_for_k8_seeds",
+    "path": "scripts/select_GS_k7_long_top250_for_k8_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k7_short_top300_for_k8_seeds",
+    "path": "scripts/select_GS_k7_short_top300_for_k8_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "numpy",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k8_long_top250_for_k9_seeds",
+    "path": "scripts/select_GS_k8_long_top250_for_k9_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k8_short_top300_for_k9_seeds",
+    "path": "scripts/select_GS_k8_short_top300_for_k9_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "numpy",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k9_long_top250_for_k10_seeds",
+    "path": "scripts/select_GS_k9_long_top250_for_k10_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "os",
+      "pandas"
+    ],
+    "module": "scripts.select_GS_k9_short_top198_for_k10_seeds",
+    "path": "scripts/select_GS_k9_short_top198_for_k10_seeds.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_continuous_meta_state_score",
+    "path": "scripts/state_research/analyze_continuous_meta_state_score.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_degradation_acceleration",
+    "path": "scripts/state_research/analyze_degradation_acceleration.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_meta_state_scoring",
+    "path": "scripts/state_research/analyze_meta_state_scoring.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_passive_shadow_risk",
+    "path": "scripts/state_research/analyze_passive_shadow_risk.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_passive_shadow_risk_v2",
+    "path": "scripts/state_research/analyze_passive_shadow_risk_v2.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_pre_toxic_transitions",
+    "path": "scripts/state_research/analyze_pre_toxic_transitions.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_recovery_probability",
+    "path": "scripts/state_research/analyze_recovery_probability.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_recovery_transitions",
+    "path": "scripts/state_research/analyze_recovery_transitions.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_safe_collapse_patterns",
+    "path": "scripts/state_research/analyze_safe_collapse_patterns.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_shadow_persistence",
+    "path": "scripts/state_research/analyze_shadow_persistence.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_snapshot_meta_state_score",
+    "path": "scripts/state_research/analyze_snapshot_meta_state_score.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_state_factor_strength",
+    "path": "scripts/state_research/analyze_state_factor_strength.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step18_buckets",
+    "path": "scripts/state_research/analyze_step18_buckets.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_step18_clusters",
+    "path": "scripts/state_research/analyze_step18_clusters.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step18_predictive_power",
+    "path": "scripts/state_research/analyze_step18_predictive_power.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step18_trade_lifetime",
+    "path": "scripts/state_research/analyze_step18_trade_lifetime.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19B_real_exit_replay",
+    "path": "scripts/state_research/analyze_step19B_real_exit_replay.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19B_threshold_sweep",
+    "path": "scripts/state_research/analyze_step19B_threshold_sweep.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_blocked_trades",
+    "path": "scripts/state_research/analyze_step19_blocked_trades.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_blocked_winners",
+    "path": "scripts/state_research/analyze_step19_blocked_winners.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_dynamic_exit_replay",
+    "path": "scripts/state_research/analyze_step19_dynamic_exit_replay.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_entry_gate",
+    "path": "scripts/state_research/analyze_step19_entry_gate.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_gate_quality",
+    "path": "scripts/state_research/analyze_step19_gate_quality.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_risk_escalation",
+    "path": "scripts/state_research/analyze_step19_risk_escalation.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_shadow_gate",
+    "path": "scripts/state_research/analyze_step19_shadow_gate.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_shadow_gate_replay",
+    "path": "scripts/state_research/analyze_step19_shadow_gate_replay.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_threshold_fine",
+    "path": "scripts/state_research/analyze_step19_threshold_fine.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step19_threshold_sweep",
+    "path": "scripts/state_research/analyze_step19_threshold_sweep.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step20C_live_replay",
+    "path": "scripts/state_research/analyze_step20C_live_replay.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step20D_dynamic_exposure_scaling",
+    "path": "scripts/state_research/analyze_step20D_dynamic_exposure_scaling.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step20D_sensitivity",
+    "path": "scripts/state_research/analyze_step20D_sensitivity.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step20E_true_dynamic_exposure_replay",
+    "path": "scripts/state_research/analyze_step20E_true_dynamic_exposure_replay.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "pandas"
+    ],
+    "module": "scripts.state_research.analyze_step20_position_sizing_replay",
+    "path": "scripts/state_research/analyze_step20_position_sizing_replay.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.analyze_transition_momentum",
+    "path": "scripts/state_research/analyze_transition_momentum.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "numpy",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.build_step18_core_pipeline",
+    "path": "scripts/state_research/build_step18_core_pipeline.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.simulate_adaptive_position_sizing",
+    "path": "scripts/state_research/simulate_adaptive_position_sizing.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.simulate_adaptive_position_sizing_variants",
+    "path": "scripts/state_research/simulate_adaptive_position_sizing_variants.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.simulate_confirmed_toxic_exit",
+    "path": "scripts/state_research/simulate_confirmed_toxic_exit.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.simulate_safe_collapse_exit",
+    "path": "scripts/state_research/simulate_safe_collapse_exit.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.simulate_safe_collapse_partial_exit",
+    "path": "scripts/state_research/simulate_safe_collapse_partial_exit.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.simulate_shadow_gates",
+    "path": "scripts/state_research/simulate_shadow_gates.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.simulate_shadow_gates_no_lookahead",
+    "path": "scripts/state_research/simulate_shadow_gates_no_lookahead.py"
+  },
+  {
+    "classification": "RESEARCH_ARCHIVE_CANDIDATE",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.state_research.simulate_toxic_dominance_exit",
+    "path": "scripts/state_research/simulate_toxic_dominance_exit.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.summarize_state_graph_quality",
+    "path": "scripts/summarize_state_graph_quality.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.tune_shadow_risk_precision",
+    "path": "scripts/tune_shadow_risk_precision.py"
+  },
+  {
+    "classification": "RESEARCH_OR_BATCH_SCRIPT_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "scripts.validate_trade_health_against_results",
+    "path": "scripts/validate_trade_health_against_results.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [],
+    "module": "tools",
+    "path": "tools/__init__.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "tools.add_inverted_short_signals",
+    "path": "tools/add_inverted_short_signals.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "pandas",
+      "pathlib"
+    ],
+    "module": "tools.add_regime",
+    "path": "tools/add_regime.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "csv",
+      "dataclasses",
+      "json",
+      "math",
+      "pathlib",
+      "typing"
+    ],
+    "module": "tools.analyze_equity_gate_candidates",
+    "path": "tools/analyze_equity_gate_candidates.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "csv",
+      "json",
+      "math",
+      "statistics"
+    ],
+    "module": "tools.analyze_trades",
+    "path": "tools/analyze_trades.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "numpy",
+      "os",
+      "pandas",
+      "pathlib",
+      "typing"
+    ],
+    "module": "tools.build_gs_5m_from_1m",
+    "path": "tools/build_gs_5m_from_1m.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "numpy",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.build_regime_v2_from_v1",
+    "path": "tools/build_regime_v2_from_v1.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "collections",
+      "csv",
+      "json",
+      "os",
+      "re"
+    ],
+    "module": "tools.compare_fusion_modes_2026-06-05",
+    "path": "tools/compare_fusion_modes_2026-06-05.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "ast",
+      "csv",
+      "datetime",
+      "json",
+      "os",
+      "pandas"
+    ],
+    "module": "tools.compare_runs",
+    "path": "tools/compare_runs.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "csv",
+      "math",
+      "statistics",
+      "typing"
+    ],
+    "module": "tools.compare_trade_analyses",
+    "path": "tools/compare_trade_analyses.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "dateutil",
+      "os",
+      "pandas",
+      "requests",
+      "sys",
+      "time"
+    ],
+    "module": "tools.download_binance_1min",
+    "path": "tools/download_binance_1min.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "tools.downsample_1m_to_tfs",
+    "path": "tools/downsample_1m_to_tfs.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "requests",
+      "sys",
+      "time"
+    ],
+    "module": "tools.fill_price_1m_gaps",
+    "path": "tools/fill_price_1m_gaps.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "ast",
+      "csv",
+      "os",
+      "shutil",
+      "typing"
+    ],
+    "module": "tools.fix_5m_short_seeds_add_dir",
+    "path": "tools/fix_5m_short_seeds_add_dir.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "numpy",
+      "os",
+      "pandas"
+    ],
+    "module": "tools.gs_build_asymmetric_gate",
+    "path": "tools/gs_build_asymmetric_gate.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "dataclasses",
+      "datetime",
+      "json",
+      "os",
+      "sys",
+      "typing",
+      "yaml"
+    ],
+    "module": "tools.gs_checklist_runner",
+    "path": "tools/gs_checklist_runner.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "numpy",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_input_preflight",
+    "path": "tools/gs_input_preflight.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "collections",
+      "os",
+      "pandas"
+    ],
+    "module": "tools.gs_long_final_preflight",
+    "path": "tools/gs_long_final_preflight.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "ast",
+      "dataclasses",
+      "engine.simtraderGS",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_long_short_diagnostics",
+    "path": "tools/gs_long_short_diagnostics.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "glob",
+      "os",
+      "pandas"
+    ],
+    "module": "tools.gs_meta_compare_k12_finals",
+    "path": "tools/gs_meta_compare_k12_finals.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "ast",
+      "dataclasses",
+      "engine",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_policy_entry_runner",
+    "path": "tools/gs_policy_entry_runner.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "ast",
+      "dataclasses",
+      "engine.simtraderGS",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_policy_hold_runner",
+    "path": "tools/gs_policy_hold_runner.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "numpy",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_regime_quality_report",
+    "path": "tools/gs_regime_quality_report.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "ast",
+      "contextlib",
+      "engine.simtraderGS",
+      "json",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_regression_gate",
+    "path": "tools/gs_regression_gate.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "os",
+      "subprocess",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_run_guard",
+    "path": "tools/gs_run_guard.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "ast",
+      "datetime",
+      "engine",
+      "hashlib",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "pathlib",
+      "subprocess",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_run_with_manifest",
+    "path": "tools/gs_run_with_manifest.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "engine.simtraderGS",
+      "numpy",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_short_diagnostics",
+    "path": "tools/gs_short_diagnostics.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "ast",
+      "dataclasses",
+      "engine.simtraderGS",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "sys",
+      "typing"
+    ],
+    "module": "tools.gs_smoke_suite",
+    "path": "tools/gs_smoke_suite.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "json",
+      "os",
+      "time",
+      "typing"
+    ],
+    "module": "tools.l1_health_check",
+    "path": "tools/l1_health_check.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "collections",
+      "dataclasses",
+      "os",
+      "typing"
+    ],
+    "module": "tools.l1c_fusion_stats",
+    "path": "tools/l1c_fusion_stats.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "dataclasses",
+      "datetime",
+      "os",
+      "re",
+      "subprocess",
+      "typing"
+    ],
+    "module": "tools.l1c_smoke_test",
+    "path": "tools/l1c_smoke_test.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "json",
+      "os",
+      "pathlib",
+      "re",
+      "subprocess"
+    ],
+    "module": "tools.l1d_resume_test",
+    "path": "tools/l1d_resume_test.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "argparse",
+      "collections",
+      "pathlib"
+    ],
+    "module": "tools.l1e_log_summary",
+    "path": "tools/l1e_log_summary.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "__future__",
+      "ast",
+      "json",
+      "os",
+      "pathlib"
+    ],
+    "module": "tools.repository_usage_audit",
+    "path": "tools/repository_usage_audit.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "tools.summarize_top_strategies",
+    "path": "tools/summarize_top_strategies.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "live_l1.core.timing_5m_v2",
+      "os",
+      "sys"
+    ],
+    "module": "tools.test_timing_5m_v2_minimal",
+    "path": "tools/test_timing_5m_v2_minimal.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "argparse",
+      "datetime",
+      "json",
+      "numpy",
+      "os",
+      "pandas",
+      "sys"
+    ],
+    "module": "tools.validate_price_1min",
+    "path": "tools/validate_price_1min.py"
+  },
+  {
+    "classification": "STANDALONE_TOOL_REVIEW",
+    "imported_by": [],
+    "imported_by_count": 0,
+    "imports": [
+      "datetime",
+      "json",
+      "sys"
+    ],
+    "module": "tools.validate_trades",
+    "path": "tools/validate_trades.py"
+  }
+]

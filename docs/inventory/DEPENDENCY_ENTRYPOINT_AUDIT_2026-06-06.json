@@ -1,0 +1,175 @@
+{
+  "live_entrypoints": [
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.create_runtime_backup",
+      "path": "live_l1/tools/create_runtime_backup.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.monitor_runtime",
+      "path": "live_l1/tools/monitor_runtime.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.monitor_summary",
+      "path": "live_l1/tools/monitor_summary.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.operational_health_report",
+      "path": "live_l1/tools/operational_health_report.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.reconcile_runtime_state",
+      "path": "live_l1/tools/reconcile_runtime_state.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.recover_runtime_state",
+      "path": "live_l1/tools/recover_runtime_state.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.replay_execution_state",
+      "path": "live_l1/tools/replay_execution_state.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.runtime_control_loop",
+      "path": "live_l1/tools/runtime_control_loop.py",
+      "uses_argparse": false
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.safe_launch",
+      "path": "live_l1/tools/safe_launch.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.startup_validator",
+      "path": "live_l1/tools/startup_validator.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.test_monitor_failure_injection",
+      "path": "live_l1/tools/test_monitor_failure_injection.py",
+      "uses_argparse": false
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.test_operational_profiles",
+      "path": "live_l1/tools/test_operational_profiles.py",
+      "uses_argparse": false
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.test_unattended_operation",
+      "path": "live_l1/tools/test_unattended_operation.py",
+      "uses_argparse": false
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.validate_runtime_backup",
+      "path": "live_l1/tools/validate_runtime_backup.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "live_l1.tools.validate_runtime_schema",
+      "path": "live_l1/tools/validate_runtime_schema.py",
+      "uses_argparse": true
+    },
+    {
+      "has_main_guard": true,
+      "module": "scripts.run_live_l1_paper",
+      "path": "scripts/run_live_l1_paper.py",
+      "uses_argparse": true
+    }
+  ],
+  "suspicious_zero_import_live": [
+    "live_l1/core/gate_builder.py",
+    "live_l1/core/regime_builder.py",
+    "live_l1/core/regime_v2_builder.py",
+    "live_l1/core/signal_builder.py",
+    "live_l1/guards/cost_guards.py",
+    "live_l1/io/validate.py",
+    "live_l1/tools/create_runtime_backup.py",
+    "live_l1/tools/monitor_runtime.py",
+    "live_l1/tools/monitor_summary.py",
+    "live_l1/tools/operational_health_report.py",
+    "live_l1/tools/runtime_control_loop.py",
+    "live_l1/tools/safe_launch.py",
+    "live_l1/tools/test_monitor_failure_injection.py",
+    "live_l1/tools/test_operational_profiles.py",
+    "live_l1/tools/test_unattended_operation.py",
+    "live_l1/tools/validate_runtime_backup.py",
+    "live_l1/tools/validate_runtime_schema.py"
+  ],
+  "targets": {
+    "live_l1.core.loop": {
+      "imported_by": [
+        "live_l1/tools/safe_launch.py",
+        "scripts/run_live_l1_paper.py"
+      ],
+      "imported_by_count": 2,
+      "path": "live_l1/core/loop.py"
+    },
+    "live_l1.core.timing_5m": {
+      "imported_by": [
+        "live_l1/core/loop.py"
+      ],
+      "imported_by_count": 1,
+      "path": "live_l1/core/timing_5m.py"
+    },
+    "live_l1.core.timing_5m_v2": {
+      "imported_by": [
+        "tools/test_timing_5m_v2_minimal.py"
+      ],
+      "imported_by_count": 1,
+      "path": "live_l1/core/timing_5m_v2.py"
+    },
+    "live_l1.io.valid": {
+      "imported_by": [
+        "live_l1/core/loop.py"
+      ],
+      "imported_by_count": 1,
+      "path": "live_l1/io/valid.py"
+    },
+    "live_l1.io.validate": {
+      "imported_by": [],
+      "imported_by_count": 0,
+      "path": "live_l1/io/validate.py"
+    },
+    "live_l1.tools.monitor_runtime": {
+      "imported_by": [],
+      "imported_by_count": 0,
+      "path": "live_l1/tools/monitor_runtime.py"
+    },
+    "live_l1.tools.runtime_control_loop": {
+      "imported_by": [],
+      "imported_by_count": 0,
+      "path": "live_l1/tools/runtime_control_loop.py"
+    },
+    "live_l1.tools.safe_launch": {
+      "imported_by": [],
+      "imported_by_count": 0,
+      "path": "live_l1/tools/safe_launch.py"
+    },
+    "scripts.run_live_l1_paper": {
+      "imported_by": [],
+      "imported_by_count": 0,
+      "path": "scripts/run_live_l1_paper.py"
+    }
+  }
+}
