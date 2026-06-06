@@ -24,24 +24,24 @@ seed_id: C02_rsi_stoch_08
 
 ### negative_signals
 
-direction: long
+direction: short
 
 strength: 1.0
 
-seed_id: C02_rsi_stoch_08
+seed_id: S02_rsi_stoch_08
 
 ### mixed_signals
 
-direction: long
+direction: none
 
-strength: 1.0
+strength: 0.0
 
-seed_id: C02_rsi_stoch_08
+seed_id: None
 
 ## Failures
 
-- negative_signals: expected short, got long
+none
 
 ## Result
 
-Status: FAIL
+Status: PASS
