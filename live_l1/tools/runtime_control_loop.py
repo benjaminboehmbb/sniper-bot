@@ -69,26 +69,65 @@ def main() -> int:
         monitor.get("status", "UNKNOWN")
     ).upper()
 
+    alerts = monitor.get("alerts", [])
+    if not isinstance(alerts, list):
+        alerts = []
+
+    fail_alerts = [
+        x for x in alerts
+        if isinstance(x, dict) and str(x.get("severity", "")).upper() == "FAIL"
+    ]
+
+    stop_alert_codes = {
+        "startup_validation_failed",
+        "reconciliation_failed",
+        "schema_validation_failed",
+        "execution_replay_failed",
+        "bad_json_detected",
+        "missing_required_runtime_file",
+        "runtime_position_mismatch",
+        "unsupported_schema_version",
+        "production_profile_not_enabled",
+    }
+
+    stop_required = False
+    stop_reason = ""
+
+    for alert in fail_alerts:
+        code = str(alert.get("code", "")).strip()
+        if code in stop_alert_codes:
+            stop_required = True
+            stop_reason = code
+            break
+
     if status == "PASS":
         control_state = "RUNNING"
         control_action = "CONTINUE"
+        control_reason = "PASS"
 
     elif status == "WARN":
         control_state = "DEGRADED"
         control_action = "CONTINUE"
+        control_reason = "WARN"
+
+    elif stop_required:
+        control_state = "RECOVERY_REQUIRED"
+        control_action = "STOP"
+        control_reason = stop_reason
 
     else:
         control_state = "RECOVERY_REQUIRED"
         control_action = "ESCALATE"
+        control_reason = status
 
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_utc": utc_now(),
         "control_state": control_state,
         "control_action": control_action,
-        "control_reason": status,
+        "control_reason": control_reason,
         "profile": monitor.get("profile", {}),
-        "alerts": monitor.get("alerts", []),
+        "alerts": alerts,
     }
 
     write_control_file(
