@@ -20,6 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from live_l1.tools.reconcile_runtime_state import run_reconciliation
 from live_l1.tools.replay_execution_state import replay_execution_state
 from live_l1.tools.startup_validator import validate_startup
+from live_l1.operational_profiles import profile_summary
 import subprocess
 
 
@@ -115,6 +116,7 @@ def check_status(passed: bool, detail: str) -> dict[str, str]:
 ALERT_SEVERITIES = {"INFO", "WARN", "FAIL"}
 
 FAIL_ALERT_CODES = {
+    "production_profile_not_enabled",
     "startup_validation_failed",
     "reconciliation_failed",
     "schema_validation_failed",
@@ -233,6 +235,15 @@ def build_monitor_status(
 
     alerts: list[dict[str, str]] = []
     checks: dict[str, dict[str, str]] = {}
+    profile = profile_summary()
+
+    if profile["profile"] == "PRODUCTION":
+        add_alert(
+            alerts,
+            "FAIL",
+            "production_profile_not_enabled",
+            "PRODUCTION profile is not enabled yet",
+        )
 
     startup = validate_startup(
         repo_root=repo_root,
@@ -372,6 +383,7 @@ def build_monitor_status(
         "generated_utc": utc_now(),
         "status": status,
         "status_reason": status_reason,
+        "profile": profile,
         "checks": checks,
         "runtime": runtime,
         "alerts": alerts,
