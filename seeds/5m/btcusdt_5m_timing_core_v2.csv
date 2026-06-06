@@ -1,3 +1,5 @@
 seed_id,direction,comb_json
 C01_rsi_stoch_06,long,"{'rsi': 0.6, 'stoch': 0.6}"
 C02_rsi_stoch_08,long,"{'rsi': 0.8, 'stoch': 0.8}"
+S01_rsi_stoch_06,short,"{'rsi': 0.6, 'stoch': 0.6}"
+S02_rsi_stoch_08,short,"{'rsi': 0.8, 'stoch': 0.8}"
