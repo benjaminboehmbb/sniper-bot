@@ -204,7 +204,7 @@ def load_runtime_config(repo_root: str) -> RuntimeConfig:
         ),
         seeds_5m_csv=os.environ.get(
             "SEEDS_5M_CSV",
-            "seeds/5m/btcusdt_5m_long_timing_core_v1.csv",
+            "seeds/5m/btcusdt_5m_timing_core_v2.csv",
         ),
         thresh_5m=_env_float("THRESH_5M", 0.60),
         timing_v2_shadow=_env_bool("L1_TIMING_V2_SHADOW", False),
