@@ -16,6 +16,53 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_VERSION = 1
 
 
+ESCALATION_INFO = "INFO"
+ESCALATION_WARN = "WARN"
+ESCALATION_FAIL = "FAIL"
+ESCALATION_CRITICAL = "CRITICAL"
+
+
+def determine_escalation(alerts: list[dict]) -> tuple[str, str]:
+    codes = set()
+
+    for alert in alerts:
+        if isinstance(alert, dict):
+            codes.add(str(alert.get("code", "")).strip())
+
+    critical_codes = {
+        "runtime_state_corruption",
+        "repeated_recovery_failure",
+        "unsupported_schema_version",
+    }
+
+    fail_codes = {
+        "startup_validation_failed",
+        "reconciliation_failed",
+        "schema_validation_failed",
+        "execution_replay_failed",
+        "bad_json_detected",
+        "missing_required_runtime_file",
+        "runtime_position_mismatch",
+        "production_profile_not_enabled",
+    }
+
+    warn_codes = {
+        "kill_level_active",
+        "loss_cluster_active",
+    }
+
+    if codes.intersection(critical_codes):
+        return ESCALATION_CRITICAL, "critical_alert_detected"
+
+    if codes.intersection(fail_codes):
+        return ESCALATION_FAIL, "fail_alert_detected"
+
+    if codes.intersection(warn_codes):
+        return ESCALATION_WARN, "warn_alert_detected"
+
+    return ESCALATION_INFO, "no_escalation_required"
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -120,12 +167,16 @@ def main() -> int:
         control_action = "ESCALATE"
         control_reason = status
 
+    escalation_level, escalation_reason = determine_escalation(alerts)
+
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_utc": utc_now(),
         "control_state": control_state,
         "control_action": control_action,
         "control_reason": control_reason,
+        "escalation_level": escalation_level,
+        "escalation_reason": escalation_reason,
         "profile": monitor.get("profile", {}),
         "alerts": alerts,
     }
@@ -139,6 +190,7 @@ def main() -> int:
     print("monitor_status:", status)
     print("control_state:", control_state)
     print("control_action:", control_action)
+    print("escalation_level:", escalation_level)
     print("RESULT: PASS")
 
     return 0
