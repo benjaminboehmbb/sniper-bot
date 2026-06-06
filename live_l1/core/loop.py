@@ -883,6 +883,18 @@ def run_l1_loop_step1234567(
                 thresh=cfg.thresh_5m,
                 symbol=cfg.symbol,
                 now_utc=tick.tick_started_utc,
+                rsi_signal=features.signal("rsi_signal"),
+                macd_signal=features.signal("macd_signal"),
+                bollinger_signal=features.signal("bollinger_signal"),
+                ma200_signal=features.signal("ma200_signal"),
+                stoch_signal=features.signal("stoch_signal"),
+                atr_signal=features.signal("atr_signal"),
+                ema50_signal=features.signal("ema50_signal"),
+                adx_signal=features.signal("adx_signal"),
+                cci_signal=features.signal("cci_signal"),
+                mfi_signal=features.signal("mfi_signal"),
+                obv_signal=features.signal("obv_signal"),
+                roc_signal=features.signal("roc_signal"),
             )
 
             fused = fuse_intent_with_5m_timing(
