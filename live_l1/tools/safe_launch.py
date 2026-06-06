@@ -18,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from live_l1.core.loop import run_l1_loop_step1234567
 from live_l1.tools.reconcile_runtime_state import run_reconciliation
 from live_l1.tools.startup_validator import validate_startup
+from live_l1.operational_profiles import profile_summary
 
 
 def _env_bool(key: str, default: bool = False) -> bool:
@@ -43,31 +44,49 @@ def main() -> int:
 
     repo = Path(args.repo_root)
 
+    profile = profile_summary()
+
     print("P12A SAFE OPERATIONAL LAUNCH")
     print("repo_root:", args.repo_root)
     print("max_ticks:", args.max_ticks)
     print("max_run_seconds:", args.max_run_seconds)
+    print("operational_profile:", profile["profile"])
     print("")
 
-    print("STEP 1: startup validation")
-    startup = validate_startup(
-        repo_root=repo,
-        market_csv_path=args.market_csv_path,
-        seeds_5m_csv=args.seeds_5m_csv,
-        require_wsl=bool(args.require_wsl),
-    )
-
-    if not startup.passed:
+    if profile["profile"] == "PRODUCTION":
         print("SAFE_LAUNCH: FAIL")
-        print("FAILED_STEP: startup_validation")
-        for issue in startup.issues:
-            print("STARTUP_ISSUE:", issue.code, issue.detail)
+        print("FAILED_STEP: profile_policy")
+        print("PROFILE_POLICY: PRODUCTION is not enabled yet")
         return 1
 
-    print("STARTUP_VALIDATION: PASS")
+    print("STEP 1: startup validation")
+
+    if profile["startup_validation_required"]:
+        startup = validate_startup(
+            repo_root=repo,
+            market_csv_path=args.market_csv_path,
+            seeds_5m_csv=args.seeds_5m_csv,
+            require_wsl=bool(args.require_wsl),
+        )
+
+        if not startup.passed:
+            print("SAFE_LAUNCH: FAIL")
+            print("FAILED_STEP: startup_validation")
+            for issue in startup.issues:
+                print("STARTUP_ISSUE:", issue.code, issue.detail)
+            return 1
+
+        print("STARTUP_VALIDATION: PASS")
+    else:
+        print("STARTUP_VALIDATION: SKIP profile_allows_skip")
 
     print("STEP 2: reconciliation")
-    reconciliation = run_reconciliation(
+
+    if not profile["reconciliation_required"]:
+        print("RECONCILIATION: SKIP profile_allows_skip")
+        reconciliation = []
+    else:
+        reconciliation = run_reconciliation(
         audit_path=repo / args.audit_log_path,
         s2_path=repo / args.s2_position_path,
         trades_path=repo / args.trades_path,
