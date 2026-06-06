@@ -31,7 +31,7 @@ def _safe_float(x: Any, default: float = 0.0) -> float:
 
 def _normalize_direction(d: Optional[str]) -> str:
     if d is None:
-        return "long"
+        return "none"
     dd = str(d).strip().lower()
     if dd in ("long", "short", "none"):
         return dd
@@ -39,7 +39,7 @@ def _normalize_direction(d: Optional[str]) -> str:
         return "long"
     if dd in ("s", "sell"):
         return "short"
-    return "long"
+    return "none"
 
 
 def _parse_comb_json(s: str) -> Dict[str, Any]:
