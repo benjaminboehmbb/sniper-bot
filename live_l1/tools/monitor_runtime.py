@@ -112,17 +112,90 @@ def check_status(passed: bool, detail: str) -> dict[str, str]:
     }
 
 
+ALERT_SEVERITIES = {"INFO", "WARN", "FAIL"}
+
+FAIL_ALERT_CODES = {
+    "startup_validation_failed",
+    "reconciliation_failed",
+    "schema_validation_failed",
+    "execution_replay_failed",
+    "bad_json_detected",
+    "missing_required_runtime_file",
+    "runtime_position_mismatch",
+    "unsupported_schema_version",
+}
+
+WARN_ALERT_CODES = {
+    "loss_cluster_active",
+    "kill_level_active",
+    "stale_runtime_state",
+    "monitoring_degraded",
+}
+
+INFO_ALERT_CODES = {
+    "runtime_flat",
+    "no_recent_trade",
+    "legacy_schema_v0_present",
+}
+
+
+def normalize_alert_severity(severity: str, code: str) -> str:
+    sev = str(severity).strip().upper()
+    alert_code = str(code).strip()
+
+    if alert_code in FAIL_ALERT_CODES:
+        return "FAIL"
+
+    if alert_code in WARN_ALERT_CODES:
+        return "WARN"
+
+    if alert_code in INFO_ALERT_CODES:
+        return "INFO"
+
+    if sev in ALERT_SEVERITIES:
+        return sev
+
+    return "WARN"
+
+
 def add_alert(alerts: list[dict[str, str]], severity: str, code: str, detail: str) -> None:
+    normalized = normalize_alert_severity(severity, code)
+
     alerts.append(
         {
-            "severity": str(severity),
+            "severity": normalized,
             "code": str(code),
             "detail": str(detail),
         }
     )
 
 
-def worst_status(checks: dict[str, dict[str, str]], alerts: list[dict[str, str]]) -> tuple[str, str]:
+def evaluate_alert_rules(runtime: dict[str, Any], alerts: list[dict[str, str]]) -> None:
+    position = safe_text(runtime.get("position"), "FLAT").upper()
+    trade_count = safe_int(runtime.get("trade_count"), 0)
+    last_trade_ts = safe_text(runtime.get("last_trade_timestamp_utc"), "")
+    kill_level = safe_text(runtime.get("kill_level"), "NONE").upper()
+    loss_pause = safe_int(runtime.get("loss_cluster_pause_entries_remaining"), 0)
+
+    if position == "FLAT":
+        add_alert(alerts, "INFO", "runtime_flat", "position=FLAT")
+
+    if trade_count == 0 or last_trade_ts == "":
+        add_alert(alerts, "INFO", "no_recent_trade", "no recent closed trade observed")
+
+    if kill_level != "NONE":
+        add_alert(alerts, "WARN", "kill_level_active", "kill_level=" + kill_level)
+
+    if loss_pause > 0:
+        add_alert(
+            alerts,
+            "WARN",
+            "loss_cluster_active",
+            "pause_entries_remaining=" + str(loss_pause),
+        )
+
+
+def classify_status(checks: dict[str, dict[str, str]], alerts: list[dict[str, str]]) -> tuple[str, str]:
     if any(a.get("severity") == "FAIL" for a in alerts):
         return "FAIL", "fail_alert_present"
 
@@ -270,23 +343,12 @@ def build_monitor_status(
     loss_pause = 0
     if isinstance(loss_state, dict):
         loss_pause = safe_int(loss_state.get("pause_entries_remaining"), 0)
-        if loss_pause > 0:
-            add_alert(
-                alerts,
-                "WARN",
-                "loss_cluster_active",
-                "pause_entries_remaining=" + str(loss_pause),
-            )
-
     kill_level = "NONE"
     cooldown_until_utc = None
 
     if isinstance(s4_last, dict):
         kill_level = safe_text(s4_last.get("kill_level"), "NONE").upper()
         cooldown_until_utc = s4_last.get("cooldown_until_utc", None)
-        if kill_level != "NONE":
-            add_alert(alerts, "WARN", "kill_level_active", "kill_level=" + kill_level)
-
     runtime = {
         "position": safe_text(s2_last.get("position") if isinstance(s2_last, dict) else replay.position, replay.position),
         "side": safe_text(s2_last.get("side") if isinstance(s2_last, dict) else replay.side, replay.side),
@@ -301,7 +363,9 @@ def build_monitor_status(
         "loss_cluster_pause_entries_remaining": int(loss_pause),
     }
 
-    status, status_reason = worst_status(checks, alerts)
+    evaluate_alert_rules(runtime, alerts)
+
+    status, status_reason = classify_status(checks, alerts)
 
     payload = {
         "schema_version": SCHEMA_VERSION,
