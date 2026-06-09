@@ -154,3 +154,127 @@ Expected continuation:
 CSV-00100000 -> CSV-00350000
 
 State should be preserved before the next run.
+
+---
+
+# Run 2 Resume Observation
+
+## Run 2 Objective
+
+Validate continued PAPER runtime operation without cleaning active runtime state.
+
+This run intentionally reused the existing state from Run 1.
+
+## Run 2 Configuration
+
+Profile:
+
+PAPER
+
+Flags:
+
+- L1_REQUIRE_WSL=1
+- L1_PROFILE=PAPER
+- L1_STARTUP_RECOVERY=1
+- L1_STARTUP_RECONCILIATION_GATE=1
+- L1_DECISION_TICK_SECONDS=0
+- L1_MARKET_CSV_PATH=data/l1_full_run.csv
+- SEEDS_5M_CSV=seeds/5m/btcusdt_5m_timing_core_v2.csv
+
+Max ticks:
+
+250000
+
+## Run 2 Result
+
+RUNTIME_RC:
+
+0
+
+Final snapshot:
+
+CSV-00350000
+
+Final tick:
+
+250000
+
+Final timestamp:
+
+2018-05-04 02:01 UTC
+
+Final position:
+
+FLAT
+
+Closed trades:
+
+54
+
+trades_l1.jsonl lines:
+
+54
+
+## Resume Validation
+
+Run 1 ended at:
+
+CSV-00100000
+
+Run 2 ended at:
+
+CSV-00350000
+
+Expected continuation:
+
+100000 + 250000 = 350000
+
+Observed:
+
+CSV-00350000
+
+Result:
+
+PASS
+
+## Reconciliation
+
+Result:
+
+PASS
+
+Details:
+
+- audit_json_valid: PASS, events=200, bad_json_lines=0
+- audit_vs_s2_position: PASS, position=FLAT
+- audit_vs_trades: PASS, closed_trades=54
+- trade_time_order: PASS, trades_checked=54
+- loss_cluster_state: PASS, pause_entries_remaining=25, recent_closed_trade_pnls=0
+
+## Observations
+
+Runtime completed successfully.
+
+No crash.
+
+No unhandled exception.
+
+State persisted through tick 250000 of the resumed run.
+
+System stopped correctly because max_ticks was reached.
+
+Observed at final tick:
+
+- guard_reason=guard_ok
+- s4_kill_level=SOFT
+- position=FLAT
+
+The SOFT kill level remains noted for P73 operational metrics review.
+
+## Assessment
+
+P72 Run 2:
+
+PASS
+
+Resume-based extended PAPER observation is valid.
