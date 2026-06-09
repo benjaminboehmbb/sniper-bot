@@ -61,3 +61,7 @@ tmp/
 
 # Local archived runtime/run artifacts
 live_logs/archive/
+
+# Local artwork and visualizations
+artwork/
+
