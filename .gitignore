@@ -65,3 +65,6 @@ live_logs/archive/
 # Local artwork and visualizations
 artwork/
 
+
+live_state/archive/
+live_logs/archive/
