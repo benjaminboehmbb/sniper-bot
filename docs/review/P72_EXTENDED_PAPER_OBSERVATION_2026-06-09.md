@@ -278,3 +278,127 @@ P72 Run 2:
 PASS
 
 Resume-based extended PAPER observation is valid.
+
+---
+
+# Run 3 Long Resume Observation
+
+## Run 3 Objective
+
+Validate long-duration PAPER runtime continuation using preserved runtime state from Run 2.
+
+This run intentionally reused active runtime logs and state files.
+
+## Run 3 Configuration
+
+Profile:
+
+PAPER
+
+Flags:
+
+- L1_REQUIRE_WSL=1
+- L1_PROFILE=PAPER
+- L1_STARTUP_RECOVERY=1
+- L1_STARTUP_RECONCILIATION_GATE=1
+- L1_DECISION_TICK_SECONDS=0
+- L1_MARKET_CSV_PATH=data/l1_full_run.csv
+- SEEDS_5M_CSV=seeds/5m/btcusdt_5m_timing_core_v2.csv
+
+Max ticks:
+
+2000000
+
+## Run 3 Result
+
+RUNTIME_RC:
+
+0
+
+Final snapshot:
+
+CSV-02350000
+
+Final tick:
+
+2000000
+
+Final timestamp:
+
+2022-02-25 00:02 UTC
+
+Final position:
+
+FLAT
+
+Closed trades:
+
+231
+
+trades_l1.jsonl lines:
+
+231
+
+## Resume Validation
+
+Run 2 ended at:
+
+CSV-00350000
+
+Run 3 ended at:
+
+CSV-02350000
+
+Expected continuation:
+
+350000 + 2000000 = 2350000
+
+Observed:
+
+CSV-02350000
+
+Result:
+
+PASS
+
+## Reconciliation
+
+Result:
+
+PASS
+
+Details:
+
+- audit_json_valid: PASS, events=951, bad_json_lines=0
+- audit_vs_s2_position: PASS, position=FLAT
+- audit_vs_trades: PASS, closed_trades=231
+- trade_time_order: PASS, trades_checked=231
+- loss_cluster_state: PASS, pause_entries_remaining=4, recent_closed_trade_pnls=0
+
+## Observations
+
+Runtime completed successfully.
+
+No crash.
+
+No unhandled exception.
+
+State persisted through 2000000 additional ticks.
+
+System stopped correctly because max_ticks was reached.
+
+Observed at final tick:
+
+- guard_reason=guard_ok
+- s4_kill_level=SOFT
+- position=FLAT
+
+The SOFT kill level remains noted for P73 operational metrics review.
+
+## Assessment
+
+P72 Run 3:
+
+PASS
+
+Long resume-based PAPER observation is valid.
