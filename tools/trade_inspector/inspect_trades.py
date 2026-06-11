@@ -1076,6 +1076,162 @@ def print_summary(rows: list[dict[str, Any]]) -> None:
         print_kv(key, value)
 
 
+
+def avg(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return sum(values) / len(values)
+
+
+def group_rows(rows: list[dict[str, Any]], key: str) -> dict[str, list[dict[str, Any]]]:
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        value = safe_text(row.get(key)) or "UNKNOWN"
+        groups.setdefault(value, []).append(row)
+    return groups
+
+
+def group_stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    pnl_values = [safe_float(row.get("pnl"), 0.0) for row in rows]
+    pnl_pct_values = [safe_float(row.get("pnl_pct"), 0.0) for row in rows]
+    exit_eff_values = [safe_float(row.get("exit_efficiency_24h_pct"), 0.0) for row in rows]
+    opp_values = [safe_float(row.get("opportunity_loss_24h_pct"), 0.0) for row in rows]
+    overall_values = [safe_float(row.get("overall_score"), 0.0) for row in rows]
+
+    winners = sum(1 for row in rows if safe_int(row.get("is_winner"), 0) == 1)
+    losers = sum(1 for row in rows if safe_int(row.get("is_loser"), 0) == 1)
+
+    return {
+        "count": len(rows),
+        "winners": winners,
+        "losers": losers,
+        "winrate": winners / len(rows) if rows else 0.0,
+        "total_pnl": sum(pnl_values),
+        "avg_pnl": avg(pnl_values),
+        "avg_pnl_pct": avg(pnl_pct_values),
+        "avg_exit_efficiency_24h_pct": avg(exit_eff_values),
+        "avg_opportunity_loss_24h_pct": avg(opp_values),
+        "avg_overall_score": avg(overall_values),
+    }
+
+
+def print_group_table(title: str, groups: dict[str, list[dict[str, Any]]], sort_key: str, reverse: bool = True) -> None:
+    print("")
+    print(title)
+    print("-" * 80)
+
+    table = []
+    for name, items in groups.items():
+        stats = group_stats(items)
+        table.append((name, stats))
+
+    table.sort(key=lambda item: safe_float(item[1].get(sort_key), 0.0), reverse=reverse)
+
+    print("group,count,winrate,total_pnl,avg_pnl,avg_pnl_pct,avg_exit_eff_24h,avg_opp_loss_24h,avg_overall")
+    for name, stats in table:
+        print(
+            f"{name},"
+            f"{stats['count']},"
+            f"{stats['winrate']:.4f},"
+            f"{stats['total_pnl']:.8f},"
+            f"{stats['avg_pnl']:.8f},"
+            f"{stats['avg_pnl_pct']:.8f},"
+            f"{stats['avg_exit_efficiency_24h_pct']:.8f},"
+            f"{stats['avg_opportunity_loss_24h_pct']:.8f},"
+            f"{stats['avg_overall_score']:.2f}"
+        )
+
+
+def print_top_improvement_candidates(rows: list[dict[str, Any]], limit: int = 20) -> None:
+    print("")
+    print("TOP IMPROVEMENT CANDIDATES")
+    print("-" * 80)
+    print("rank,human_label,trade_id,root_cause,priority,priority_score,impact_score,confidence,opp_loss_24h,pnl,regime,risk")
+
+    ranked = sorted(
+        rows,
+        key=lambda row: (
+            safe_float(row.get("priority_score"), 0.0),
+            safe_float(row.get("impact_score"), 0.0),
+            safe_float(row.get("opportunity_loss_24h_pct"), 0.0),
+        ),
+        reverse=True,
+    )
+
+    for rank, row in enumerate(ranked[:limit], start=1):
+        print(
+            f"{rank},"
+            f"{safe_text(row.get('human_label'))},"
+            f"{safe_text(row.get('trade_id'))},"
+            f"{safe_text(row.get('root_cause'))},"
+            f"{safe_text(row.get('priority'))},"
+            f"{safe_text(row.get('priority_score'))},"
+            f"{safe_text(row.get('impact_score'))},"
+            f"{safe_text(row.get('root_cause_confidence'))},"
+            f"{safe_float(row.get('opportunity_loss_24h_pct'), 0.0):.8f},"
+            f"{safe_float(row.get('pnl'), 0.0):.8f},"
+            f"{safe_text(row.get('entry_regime_label'))},"
+            f"{safe_text(row.get('entry_risk_label'))}"
+        )
+
+
+def print_aggregate_intelligence(rows: list[dict[str, Any]]) -> None:
+    print("TRADE INSPECTOR V3 AGGREGATE INTELLIGENCE")
+    print("=" * 80)
+
+    stats = group_stats(rows)
+
+    print("")
+    print("GLOBAL SUMMARY")
+    print("-" * 80)
+    print_kv("trades", stats["count"])
+    print_kv("winners", stats["winners"])
+    print_kv("losers", stats["losers"])
+    print_kv("winrate", f"{stats['winrate']:.4f}")
+    print_kv("total_pnl", f"{stats['total_pnl']:.8f}")
+    print_kv("avg_pnl", f"{stats['avg_pnl']:.8f}")
+    print_kv("avg_pnl_pct", f"{stats['avg_pnl_pct']:.8f}")
+    print_kv("avg_exit_efficiency_24h_pct", f"{stats['avg_exit_efficiency_24h_pct']:.8f}")
+    print_kv("avg_opportunity_loss_24h_pct", f"{stats['avg_opportunity_loss_24h_pct']:.8f}")
+    print_kv("avg_overall_score", f"{stats['avg_overall_score']:.2f}")
+
+    print_group_table(
+        "ROOT CAUSE RANKING",
+        group_rows(rows, "root_cause"),
+        "count",
+        reverse=True,
+    )
+
+    print_group_table(
+        "PERFORMANCE BY ENTRY REGIME",
+        group_rows(rows, "entry_regime_label"),
+        "total_pnl",
+        reverse=True,
+    )
+
+    print_group_table(
+        "PERFORMANCE BY ENTRY RISK LABEL",
+        group_rows(rows, "entry_risk_label"),
+        "total_pnl",
+        reverse=True,
+    )
+
+    print_group_table(
+        "PERFORMANCE BY REGIME ALIGNMENT",
+        group_rows(rows, "regime_aligned"),
+        "total_pnl",
+        reverse=True,
+    )
+
+    print_group_table(
+        "PERFORMANCE BY PRIORITY",
+        group_rows(rows, "priority"),
+        "priority_score",
+        reverse=True,
+    )
+
+    print_top_improvement_candidates(rows, limit=20)
+
 def export_ml_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
@@ -1097,6 +1253,7 @@ def main() -> int:
     parser.add_argument("--market-csv", default=str(DEFAULT_MARKET_CSV))
     parser.add_argument("--trade-index", type=int)
     parser.add_argument("--summary", action="store_true")
+    parser.add_argument("--aggregate", action="store_true")
     parser.add_argument("--export-ml-csv", default="")
     parser.add_argument("--label-list", default=str(DEFAULT_LABEL_LIST))
     parser.add_argument("--label-registry", default=str(DEFAULT_LABEL_REGISTRY))
@@ -1117,7 +1274,7 @@ def main() -> int:
     if args.update_label_registry:
         save_label_registry(Path(args.label_registry), label_map)
 
-    print("TRADE INSPECTOR V2B")
+    print("TRADE INSPECTOR V3")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
@@ -1141,6 +1298,10 @@ def main() -> int:
         print_summary(rows)
         return 0
 
+    if args.aggregate:
+        print_aggregate_intelligence(rows)
+        return 0
+
     if args.export_ml_csv:
         export_ml_csv(rows, Path(args.export_ml_csv))
         return 0
@@ -1149,7 +1310,8 @@ def main() -> int:
     print("Examples:")
     print("python3 tools/trade_inspector/inspect_trades.py --trade-index 1")
     print("python3 tools/trade_inspector/inspect_trades.py --summary")
-    print("python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v1d.csv")
+    print("python3 tools/trade_inspector/inspect_trades.py --aggregate")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v3.csv")
     return 0
 
 
