@@ -1,46 +1,33 @@
 #!/usr/bin/env python3
 # tools/trade_inspector/inspect_trades.py
-# Trade Inspector V1A.
+# Trade Inspector V1C.
 # Read-only trade analysis tool.
+# Human analysis + ML feature export.
 # ASCII-only.
 
 from __future__ import annotations
 
 import argparse
+import bisect
 import csv
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 
 DEFAULT_ARCHIVE_DIR = Path("live_logs/archive/P79A_pre_run_2026-06-10")
-DEFAULT_OUTPUT_DIR = Path("data/processed/trade_inspector")
+DEFAULT_MARKET_CSV = Path("data/l1_full_run.csv")
 
 
-def read_jsonl(path: Path) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-
-    if not path.exists():
-        raise FileNotFoundError(
-            "Missing file: "
-            + str(path)
-            + "\nUse --archive-dir to point to an archive containing trades_l1.jsonl and execution_audit.jsonl."
-        )
-
-    with path.open("r", encoding="utf-8") as fh:
-        for line_no, raw in enumerate(fh, start=1):
-            s = raw.strip()
-            if not s:
-                continue
-            try:
-                obj = json.loads(s)
-            except Exception as exc:
-                raise ValueError(f"Bad JSON in {path} line {line_no}: {exc}") from exc
-            if not isinstance(obj, dict):
-                raise ValueError(f"Non-object JSON in {path} line {line_no}")
-            rows.append(obj)
-
-    return rows
+FUTURE_WINDOWS_MIN = {
+    "15m": 15,
+    "1h": 60,
+    "4h": 240,
+    "24h": 1440,
+    "72h": 4320,
+    "168h": 10080,
+}
 
 
 def safe_text(value: object) -> str:
@@ -63,12 +50,89 @@ def safe_int(value: object, default: int = 0) -> int:
         return default
 
 
+def parse_ts(value: object) -> datetime | None:
+    s = safe_text(value).replace("_", " ")
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(s)
+    except Exception:
+        return None
+
+
+def ts_key(value: object) -> str:
+    dt = parse_ts(value)
+    if dt is None:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    if not path.exists():
+        raise FileNotFoundError(
+            "Missing file: "
+            + str(path)
+            + "\nUse --archive-dir to point to an archive containing trades_l1.jsonl and execution_audit.jsonl."
+        )
+    with path.open("r", encoding="utf-8") as fh:
+        for line_no, raw in enumerate(fh, start=1):
+            s = raw.strip()
+            if not s:
+                continue
+            try:
+                obj = json.loads(s)
+            except Exception as exc:
+                raise ValueError(f"Bad JSON in {path} line {line_no}: {exc}") from exc
+            if not isinstance(obj, dict):
+                raise ValueError(f"Non-object JSON in {path} line {line_no}")
+            rows.append(obj)
+    return rows
+
+
+def market_timestamp(row: dict[str, Any]) -> str:
+    for key in ("timestamp_utc", "timestamp", "open_time"):
+        value = safe_text(row.get(key))
+        if value:
+            return ts_key(value)
+    return ""
+
+
+def market_price(row: dict[str, Any]) -> float:
+    for key in ("close", "price", "close_price"):
+        value = row.get(key)
+        if value is not None and safe_text(value) != "":
+            return safe_float(value, 0.0)
+    return 0.0
+
+
+def parse_market_rows(path: Path) -> tuple[list[str], list[float]]:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing market CSV: {path}")
+
+    timestamps: list[str] = []
+    prices: list[float] = []
+
+    with path.open("r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            ts = market_timestamp(row)
+            price = market_price(row)
+            if ts and price > 0:
+                timestamps.append(ts)
+                prices.append(price)
+
+    return timestamps, prices
+
+
 def find_matching_entry_exit(
     trade: dict[str, Any],
     audit_rows: list[dict[str, Any]],
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    entry_ts = safe_text(trade.get("entry_timestamp_utc"))
-    exit_ts = safe_text(trade.get("exit_timestamp_utc"))
+    entry_key = ts_key(trade.get("entry_timestamp_utc"))
+    exit_key = ts_key(trade.get("exit_timestamp_utc"))
     side = safe_text(trade.get("side")).lower()
 
     entry_match = None
@@ -76,14 +140,14 @@ def find_matching_entry_exit(
 
     for row in audit_rows:
         event = safe_text(row.get("event"))
-        row_ts = safe_text(row.get("timestamp_utc"))
+        row_key = ts_key(row.get("timestamp_utc"))
         row_side = safe_text(row.get("side")).lower()
 
-        if event == "ENTRY_ACCEPTED" and row_ts == entry_ts:
+        if event == "ENTRY_ACCEPTED" and row_key == entry_key:
             if side == "" or row_side == side:
                 entry_match = row
 
-        if event == "EXIT_EXECUTED" and row_ts == exit_ts:
+        if event == "EXIT_EXECUTED" and row_key == exit_key:
             exit_match = row
 
     return entry_match, exit_match
@@ -203,53 +267,30 @@ def compute_quality_score(
     return score, quality_class, positives, negatives
 
 
-def parse_market_rows(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing market CSV: {path}")
-
-    rows: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        reader = csv.DictReader(fh)
-        for row in reader:
-            rows.append(dict(row))
-    return rows
-
-
-def market_timestamp(row: dict[str, Any]) -> str:
-    for key in ("timestamp_utc", "timestamp", "open_time"):
-        value = safe_text(row.get(key))
-        if value:
-            return value.replace("_", " ")
-    return ""
-
-
-def market_price(row: dict[str, Any]) -> float:
-    for key in ("close", "price", "close_price"):
-        value = row.get(key)
-        if value is not None and safe_text(value) != "":
-            return safe_float(value, 0.0)
+def trade_pnl_from_price(side: str, entry_price: float, price: float) -> float:
+    if side == "long":
+        return price - entry_price
+    if side == "short":
+        return entry_price - price
     return 0.0
 
 
 def calculate_trade_path(
     trade: dict[str, Any],
-    market_rows: list[dict[str, Any]],
+    timestamps: list[str],
+    prices: list[float],
 ) -> dict[str, Any]:
-    entry_ts = safe_text(trade.get("entry_timestamp_utc")).replace("_", " ")
-    exit_ts = safe_text(trade.get("exit_timestamp_utc")).replace("_", " ")
+    entry_key = ts_key(trade.get("entry_timestamp_utc"))
+    exit_key = ts_key(trade.get("exit_timestamp_utc"))
     side = safe_text(trade.get("side")).lower()
     entry_price = safe_float(trade.get("entry_price"), 0.0)
 
-    prices: list[float] = []
+    start = bisect.bisect_left(timestamps, entry_key)
+    end = bisect.bisect_right(timestamps, exit_key)
 
-    for row in market_rows:
-        ts = market_timestamp(row)
-        if ts >= entry_ts and ts <= exit_ts:
-            price = market_price(row)
-            if price > 0:
-                prices.append(price)
+    path_prices = prices[start:end]
 
-    if not prices or entry_price <= 0:
+    if not path_prices or entry_price <= 0:
         return {
             "bars_held": 0,
             "best_price_during_trade": 0.0,
@@ -262,23 +303,20 @@ def calculate_trade_path(
         }
 
     if side == "long":
-        best_price = max(prices)
-        worst_price = min(prices)
-        mfe_abs = best_price - entry_price
-        mae_abs = worst_price - entry_price
+        best_price = max(path_prices)
+        worst_price = min(path_prices)
     elif side == "short":
-        best_price = min(prices)
-        worst_price = max(prices)
-        mfe_abs = entry_price - best_price
-        mae_abs = entry_price - worst_price
+        best_price = min(path_prices)
+        worst_price = max(path_prices)
     else:
-        best_price = max(prices)
-        worst_price = min(prices)
-        mfe_abs = 0.0
-        mae_abs = 0.0
+        best_price = path_prices[-1]
+        worst_price = path_prices[-1]
+
+    mfe_abs = trade_pnl_from_price(side, entry_price, best_price)
+    mae_abs = trade_pnl_from_price(side, entry_price, worst_price)
 
     return {
-        "bars_held": len(prices),
+        "bars_held": len(path_prices),
         "best_price_during_trade": float(best_price),
         "worst_price_during_trade": float(worst_price),
         "mfe_abs": float(mfe_abs),
@@ -289,21 +327,122 @@ def calculate_trade_path(
     }
 
 
+def calculate_counterfactuals(
+    trade: dict[str, Any],
+    timestamps: list[str],
+    prices: list[float],
+) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+
+    side = safe_text(trade.get("side")).lower()
+    entry_price = safe_float(trade.get("entry_price"), 0.0)
+    realized_pnl = safe_float(trade.get("pnl"), 0.0)
+
+    exit_dt = parse_ts(trade.get("exit_timestamp_utc"))
+    exit_key = ts_key(trade.get("exit_timestamp_utc"))
+
+    if exit_dt is None or entry_price <= 0:
+        for label in FUTURE_WINDOWS_MIN:
+            result[f"cf_return_{label}_pct"] = 0.0
+            result[f"cf_delta_vs_realized_{label}_pct"] = 0.0
+            result[f"best_future_return_{label}_pct"] = 0.0
+            result[f"exit_efficiency_{label}_pct"] = 0.0
+            result[f"opportunity_loss_{label}_pct"] = 0.0
+            result[f"counterfactual_available_{label}"] = 0
+        return result
+
+    exit_index = bisect.bisect_left(timestamps, exit_key)
+
+    for label, minutes in FUTURE_WINDOWS_MIN.items():
+        target_dt = exit_dt + timedelta(minutes=minutes)
+        if target_dt.tzinfo is None:
+            target_dt = target_dt.replace(tzinfo=timezone.utc)
+        target_key = target_dt.isoformat()
+
+        target_index = bisect.bisect_left(timestamps, target_key)
+
+        if exit_index >= len(prices) or target_index >= len(prices):
+            result[f"cf_return_{label}_pct"] = 0.0
+            result[f"cf_delta_vs_realized_{label}_pct"] = 0.0
+            result[f"best_future_return_{label}_pct"] = 0.0
+            result[f"exit_efficiency_{label}_pct"] = 0.0
+            result[f"opportunity_loss_{label}_pct"] = 0.0
+            result[f"counterfactual_available_{label}"] = 0
+            continue
+
+        target_price = prices[target_index]
+        cf_pnl = trade_pnl_from_price(side, entry_price, target_price)
+
+        window_prices = prices[exit_index : target_index + 1]
+        if not window_prices:
+            best_future_pnl = cf_pnl
+        else:
+            if side == "long":
+                best_future_price = max(window_prices)
+            elif side == "short":
+                best_future_price = min(window_prices)
+            else:
+                best_future_price = target_price
+            best_future_pnl = trade_pnl_from_price(side, entry_price, best_future_price)
+
+        cf_return_pct = cf_pnl / entry_price
+        realized_pct = realized_pnl / entry_price
+        best_future_return_pct = best_future_pnl / entry_price
+        delta_vs_realized_pct = cf_return_pct - realized_pct
+
+        opportunity_loss_pct = max(0.0, best_future_return_pct - realized_pct)
+
+        if best_future_pnl > 0 and realized_pnl > 0:
+            exit_efficiency_pct = max(0.0, min(1.0, realized_pnl / best_future_pnl))
+        elif best_future_pnl <= 0 and realized_pnl >= best_future_pnl:
+            exit_efficiency_pct = 1.0
+        else:
+            exit_efficiency_pct = 0.0
+
+        result[f"cf_return_{label}_pct"] = cf_return_pct
+        result[f"cf_delta_vs_realized_{label}_pct"] = delta_vs_realized_pct
+        result[f"best_future_return_{label}_pct"] = best_future_return_pct
+        result[f"exit_efficiency_{label}_pct"] = exit_efficiency_pct
+        result[f"opportunity_loss_{label}_pct"] = opportunity_loss_pct
+        result[f"counterfactual_available_{label}"] = 1
+
+    return result
+
+
+def interpretation_flags(path: dict[str, Any], cf: dict[str, Any]) -> dict[str, Any]:
+    mfe_pct = safe_float(path.get("mfe_pct"), 0.0)
+    mae_pct = safe_float(path.get("mae_pct"), 0.0)
+    opp_24h = safe_float(cf.get("opportunity_loss_24h_pct"), 0.0)
+    eff_24h = safe_float(cf.get("exit_efficiency_24h_pct"), 0.0)
+
+    return {
+        "high_mfe_flag": 1 if mfe_pct >= 0.01 else 0,
+        "high_mae_flag": 1 if mae_pct <= -0.01 else 0,
+        "early_exit_flag": 1 if opp_24h >= 0.01 else 0,
+        "good_exit_flag": 1 if eff_24h >= 0.8 else 0,
+        "exit_problem_flag": 1 if opp_24h >= 0.01 and eff_24h < 0.5 else 0,
+        "entry_problem_flag": 1 if mfe_pct <= 0.0 and mae_pct < 0.0 else 0,
+    }
+
+
 def build_ml_row(
     idx: int,
     trade: dict[str, Any],
     entry: dict[str, Any] | None,
     exit_: dict[str, Any] | None,
-    market_rows: list[dict[str, Any]] | None = None,
+    timestamps: list[str],
+    prices: list[float],
 ) -> dict[str, Any]:
     score, quality_class, positives, negatives = compute_quality_score(trade, entry, exit_)
     flags = quality_flags(trade, entry, exit_)
-    path = calculate_trade_path(trade, market_rows or [])
+    path = calculate_trade_path(trade, timestamps, prices)
+    cf = calculate_counterfactuals(trade, timestamps, prices)
+    interp = interpretation_flags(path, cf)
 
     pnl = safe_float(trade.get("pnl"), 0.0)
     duration = safe_float(trade.get("duration_sec"), 0.0)
 
-    return {
+    row: dict[str, Any] = {
         "trade_index": idx,
         "side": safe_text(trade.get("side")),
         "entry_timestamp_utc": safe_text(trade.get("entry_timestamp_utc")),
@@ -329,15 +468,12 @@ def build_ml_row(
         "flags": "|".join(flags),
         "positive_factors": "|".join(positives),
         "negative_factors": "|".join(negatives),
-        "bars_held": path["bars_held"],
-        "best_price_during_trade": path["best_price_during_trade"],
-        "worst_price_during_trade": path["worst_price_during_trade"],
-        "mfe_abs": path["mfe_abs"],
-        "mfe_pct": path["mfe_pct"],
-        "mae_abs": path["mae_abs"],
-        "mae_pct": path["mae_pct"],
-        "path_available": path["path_available"],
     }
+
+    row.update(path)
+    row.update(cf)
+    row.update(interp)
+    return row
 
 
 def print_kv(label: str, value: object) -> None:
@@ -349,10 +485,12 @@ def print_trade_report(
     trade: dict[str, Any],
     entry: dict[str, Any] | None,
     exit_: dict[str, Any] | None,
-    market_rows: list[dict[str, Any]] | None = None,
+    timestamps: list[str],
+    prices: list[float],
 ) -> None:
-    score, quality_class, positives, negatives = compute_quality_score(trade, entry, exit_)
-    path = calculate_trade_path(trade, market_rows or [])
+    row = build_ml_row(idx, trade, entry, exit_, timestamps, prices)
+    score = row["quality_score"]
+    quality_class = row["quality_class"]
 
     print("=" * 80)
     print(f"TRADE REPORT #{idx}")
@@ -379,8 +517,8 @@ def print_trade_report(
     print("-" * 80)
     print_kv("quality_score", score)
     print_kv("quality_class", quality_class)
-    print_kv("positive_factors", ",".join(positives) if positives else "none")
-    print_kv("negative_factors", ",".join(negatives) if negatives else "none")
+    print_kv("positive_factors", row["positive_factors"] or "none")
+    print_kv("negative_factors", row["negative_factors"] or "none")
 
     print("")
     print("TRADE PATH")
@@ -395,7 +533,44 @@ def print_trade_report(
         "mae_abs",
         "mae_pct",
     ]:
-        print_kv(key, path.get(key, ""))
+        print_kv(key, row.get(key, ""))
+
+    print("")
+    print("COUNTERFACTUAL ANALYSIS")
+    print("-" * 80)
+    for label in FUTURE_WINDOWS_MIN:
+        print_kv(f"cf_return_{label}_pct", row.get(f"cf_return_{label}_pct"))
+        print_kv(f"cf_delta_vs_realized_{label}_pct", row.get(f"cf_delta_vs_realized_{label}_pct"))
+        print_kv(f"best_future_return_{label}_pct", row.get(f"best_future_return_{label}_pct"))
+        print_kv(f"exit_efficiency_{label}_pct", row.get(f"exit_efficiency_{label}_pct"))
+        print_kv(f"opportunity_loss_{label}_pct", row.get(f"opportunity_loss_{label}_pct"))
+        print("")
+
+    print("INTERPRETATION FLAGS")
+    print("-" * 80)
+    for key in [
+        "high_mfe_flag",
+        "high_mae_flag",
+        "early_exit_flag",
+        "good_exit_flag",
+        "entry_problem_flag",
+        "exit_problem_flag",
+    ]:
+        print_kv(key, row.get(key, ""))
+
+    print("")
+    print("IMPROVEMENT OPTIONS")
+    print("-" * 80)
+    if safe_int(row.get("entry_problem_flag"), 0) == 1:
+        print("P1: review entry filter")
+        print("P2: review regime gate")
+        print("P3: review signal confirmation")
+    elif safe_int(row.get("exit_problem_flag"), 0) == 1:
+        print("P1: review exit rule")
+        print("P2: test longer hold variant")
+        print("P3: test trailing exit")
+    else:
+        print("none")
 
     print("")
     print("ENTRY AUDIT CONTEXT")
@@ -433,6 +608,8 @@ def list_ranked(
     audit_rows: list[dict[str, Any]],
     count: int,
     reverse: bool,
+    timestamps: list[str],
+    prices: list[float],
 ) -> None:
     ranked = sorted(
         enumerate(trades, start=1),
@@ -442,8 +619,7 @@ def list_ranked(
 
     for idx, trade in ranked[:count]:
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        score, quality_class, _, _ = compute_quality_score(trade, entry, exit_)
-        flags = ",".join(quality_flags(trade, entry, exit_)) or "none"
+        row = build_ml_row(idx, trade, entry, exit_, timestamps, prices)
         print(
             f"trade={idx} "
             f"side={safe_text(trade.get('side'))} "
@@ -451,23 +627,44 @@ def list_ranked(
             f"exit={safe_text(trade.get('exit_timestamp_utc'))} "
             f"pnl={safe_text(trade.get('pnl'))} "
             f"duration_sec={safe_text(trade.get('duration_sec'))} "
-            f"quality_score={score} "
-            f"quality_class={quality_class} "
-            f"flags={flags}"
+            f"quality_score={row['quality_score']} "
+            f"quality_class={row['quality_class']} "
+            f"mfe_pct={row['mfe_pct']} "
+            f"mae_pct={row['mae_pct']} "
+            f"opp_loss_24h={row['opportunity_loss_24h_pct']} "
+            f"entry_problem={row['entry_problem_flag']} "
+            f"exit_problem={row['exit_problem_flag']}"
         )
 
 
-def print_summary(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]], market_rows: list[dict[str, Any]]) -> None:
-    rows = []
+def build_rows(
+    trades: list[dict[str, Any]],
+    audit_rows: list[dict[str, Any]],
+    timestamps: list[str],
+    prices: list[float],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for idx, trade in enumerate(trades, start=1):
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        rows.append(build_ml_row(idx, trade, entry, exit_, market_rows))
+        rows.append(build_ml_row(idx, trade, entry, exit_, timestamps, prices))
+    return rows
+
+
+def print_summary(
+    trades: list[dict[str, Any]],
+    audit_rows: list[dict[str, Any]],
+    timestamps: list[str],
+    prices: list[float],
+) -> None:
+    rows = build_rows(trades, audit_rows, timestamps, prices)
 
     class_counts: dict[str, int] = {}
     winners = 0
     losers = 0
     flats = 0
     total_pnl = 0.0
+    exit_problem_count = 0
+    entry_problem_count = 0
 
     for row in rows:
         cls = safe_text(row.get("quality_class"))
@@ -476,6 +673,8 @@ def print_summary(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]]
         losers += safe_int(row.get("is_loser"), 0)
         flats += safe_int(row.get("is_flat"), 0)
         total_pnl += safe_float(row.get("pnl"), 0.0)
+        exit_problem_count += safe_int(row.get("exit_problem_flag"), 0)
+        entry_problem_count += safe_int(row.get("entry_problem_flag"), 0)
 
     print("TRADE INSPECTOR SUMMARY")
     print("-" * 80)
@@ -484,6 +683,8 @@ def print_summary(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]]
     print_kv("losers", losers)
     print_kv("flats", flats)
     print_kv("total_pnl", total_pnl)
+    print_kv("entry_problem_count", entry_problem_count)
+    print_kv("exit_problem_count", exit_problem_count)
     print("")
     print("QUALITY CLASS COUNTS")
     print("-" * 80)
@@ -491,18 +692,8 @@ def print_summary(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]]
         print_kv(key, class_counts.get(key, 0))
 
 
-def export_ml_csv(
-    trades: list[dict[str, Any]],
-    audit_rows: list[dict[str, Any]],
-    output_path: Path,
-    market_rows: list[dict[str, Any]],
-) -> None:
+def export_ml_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    rows = []
-    for idx, trade in enumerate(trades, start=1):
-        entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        rows.append(build_ml_row(idx, trade, entry, exit_, market_rows))
 
     if not rows:
         raise ValueError("No trades to export.")
@@ -521,12 +712,12 @@ def export_ml_csv(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--archive-dir", default=str(DEFAULT_ARCHIVE_DIR))
+    parser.add_argument("--market-csv", default=str(DEFAULT_MARKET_CSV))
     parser.add_argument("--trade-index", type=int)
     parser.add_argument("--best", type=int)
     parser.add_argument("--worst", type=int)
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--export-ml-csv", default="")
-    parser.add_argument("--market-csv", default="data/l1_full_run.csv")
     args = parser.parse_args()
 
     archive_dir = Path(args.archive_dir)
@@ -536,13 +727,13 @@ def main() -> int:
 
     trades = read_jsonl(trades_path)
     audit_rows = read_jsonl(audit_path)
-    market_rows = parse_market_rows(Path(args.market_csv))
+    timestamps, prices = parse_market_rows(Path(args.market_csv))
 
-    print("TRADE INSPECTOR V1B")
+    print("TRADE INSPECTOR V1C")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
-    print("market_rows:", len(market_rows))
+    print("market_rows:", len(timestamps))
     print("")
 
     if args.trade_index is not None:
@@ -550,27 +741,28 @@ def main() -> int:
             raise SystemExit(f"Invalid trade index: {args.trade_index}")
         trade = trades[args.trade_index - 1]
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        print_trade_report(args.trade_index, trade, entry, exit_, market_rows)
+        print_trade_report(args.trade_index, trade, entry, exit_, timestamps, prices)
         return 0
 
     if args.best is not None:
         print("BEST TRADES")
         print("-" * 80)
-        list_ranked(trades, audit_rows, args.best, reverse=True)
+        list_ranked(trades, audit_rows, args.best, True, timestamps, prices)
         return 0
 
     if args.worst is not None:
         print("WORST TRADES")
         print("-" * 80)
-        list_ranked(trades, audit_rows, args.worst, reverse=False)
+        list_ranked(trades, audit_rows, args.worst, False, timestamps, prices)
         return 0
 
     if args.summary:
-        print_summary(trades, audit_rows, market_rows)
+        print_summary(trades, audit_rows, timestamps, prices)
         return 0
 
     if args.export_ml_csv:
-        export_ml_csv(trades, audit_rows, Path(args.export_ml_csv), market_rows)
+        rows = build_rows(trades, audit_rows, timestamps, prices)
+        export_ml_csv(rows, Path(args.export_ml_csv))
         return 0
 
     print("No selection provided.")
@@ -579,7 +771,7 @@ def main() -> int:
     print("python3 tools/trade_inspector/inspect_trades.py --worst 10")
     print("python3 tools/trade_inspector/inspect_trades.py --best 10")
     print("python3 tools/trade_inspector/inspect_trades.py --summary")
-    print("python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v1a.csv")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v1c.csv")
     return 0
 
 
