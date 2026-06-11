@@ -700,6 +700,93 @@ def extract_regime_features(
 
 
 
+
+DEFAULT_LABEL_LIST = Path("config/trade_inspector/human_labels.txt")
+DEFAULT_LABEL_REGISTRY = Path("config/trade_inspector/trade_label_registry.csv")
+
+
+def load_human_labels(path: Path) -> list[str]:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing human label list: {path}")
+
+    labels: list[str] = []
+    seen: set[str] = set()
+
+    with path.open("r", encoding="utf-8") as fh:
+        for raw in fh:
+            label = raw.strip().lower()
+            if not label or label.startswith("#"):
+                continue
+            if not label.isascii():
+                raise ValueError(f"Non-ASCII label: {label}")
+            if len(label) > 8:
+                raise ValueError(f"Label too long: {label}")
+            if " " in label:
+                raise ValueError(f"Label contains space: {label}")
+            if label in seen:
+                raise ValueError(f"Duplicate label: {label}")
+            seen.add(label)
+            labels.append(label)
+
+    if not labels:
+        raise ValueError(f"No labels loaded from: {path}")
+
+    return labels
+
+
+def load_label_registry(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+
+    registry: dict[str, str] = {}
+
+    with path.open("r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            trade_id = safe_text(row.get("trade_id"))
+            label = safe_text(row.get("human_label")).lower()
+            if trade_id and label:
+                registry[trade_id] = label
+
+    return registry
+
+
+def save_label_registry(path: Path, registry: dict[str, str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["trade_id", "human_label"])
+        writer.writeheader()
+        for trade_id in sorted(registry):
+            writer.writerow({"trade_id": trade_id, "human_label": registry[trade_id]})
+
+
+def assign_human_labels(
+    trades: list[dict[str, Any]],
+    label_list: list[str],
+    registry: dict[str, str],
+) -> dict[str, str]:
+    used_labels = set(registry.values())
+
+    if len(used_labels) != len(registry.values()):
+        raise ValueError("Label registry contains duplicate labels.")
+
+    available = [label for label in label_list if label not in used_labels]
+
+    trade_ids = sorted({build_trade_id(trade) for trade in trades})
+
+    assigned = dict(registry)
+
+    for trade_id in trade_ids:
+        if trade_id in assigned:
+            continue
+        if not available:
+            raise ValueError("Not enough human labels. Extend config/trade_inspector/human_labels.txt.")
+        assigned[trade_id] = available.pop(0)
+
+    return assigned
+
+
 def compact_trade_time(value: object) -> str:
     dt = parse_ts(value)
     if dt is None:
@@ -734,6 +821,7 @@ def build_ml_row(
     regime_index: dict[str, dict[str, Any]],
     timestamps: list[str],
     prices: list[float],
+    label_map: dict[str, str],
 ) -> dict[str, Any]:
     quality_score, quality_class, positives, negatives = compute_quality_score(trade, entry, exit_)
     flags = quality_flags(trade, entry, exit_)
@@ -747,10 +835,12 @@ def build_ml_row(
     regime = extract_regime_features(trade, regime_index)
 
     trade_id = build_trade_id(trade)
+    human_label = safe_text(label_map.get(trade_id))
 
     row: dict[str, Any] = {
         "trade_index": idx,
         "trade_id": trade_id,
+        "human_label": human_label,
         "symbol": safe_text(trade.get("symbol")) or "BTCUSDT",
         "entry_time_chart": chart_time(trade.get("entry_timestamp_utc")),
         "exit_time_chart": chart_time(trade.get("exit_timestamp_utc")),
@@ -802,8 +892,9 @@ def print_trade_report(
     regime_index: dict[str, dict[str, Any]],
     timestamps: list[str],
     prices: list[float],
+    label_map: dict[str, str],
 ) -> None:
-    row = build_ml_row(idx, trade, entry, exit_, audit_rows, regime_index, timestamps, prices)
+    row = build_ml_row(idx, trade, entry, exit_, audit_rows, regime_index, timestamps, prices, label_map)
 
     print("=" * 80)
     print(f"TRADE REPORT #{idx}")
@@ -814,6 +905,7 @@ def print_trade_report(
     print("-" * 80)
     for key in [
         "trade_id",
+        "human_label",
         "symbol",
         "entry_time_chart",
         "exit_time_chart",
@@ -932,11 +1024,18 @@ def print_trade_report(
     print("")
 
 
-def build_rows(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]], regime_index: dict[str, dict[str, Any]], timestamps: list[str], prices: list[float]) -> list[dict[str, Any]]:
+def build_rows(
+    trades: list[dict[str, Any]],
+    audit_rows: list[dict[str, Any]],
+    regime_index: dict[str, dict[str, Any]],
+    timestamps: list[str],
+    prices: list[float],
+    label_map: dict[str, str],
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for idx, trade in enumerate(trades, start=1):
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        rows.append(build_ml_row(idx, trade, entry, exit_, audit_rows, regime_index, timestamps, prices))
+        rows.append(build_ml_row(idx, trade, entry, exit_, audit_rows, regime_index, timestamps, prices, label_map))
     return rows
 
 
@@ -999,6 +1098,9 @@ def main() -> int:
     parser.add_argument("--trade-index", type=int)
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--export-ml-csv", default="")
+    parser.add_argument("--label-list", default=str(DEFAULT_LABEL_LIST))
+    parser.add_argument("--label-registry", default=str(DEFAULT_LABEL_REGISTRY))
+    parser.add_argument("--update-label-registry", action="store_true")
     args = parser.parse_args()
 
     archive_dir = Path(args.archive_dir)
@@ -1008,23 +1110,31 @@ def main() -> int:
     regime_rows = log_rows
     regime_index = build_regime_index(regime_rows)
     timestamps, prices = parse_market_rows(Path(args.market_csv))
+    label_list = load_human_labels(Path(args.label_list))
+    existing_registry = load_label_registry(Path(args.label_registry))
+    label_map = assign_human_labels(trades, label_list, existing_registry)
 
-    print("TRADE INSPECTOR V2A")
+    if args.update_label_registry:
+        save_label_registry(Path(args.label_registry), label_map)
+
+    print("TRADE INSPECTOR V2B")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
     print("regime_events:", len(regime_rows))
     print("market_rows:", len(timestamps))
+    print("human_labels_loaded:", len(label_list))
+    print("label_registry_entries:", len(label_map))
     print("")
 
-    rows = build_rows(trades, audit_rows, regime_index, timestamps, prices)
+    rows = build_rows(trades, audit_rows, regime_index, timestamps, prices, label_map)
 
     if args.trade_index is not None:
         if args.trade_index < 1 or args.trade_index > len(trades):
             raise SystemExit(f"Invalid trade index: {args.trade_index}")
         trade = trades[args.trade_index - 1]
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        print_trade_report(args.trade_index, trade, entry, exit_, audit_rows, regime_index, timestamps, prices)
+        print_trade_report(args.trade_index, trade, entry, exit_, audit_rows, regime_index, timestamps, prices, label_map)
         return 0
 
     if args.summary:
