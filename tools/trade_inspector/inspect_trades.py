@@ -608,11 +608,104 @@ def compute_confidence_layer(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+
+
+def parse_key_value_log(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    if not path.exists():
+        return rows
+
+    with path.open("r", encoding="utf-8", errors="replace") as fh:
+        for raw in fh:
+            s = raw.strip()
+            if "event=regime_snapshot" not in s:
+                continue
+
+            row: dict[str, Any] = {}
+            parts = s.split()
+            for part in parts:
+                if "=" not in part:
+                    continue
+                key, value = part.split("=", 1)
+                row[key] = value
+
+            if row:
+                rows.append(row)
+
+    return rows
+
+
+def build_regime_index(regime_rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    index: dict[str, dict[str, Any]] = {}
+
+    for row in regime_rows:
+        key = ts_key(row.get("timestamp_utc"))
+        if key:
+            index[key] = row
+
+    return index
+
+
+def extract_regime_features(
+    trade: dict[str, Any],
+    regime_index: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    entry_key = ts_key(trade.get("entry_timestamp_utc"))
+    exit_key = ts_key(trade.get("exit_timestamp_utc"))
+
+    entry_regime = regime_index.get(entry_key, {})
+    exit_regime = regime_index.get(exit_key, {})
+
+    entry_label = safe_text(entry_regime.get("regime_label"))
+    exit_label = safe_text(exit_regime.get("regime_label"))
+
+    entry_risk = safe_text(entry_regime.get("risk_label"))
+    exit_risk = safe_text(exit_regime.get("risk_label"))
+
+    entry_score = safe_int(entry_regime.get("entry_score"), 0)
+    exit_score = safe_int(exit_regime.get("entry_score"), 0)
+
+    side = safe_text(trade.get("side")).lower()
+
+    regime_aligned = 0
+    if side == "long" and entry_label == "bull":
+        regime_aligned = 1
+    elif side == "short" and entry_label == "bear":
+        regime_aligned = 1
+    elif entry_label:
+        regime_aligned = -1
+
+    risk_good = 1 if entry_risk == "good_atr" else 0
+    regime_changed = 1 if entry_label and exit_label and entry_label != exit_label else 0
+
+    return {
+        "entry_regime_label": entry_label,
+        "exit_regime_label": exit_label,
+        "entry_risk_label": entry_risk,
+        "exit_risk_label": exit_risk,
+        "entry_score_at_entry": entry_score,
+        "entry_score_at_exit": exit_score,
+        "entry_ma200_signal": safe_int(entry_regime.get("ma200_signal"), 0),
+        "entry_mfi_signal": safe_int(entry_regime.get("mfi_signal"), 0),
+        "entry_atr_signal": safe_int(entry_regime.get("atr_signal"), 0),
+        "exit_ma200_signal": safe_int(exit_regime.get("ma200_signal"), 0),
+        "exit_mfi_signal": safe_int(exit_regime.get("mfi_signal"), 0),
+        "exit_atr_signal": safe_int(exit_regime.get("atr_signal"), 0),
+        "regime_aligned": regime_aligned,
+        "risk_good_at_entry": risk_good,
+        "regime_changed_during_trade": regime_changed,
+        "has_entry_regime_context": 1 if entry_regime else 0,
+        "has_exit_regime_context": 1 if exit_regime else 0,
+    }
+
+
 def build_ml_row(
     idx: int,
     trade: dict[str, Any],
     entry: dict[str, Any] | None,
     exit_: dict[str, Any] | None,
+    audit_rows: list[dict[str, Any]],
+    regime_index: dict[str, dict[str, Any]],
     timestamps: list[str],
     prices: list[float],
 ) -> dict[str, Any]:
@@ -625,6 +718,7 @@ def build_ml_row(
     pnl = safe_float(trade.get("pnl"), 0.0)
     duration = safe_float(trade.get("duration_sec"), 0.0)
     diagnosis = compute_diagnosis(path, cf, pnl)
+    regime = extract_regime_features(trade, regime_index)
 
     row: dict[str, Any] = {
         "trade_index": idx,
@@ -658,6 +752,7 @@ def build_ml_row(
     row.update(cf)
     row.update(interp)
     row.update(diagnosis)
+    row.update(regime)
     row.update(compute_confidence_layer(row))
     return row
 
@@ -671,10 +766,12 @@ def print_trade_report(
     trade: dict[str, Any],
     entry: dict[str, Any] | None,
     exit_: dict[str, Any] | None,
+    audit_rows: list[dict[str, Any]],
+    regime_index: dict[str, dict[str, Any]],
     timestamps: list[str],
     prices: list[float],
 ) -> None:
-    row = build_ml_row(idx, trade, entry, exit_, timestamps, prices)
+    row = build_ml_row(idx, trade, entry, exit_, audit_rows, regime_index, timestamps, prices)
 
     print("=" * 80)
     print(f"TRADE REPORT #{idx}")
@@ -751,6 +848,27 @@ def print_trade_report(
         print_kv(key, row.get(key, ""))
 
     print("")
+    print("REGIME CONTEXT")
+    print("-" * 80)
+    for key in [
+        "entry_regime_label",
+        "exit_regime_label",
+        "entry_risk_label",
+        "exit_risk_label",
+        "entry_score_at_entry",
+        "entry_score_at_exit",
+        "entry_ma200_signal",
+        "entry_mfi_signal",
+        "entry_atr_signal",
+        "regime_aligned",
+        "risk_good_at_entry",
+        "regime_changed_during_trade",
+        "has_entry_regime_context",
+        "has_exit_regime_context",
+    ]:
+        print_kv(key, row.get(key, ""))
+
+    print("")
     print("COUNTERFACTUAL 24H CORE")
     print("-" * 80)
     for key in ["cf_return_24h_pct", "best_future_return_24h_pct", "exit_efficiency_24h_pct", "opportunity_loss_24h_pct"]:
@@ -765,11 +883,11 @@ def print_trade_report(
     print("")
 
 
-def build_rows(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]], timestamps: list[str], prices: list[float]) -> list[dict[str, Any]]:
+def build_rows(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]], regime_index: dict[str, dict[str, Any]], timestamps: list[str], prices: list[float]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for idx, trade in enumerate(trades, start=1):
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        rows.append(build_ml_row(idx, trade, entry, exit_, timestamps, prices))
+        rows.append(build_ml_row(idx, trade, entry, exit_, audit_rows, regime_index, timestamps, prices))
     return rows
 
 
@@ -837,23 +955,27 @@ def main() -> int:
     archive_dir = Path(args.archive_dir)
     trades = read_jsonl(archive_dir / "trades_l1.jsonl")
     audit_rows = read_jsonl(archive_dir / "execution_audit.jsonl")
+    log_rows = parse_key_value_log(archive_dir / "l1_paper.log")
+    regime_rows = log_rows
+    regime_index = build_regime_index(regime_rows)
     timestamps, prices = parse_market_rows(Path(args.market_csv))
 
-    print("TRADE INSPECTOR V1E")
+    print("TRADE INSPECTOR V2")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
+    print("regime_events:", len(regime_rows))
     print("market_rows:", len(timestamps))
     print("")
 
-    rows = build_rows(trades, audit_rows, timestamps, prices)
+    rows = build_rows(trades, audit_rows, regime_index, timestamps, prices)
 
     if args.trade_index is not None:
         if args.trade_index < 1 or args.trade_index > len(trades):
             raise SystemExit(f"Invalid trade index: {args.trade_index}")
         trade = trades[args.trade_index - 1]
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        print_trade_report(args.trade_index, trade, entry, exit_, timestamps, prices)
+        print_trade_report(args.trade_index, trade, entry, exit_, audit_rows, regime_index, timestamps, prices)
         return 0
 
     if args.summary:
