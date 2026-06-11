@@ -1175,6 +1175,118 @@ def print_top_improvement_candidates(rows: list[dict[str, Any]], limit: int = 20
         )
 
 
+
+def parse_cause_weights(value: object) -> dict[str, float]:
+    text = safe_text(value)
+    output: dict[str, float] = {}
+
+    if not text:
+        return output
+
+    for part in text.split("|"):
+        if "=" not in part:
+            continue
+        key, raw_value = part.split("=", 1)
+        key = safe_text(key)
+        weight = safe_float(raw_value, 0.0)
+        if key:
+            output[key] = weight
+
+    return output
+
+
+def compute_root_cause_attribution(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    totals: dict[str, dict[str, float]] = {}
+
+    for row in rows:
+        pnl = safe_float(row.get("pnl"), 0.0)
+        opportunity_loss = safe_float(row.get("opportunity_loss_24h_pct"), 0.0)
+        impact_score = safe_float(row.get("impact_score"), 0.0)
+        priority_score = safe_float(row.get("priority_score"), 0.0)
+        cause_weights = parse_cause_weights(row.get("cause_weights"))
+
+        for cause, weight in cause_weights.items():
+            share = weight / 100.0
+            bucket = totals.setdefault(cause, {
+                "cause_weight_sum": 0.0,
+                "trade_count_weighted": 0.0,
+                "negative_pnl_contribution": 0.0,
+                "opportunity_loss_contribution": 0.0,
+                "impact_contribution": 0.0,
+                "priority_contribution": 0.0,
+            })
+
+            bucket["cause_weight_sum"] += weight
+            bucket["trade_count_weighted"] += share
+            bucket["negative_pnl_contribution"] += max(0.0, -pnl) * share
+            bucket["opportunity_loss_contribution"] += opportunity_loss * share
+            bucket["impact_contribution"] += impact_score * share
+            bucket["priority_contribution"] += priority_score * share
+
+    total_weight = sum(v["cause_weight_sum"] for v in totals.values())
+    total_neg = sum(v["negative_pnl_contribution"] for v in totals.values())
+    total_opp = sum(v["opportunity_loss_contribution"] for v in totals.values())
+    total_impact = sum(v["impact_contribution"] for v in totals.values())
+    total_priority = sum(v["priority_contribution"] for v in totals.values())
+
+    output: list[dict[str, Any]] = []
+
+    for cause, values in totals.items():
+        output.append({
+            "root_cause": cause,
+            "cause_weight_sum": values["cause_weight_sum"],
+            "cause_share_pct": values["cause_weight_sum"] / total_weight if total_weight else 0.0,
+            "trade_count_weighted": values["trade_count_weighted"],
+            "negative_pnl_contribution": values["negative_pnl_contribution"],
+            "negative_pnl_share_pct": values["negative_pnl_contribution"] / total_neg if total_neg else 0.0,
+            "opportunity_loss_contribution": values["opportunity_loss_contribution"],
+            "opportunity_loss_share_pct": values["opportunity_loss_contribution"] / total_opp if total_opp else 0.0,
+            "impact_contribution": values["impact_contribution"],
+            "impact_share_pct": values["impact_contribution"] / total_impact if total_impact else 0.0,
+            "priority_contribution": values["priority_contribution"],
+            "priority_share_pct": values["priority_contribution"] / total_priority if total_priority else 0.0,
+        })
+
+    output.sort(key=lambda row: safe_float(row.get("priority_contribution"), 0.0), reverse=True)
+    return output
+
+
+def print_root_cause_attribution(rows: list[dict[str, Any]]) -> None:
+    attribution = compute_root_cause_attribution(rows)
+
+    print("")
+    print("ROOT CAUSE ATTRIBUTION")
+    print("-" * 80)
+    print(
+        "root_cause,"
+        "cause_share,"
+        "weighted_trades,"
+        "neg_pnl_share,"
+        "opp_loss_share,"
+        "impact_share,"
+        "priority_share,"
+        "priority_contribution"
+    )
+
+    for row in attribution:
+        print(
+            f"{safe_text(row.get('root_cause'))},"
+            f"{safe_float(row.get('cause_share_pct'), 0.0):.4f},"
+            f"{safe_float(row.get('trade_count_weighted'), 0.0):.4f},"
+            f"{safe_float(row.get('negative_pnl_share_pct'), 0.0):.4f},"
+            f"{safe_float(row.get('opportunity_loss_share_pct'), 0.0):.4f},"
+            f"{safe_float(row.get('impact_share_pct'), 0.0):.4f},"
+            f"{safe_float(row.get('priority_share_pct'), 0.0):.4f},"
+            f"{safe_float(row.get('priority_contribution'), 0.0):.4f}"
+        )
+
+
+def export_root_cause_attribution_csv(rows: list[dict[str, Any]], output_dir: Path) -> None:
+    write_csv_rows(
+        output_dir / "aggregate_root_cause_attribution.csv",
+        compute_root_cause_attribution(rows),
+    )
+
 def print_aggregate_intelligence(rows: list[dict[str, Any]]) -> None:
     print("TRADE INSPECTOR V3 AGGREGATE INTELLIGENCE")
     print("=" * 80)
@@ -1231,6 +1343,7 @@ def print_aggregate_intelligence(rows: list[dict[str, Any]]) -> None:
     )
 
     print_top_improvement_candidates(rows, limit=20)
+    print_root_cause_attribution(rows)
 
 
 def write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -1349,6 +1462,8 @@ def export_aggregate_csvs(rows: list[dict[str, Any]], output_dir: Path) -> None:
         aggregate_top_improvement_rows(rows, limit=100),
     )
 
+    export_root_cause_attribution_csv(rows, output_dir)
+
     print("Aggregate CSV export directory:", output_dir)
     print("files:")
     for path in sorted(output_dir.glob("*.csv")):
@@ -1397,7 +1512,7 @@ def main() -> int:
     if args.update_label_registry:
         save_label_registry(Path(args.label_registry), label_map)
 
-    print("TRADE INSPECTOR V3A")
+    print("TRADE INSPECTOR V3B")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
