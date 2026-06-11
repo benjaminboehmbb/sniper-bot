@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # tools/trade_inspector/inspect_trades.py
-# Trade Inspector V1C.
-# Read-only trade analysis tool.
+# Trade Inspector V1D.
+# Read-only trade diagnosis tool.
 # Human analysis + ML feature export.
 # ASCII-only.
 
@@ -18,7 +18,6 @@ from typing import Any
 
 DEFAULT_ARCHIVE_DIR = Path("live_logs/archive/P79A_pre_run_2026-06-10")
 DEFAULT_MARKET_CSV = Path("data/l1_full_run.csv")
-
 
 FUTURE_WINDOWS_MIN = {
     "15m": 15,
@@ -77,6 +76,7 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
             + str(path)
             + "\nUse --archive-dir to point to an archive containing trades_l1.jsonl and execution_audit.jsonl."
         )
+
     with path.open("r", encoding="utf-8") as fh:
         for line_no, raw in enumerate(fh, start=1):
             s = raw.strip()
@@ -182,89 +182,24 @@ def quality_flags(
     return flags
 
 
-def compute_quality_score(
-    trade: dict[str, Any],
-    entry: dict[str, Any] | None,
-    exit_: dict[str, Any] | None,
-) -> tuple[int, str, list[str], list[str]]:
-    score = 50
-    positives: list[str] = []
-    negatives: list[str] = []
+def score_band(score: int) -> str:
+    if score >= 90:
+        return "excellent"
+    if score >= 75:
+        return "good"
+    if score >= 60:
+        return "acceptable"
+    if score >= 40:
+        return "weak"
+    return "bad"
 
-    pnl = safe_float(trade.get("pnl"), 0.0)
-    duration = safe_float(trade.get("duration_sec"), 0.0)
 
-    if pnl > 0:
-        score += 20
-        positives.append("positive_pnl")
-    elif pnl < 0:
-        score -= 25
-        negatives.append("negative_pnl")
-    else:
-        positives.append("flat_pnl")
-
-    if duration <= 0:
-        score -= 20
-        negatives.append("invalid_duration")
-    elif duration <= 3600:
-        score += 10
-        positives.append("short_duration")
-    elif duration <= 21600:
-        score += 3
-        positives.append("moderate_duration")
-    else:
-        score -= 8
-        negatives.append("long_duration")
-
-    if entry is None:
-        score -= 20
-        negatives.append("missing_entry_context")
-    else:
-        positives.append("entry_context_found")
-
-    if exit_ is None:
-        score -= 20
-        negatives.append("missing_exit_context")
-    else:
-        positives.append("exit_context_found")
-
-    exit_reason = safe_text(trade.get("exit_reason")).upper()
-    audit_exit_reason = safe_text(exit_.get("reason") if exit_ else "").upper()
-
-    if "TIME_STOP" in exit_reason or "TIME_STOP" in audit_exit_reason:
-        score -= 5
-        negatives.append("time_stop_exit")
-
-    if "TP" in exit_reason or "TP" in audit_exit_reason:
-        score += 10
-        positives.append("take_profit_exit")
-
-    if "SL" in exit_reason or "SL" in audit_exit_reason:
-        score -= 15
-        negatives.append("stop_loss_exit")
-
-    flags = quality_flags(trade, entry, exit_)
-    if "missing_entry_audit" in flags or "missing_exit_audit" in flags:
-        score -= 15
-    if "negative_duration" in flags:
-        score -= 30
-    if "very_long_trade" in flags:
-        score -= 5
-
-    score = max(0, min(100, int(score)))
-
-    if score >= 85:
-        quality_class = "excellent"
-    elif score >= 70:
-        quality_class = "good"
-    elif score >= 50:
-        quality_class = "neutral"
-    elif score >= 30:
-        quality_class = "weak"
-    else:
-        quality_class = "bad"
-
-    return score, quality_class, positives, negatives
+def signed_diagnosis(score: int) -> int:
+    if score >= 75:
+        return 1
+    if score >= 40:
+        return 0
+    return -1
 
 
 def trade_pnl_from_price(side: str, entry_price: float, price: float) -> float:
@@ -287,7 +222,6 @@ def calculate_trade_path(
 
     start = bisect.bisect_left(timestamps, entry_key)
     end = bisect.bisect_right(timestamps, exit_key)
-
     path_prices = prices[start:end]
 
     if not path_prices or entry_price <= 0:
@@ -389,7 +323,6 @@ def calculate_counterfactuals(
         realized_pct = realized_pnl / entry_price
         best_future_return_pct = best_future_pnl / entry_price
         delta_vs_realized_pct = cf_return_pct - realized_pct
-
         opportunity_loss_pct = max(0.0, best_future_return_pct - realized_pct)
 
         if best_future_pnl > 0 and realized_pnl > 0:
@@ -409,6 +342,60 @@ def calculate_counterfactuals(
     return result
 
 
+def compute_quality_score(
+    trade: dict[str, Any],
+    entry: dict[str, Any] | None,
+    exit_: dict[str, Any] | None,
+) -> tuple[int, str, list[str], list[str]]:
+    score = 50
+    positives: list[str] = []
+    negatives: list[str] = []
+
+    pnl = safe_float(trade.get("pnl"), 0.0)
+    duration = safe_float(trade.get("duration_sec"), 0.0)
+
+    if pnl > 0:
+        score += 20
+        positives.append("positive_pnl")
+    elif pnl < 0:
+        score -= 25
+        negatives.append("negative_pnl")
+    else:
+        positives.append("flat_pnl")
+
+    if duration <= 0:
+        score -= 20
+        negatives.append("invalid_duration")
+    elif duration <= 3600:
+        score += 10
+        positives.append("short_duration")
+    elif duration <= 21600:
+        score += 3
+        positives.append("moderate_duration")
+    else:
+        score -= 8
+        negatives.append("long_duration")
+
+    if entry is None:
+        score -= 20
+        negatives.append("missing_entry_context")
+    else:
+        positives.append("entry_context_found")
+
+    if exit_ is None:
+        score -= 20
+        negatives.append("missing_exit_context")
+    else:
+        positives.append("exit_context_found")
+
+    flags = quality_flags(trade, entry, exit_)
+    if "negative_duration" in flags:
+        score -= 30
+
+    score = max(0, min(100, int(score)))
+    return score, score_band(score), positives, negatives
+
+
 def interpretation_flags(path: dict[str, Any], cf: dict[str, Any]) -> dict[str, Any]:
     mfe_pct = safe_float(path.get("mfe_pct"), 0.0)
     mae_pct = safe_float(path.get("mae_pct"), 0.0)
@@ -425,6 +412,202 @@ def interpretation_flags(path: dict[str, Any], cf: dict[str, Any]) -> dict[str, 
     }
 
 
+def compute_diagnosis(path: dict[str, Any], cf: dict[str, Any], pnl: float) -> dict[str, Any]:
+    mfe_pct = safe_float(path.get("mfe_pct"), 0.0)
+    mae_pct = safe_float(path.get("mae_pct"), 0.0)
+    opp_24h = safe_float(cf.get("opportunity_loss_24h_pct"), 0.0)
+    exit_eff_24h = safe_float(cf.get("exit_efficiency_24h_pct"), 0.0)
+
+    entry_score = 50
+    if mfe_pct <= 0.0 and mae_pct < 0.0:
+        entry_score -= 35
+    elif mfe_pct >= 0.02:
+        entry_score += 30
+    elif mfe_pct >= 0.01:
+        entry_score += 15
+    elif mfe_pct > 0.0:
+        entry_score += 5
+
+    if pnl < 0 and mfe_pct <= 0.0:
+        entry_score -= 15
+
+    risk_score = 80
+    if mae_pct <= -0.05:
+        risk_score -= 50
+    elif mae_pct <= -0.02:
+        risk_score -= 30
+    elif mae_pct <= -0.01:
+        risk_score -= 15
+    elif mae_pct >= -0.002:
+        risk_score += 10
+
+    exit_score = 60
+    if exit_eff_24h >= 0.8:
+        exit_score += 25
+    elif exit_eff_24h >= 0.6:
+        exit_score += 10
+    elif exit_eff_24h < 0.3:
+        exit_score -= 20
+
+    if opp_24h >= 0.10:
+        exit_score -= 45
+    elif opp_24h >= 0.05:
+        exit_score -= 30
+    elif opp_24h >= 0.01:
+        exit_score -= 15
+
+    entry_score = max(0, min(100, int(entry_score)))
+    exit_score = max(0, min(100, int(exit_score)))
+    risk_score = max(0, min(100, int(risk_score)))
+
+    overall_score = int(round((entry_score * 0.4) + (exit_score * 0.4) + (risk_score * 0.2)))
+
+    cause_raw = {
+        "entry_filter_quality": max(0, 100 - entry_score),
+        "early_exit": max(0, int(opp_24h * 10000)),
+        "high_adverse_move": max(0, int(abs(min(0.0, mae_pct)) * 10000)),
+        "risk_management": max(0, 100 - risk_score),
+    }
+
+    total = sum(cause_raw.values())
+    if total <= 0:
+        cause_weights = {"none": 100}
+    else:
+        cause_weights = {
+            key: int(round(value / total * 100))
+            for key, value in cause_raw.items()
+            if value > 0
+        }
+
+    sorted_causes = sorted(cause_weights.items(), key=lambda item: item[1], reverse=True)
+    root_cause, root_weight = sorted_causes[0]
+
+    additional_1 = sorted_causes[1] if len(sorted_causes) > 1 else ("", 0)
+    additional_2 = sorted_causes[2] if len(sorted_causes) > 2 else ("", 0)
+
+    key_findings: list[str] = []
+    if mfe_pct <= 0:
+        key_findings.append("trade_never_profitable")
+    if mfe_pct >= 0.01:
+        key_findings.append("high_mfe")
+    if mae_pct <= -0.01:
+        key_findings.append("high_mae")
+    if opp_24h >= 0.01:
+        key_findings.append("high_opportunity_loss_24h")
+    if exit_eff_24h < 0.5:
+        key_findings.append("weak_exit_efficiency_24h")
+    if pnl < 0:
+        key_findings.append("negative_pnl")
+
+    improvement_options: list[str] = []
+    if root_cause == "early_exit":
+        improvement_options = ["P1 review exit rule", "P2 test longer hold variant", "P3 test trailing exit"]
+    elif root_cause == "entry_filter_quality":
+        improvement_options = ["P1 review entry filter", "P2 review regime gate", "P3 review confirmation logic"]
+    elif root_cause == "high_adverse_move":
+        improvement_options = ["P1 review risk filter", "P2 review stop logic", "P3 review volatility filter"]
+    elif root_cause == "risk_management":
+        improvement_options = ["P1 review risk management", "P2 review position sizing", "P3 review drawdown control"]
+    else:
+        improvement_options = ["none"]
+
+    return {
+        "entry_score": entry_score,
+        "exit_score": exit_score,
+        "risk_score": risk_score,
+        "overall_score": overall_score,
+        "entry_score_band": score_band(entry_score),
+        "exit_score_band": score_band(exit_score),
+        "risk_score_band": score_band(risk_score),
+        "overall_score_band": score_band(overall_score),
+        "entry_diagnosis": signed_diagnosis(entry_score),
+        "exit_diagnosis": signed_diagnosis(exit_score),
+        "risk_diagnosis": signed_diagnosis(risk_score),
+        "root_cause": root_cause,
+        "root_cause_weight": root_weight,
+        "additional_cause_1": additional_1[0],
+        "additional_cause_1_weight": additional_1[1],
+        "additional_cause_2": additional_2[0],
+        "additional_cause_2_weight": additional_2[1],
+        "cause_weights": "|".join([f"{k}={v}" for k, v in sorted_causes]),
+        "key_findings": "|".join(key_findings),
+        "improvement_options": "|".join(improvement_options),
+    }
+
+
+
+def compute_confidence_layer(row: dict[str, Any]) -> dict[str, Any]:
+    reliability = 0
+
+    if safe_int(row.get("has_entry_audit"), 0) == 1:
+        reliability += 20
+    if safe_int(row.get("has_exit_audit"), 0) == 1:
+        reliability += 20
+    if safe_int(row.get("path_available"), 0) == 1:
+        reliability += 20
+    if safe_int(row.get("counterfactual_available_24h"), 0) == 1:
+        reliability += 20
+    if safe_text(row.get("root_cause")):
+        reliability += 20
+
+    reliability = max(0, min(100, reliability))
+
+    evidence_items: list[str] = []
+
+    if safe_float(row.get("opportunity_loss_24h_pct"), 0.0) >= 0.01:
+        evidence_items.append("opportunity_loss_24h_ge_1pct")
+    if safe_float(row.get("exit_efficiency_24h_pct"), 0.0) < 0.5:
+        evidence_items.append("exit_efficiency_24h_lt_50pct")
+    if safe_float(row.get("mfe_pct"), 0.0) <= 0.0:
+        evidence_items.append("mfe_zero_or_negative")
+    if safe_float(row.get("mae_pct"), 0.0) <= -0.005:
+        evidence_items.append("mae_below_minus_0_5pct")
+    if safe_int(row.get("entry_problem_flag"), 0) == 1:
+        evidence_items.append("entry_problem_flag")
+    if safe_int(row.get("exit_problem_flag"), 0) == 1:
+        evidence_items.append("exit_problem_flag")
+
+    evidence_count = len(evidence_items)
+    evidence_score = max(0, min(100, evidence_count * 15))
+
+    root_weight = safe_int(row.get("root_cause_weight"), 0)
+    root_cause_confidence = int(round((root_weight * 0.6) + (evidence_score * 0.25) + (reliability * 0.15)))
+    root_cause_confidence = max(0, min(100, root_cause_confidence))
+
+    opp_24h = safe_float(row.get("opportunity_loss_24h_pct"), 0.0)
+    mfe_pct = safe_float(row.get("mfe_pct"), 0.0)
+    mae_pct = safe_float(row.get("mae_pct"), 0.0)
+
+    impact_score = 0
+    impact_score += min(60, int(round(opp_24h * 3000)))
+    impact_score += min(20, int(round(max(0.0, mfe_pct) * 1000)))
+    impact_score += min(20, int(round(abs(min(0.0, mae_pct)) * 1000)))
+    impact_score = max(0, min(100, impact_score))
+
+    priority_score = int(round((impact_score * root_cause_confidence) / 100.0))
+    priority_score = max(0, min(100, priority_score))
+
+    if priority_score >= 80:
+        priority = "CRITICAL"
+    elif priority_score >= 60:
+        priority = "HIGH"
+    elif priority_score >= 35:
+        priority = "MEDIUM"
+    else:
+        priority = "LOW"
+
+    return {
+        "root_cause_confidence": root_cause_confidence,
+        "evidence_score": evidence_score,
+        "evidence_count": evidence_count,
+        "evidence_items": "|".join(evidence_items),
+        "impact_score": impact_score,
+        "priority_score": priority_score,
+        "priority": priority,
+        "diagnosis_reliability": reliability,
+    }
+
+
 def build_ml_row(
     idx: int,
     trade: dict[str, Any],
@@ -433,7 +616,7 @@ def build_ml_row(
     timestamps: list[str],
     prices: list[float],
 ) -> dict[str, Any]:
-    score, quality_class, positives, negatives = compute_quality_score(trade, entry, exit_)
+    quality_score, quality_class, positives, negatives = compute_quality_score(trade, entry, exit_)
     flags = quality_flags(trade, entry, exit_)
     path = calculate_trade_path(trade, timestamps, prices)
     cf = calculate_counterfactuals(trade, timestamps, prices)
@@ -441,6 +624,7 @@ def build_ml_row(
 
     pnl = safe_float(trade.get("pnl"), 0.0)
     duration = safe_float(trade.get("duration_sec"), 0.0)
+    diagnosis = compute_diagnosis(path, cf, pnl)
 
     row: dict[str, Any] = {
         "trade_index": idx,
@@ -453,7 +637,7 @@ def build_ml_row(
         "pnl": pnl,
         "pnl_pct": safe_float(trade.get("pnl_pct"), 0.0),
         "exit_reason": safe_text(trade.get("exit_reason")),
-        "quality_score": score,
+        "quality_score": quality_score,
         "quality_class": quality_class,
         "is_winner": 1 if pnl > 0 else 0,
         "is_loser": 1 if pnl < 0 else 0,
@@ -473,6 +657,8 @@ def build_ml_row(
     row.update(path)
     row.update(cf)
     row.update(interp)
+    row.update(diagnosis)
+    row.update(compute_confidence_layer(row))
     return row
 
 
@@ -489,8 +675,6 @@ def print_trade_report(
     prices: list[float],
 ) -> None:
     row = build_ml_row(idx, trade, entry, exit_, timestamps, prices)
-    score = row["quality_score"]
-    quality_class = row["quality_class"]
 
     print("=" * 80)
     print(f"TRADE REPORT #{idx}")
@@ -499,150 +683,89 @@ def print_trade_report(
     print("")
     print("TRADE SUMMARY")
     print("-" * 80)
-    for key in [
-        "side",
-        "entry_timestamp_utc",
-        "exit_timestamp_utc",
-        "duration_sec",
-        "entry_price",
-        "exit_price",
-        "pnl",
-        "pnl_pct",
-        "exit_reason",
-    ]:
+    for key in ["side", "entry_timestamp_utc", "exit_timestamp_utc", "duration_sec", "entry_price", "exit_price", "pnl", "pnl_pct", "exit_reason"]:
         print_kv(key, trade.get(key, ""))
 
     print("")
-    print("QUALITY ASSESSMENT")
-    print("-" * 80)
-    print_kv("quality_score", score)
-    print_kv("quality_class", quality_class)
-    print_kv("positive_factors", row["positive_factors"] or "none")
-    print_kv("negative_factors", row["negative_factors"] or "none")
-
-    print("")
-    print("TRADE PATH")
+    print("TRADE DIAGNOSIS")
     print("-" * 80)
     for key in [
-        "path_available",
-        "bars_held",
-        "best_price_during_trade",
-        "worst_price_during_trade",
-        "mfe_abs",
-        "mfe_pct",
-        "mae_abs",
-        "mae_pct",
+        "overall_score", "overall_score_band",
+        "entry_score", "entry_score_band", "entry_diagnosis",
+        "exit_score", "exit_score_band", "exit_diagnosis",
+        "risk_score", "risk_score_band", "risk_diagnosis",
+        "root_cause", "root_cause_weight",
+        "additional_cause_1", "additional_cause_1_weight",
+        "additional_cause_2", "additional_cause_2_weight",
+        "cause_weights",
+        "root_cause_confidence",
+        "evidence_score",
+        "evidence_count",
+        "impact_score",
+        "priority_score",
+        "priority",
+        "diagnosis_reliability",
     ]:
         print_kv(key, row.get(key, ""))
 
     print("")
-    print("COUNTERFACTUAL ANALYSIS")
+    print("EVIDENCE")
     print("-" * 80)
-    for label in FUTURE_WINDOWS_MIN:
-        print_kv(f"cf_return_{label}_pct", row.get(f"cf_return_{label}_pct"))
-        print_kv(f"cf_delta_vs_realized_{label}_pct", row.get(f"cf_delta_vs_realized_{label}_pct"))
-        print_kv(f"best_future_return_{label}_pct", row.get(f"best_future_return_{label}_pct"))
-        print_kv(f"exit_efficiency_{label}_pct", row.get(f"exit_efficiency_{label}_pct"))
-        print_kv(f"opportunity_loss_{label}_pct", row.get(f"opportunity_loss_{label}_pct"))
-        print("")
+    evidence = safe_text(row.get("evidence_items"))
+    if evidence:
+        for item in evidence.split("|"):
+            print(f"- {item}")
+    else:
+        print("none")
 
-    print("INTERPRETATION FLAGS")
+    print("")
+    print("KEY FINDINGS")
     print("-" * 80)
-    for key in [
-        "high_mfe_flag",
-        "high_mae_flag",
-        "early_exit_flag",
-        "good_exit_flag",
-        "entry_problem_flag",
-        "exit_problem_flag",
-    ]:
-        print_kv(key, row.get(key, ""))
+    findings = safe_text(row.get("key_findings"))
+    if findings:
+        for item in findings.split("|"):
+            print(f"- {item}")
+    else:
+        print("none")
 
     print("")
     print("IMPROVEMENT OPTIONS")
     print("-" * 80)
-    if safe_int(row.get("entry_problem_flag"), 0) == 1:
-        print("P1: review entry filter")
-        print("P2: review regime gate")
-        print("P3: review signal confirmation")
-    elif safe_int(row.get("exit_problem_flag"), 0) == 1:
-        print("P1: review exit rule")
-        print("P2: test longer hold variant")
-        print("P3: test trailing exit")
+    options = safe_text(row.get("improvement_options"))
+    if options:
+        for item in options.split("|"):
+            print(f"- {item}")
     else:
         print("none")
 
     print("")
-    print("ENTRY AUDIT CONTEXT")
+    print("QUALITY ASSESSMENT")
     print("-" * 80)
-    if entry is None:
-        print("missing_entry_audit")
-    else:
-        for key in sorted(entry.keys()):
-            print_kv(key, entry.get(key))
+    for key in ["quality_score", "quality_class", "positive_factors", "negative_factors"]:
+        print_kv(key, row.get(key, ""))
 
     print("")
-    print("EXIT AUDIT CONTEXT")
+    print("TRADE PATH")
     print("-" * 80)
-    if exit_ is None:
-        print("missing_exit_audit")
-    else:
-        for key in sorted(exit_.keys()):
-            print_kv(key, exit_.get(key))
+    for key in ["path_available", "bars_held", "best_price_during_trade", "worst_price_during_trade", "mfe_abs", "mfe_pct", "mae_abs", "mae_pct"]:
+        print_kv(key, row.get(key, ""))
 
     print("")
-    print("QUALITY FLAGS")
+    print("COUNTERFACTUAL 24H CORE")
     print("-" * 80)
-    flags = quality_flags(trade, entry, exit_)
-    if flags:
-        for flag in flags:
-            print(flag)
-    else:
-        print("none")
+    for key in ["cf_return_24h_pct", "best_future_return_24h_pct", "exit_efficiency_24h_pct", "opportunity_loss_24h_pct"]:
+        print_kv(key, row.get(key, ""))
+
+    print("")
+    print("INTERPRETATION FLAGS")
+    print("-" * 80)
+    for key in ["high_mfe_flag", "high_mae_flag", "early_exit_flag", "good_exit_flag", "entry_problem_flag", "exit_problem_flag"]:
+        print_kv(key, row.get(key, ""))
 
     print("")
 
 
-def list_ranked(
-    trades: list[dict[str, Any]],
-    audit_rows: list[dict[str, Any]],
-    count: int,
-    reverse: bool,
-    timestamps: list[str],
-    prices: list[float],
-) -> None:
-    ranked = sorted(
-        enumerate(trades, start=1),
-        key=lambda item: safe_float(item[1].get("pnl"), 0.0),
-        reverse=reverse,
-    )
-
-    for idx, trade in ranked[:count]:
-        entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        row = build_ml_row(idx, trade, entry, exit_, timestamps, prices)
-        print(
-            f"trade={idx} "
-            f"side={safe_text(trade.get('side'))} "
-            f"entry={safe_text(trade.get('entry_timestamp_utc'))} "
-            f"exit={safe_text(trade.get('exit_timestamp_utc'))} "
-            f"pnl={safe_text(trade.get('pnl'))} "
-            f"duration_sec={safe_text(trade.get('duration_sec'))} "
-            f"quality_score={row['quality_score']} "
-            f"quality_class={row['quality_class']} "
-            f"mfe_pct={row['mfe_pct']} "
-            f"mae_pct={row['mae_pct']} "
-            f"opp_loss_24h={row['opportunity_loss_24h_pct']} "
-            f"entry_problem={row['entry_problem_flag']} "
-            f"exit_problem={row['exit_problem_flag']}"
-        )
-
-
-def build_rows(
-    trades: list[dict[str, Any]],
-    audit_rows: list[dict[str, Any]],
-    timestamps: list[str],
-    prices: list[float],
-) -> list[dict[str, Any]]:
+def build_rows(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]], timestamps: list[str], prices: list[float]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for idx, trade in enumerate(trades, start=1):
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
@@ -650,31 +773,21 @@ def build_rows(
     return rows
 
 
-def print_summary(
-    trades: list[dict[str, Any]],
-    audit_rows: list[dict[str, Any]],
-    timestamps: list[str],
-    prices: list[float],
-) -> None:
-    rows = build_rows(trades, audit_rows, timestamps, prices)
-
+def print_summary(rows: list[dict[str, Any]]) -> None:
     class_counts: dict[str, int] = {}
-    winners = 0
-    losers = 0
-    flats = 0
+    root_counts: dict[str, int] = {}
+    winners = losers = flats = 0
     total_pnl = 0.0
-    exit_problem_count = 0
-    entry_problem_count = 0
 
     for row in rows:
         cls = safe_text(row.get("quality_class"))
+        root = safe_text(row.get("root_cause"))
         class_counts[cls] = class_counts.get(cls, 0) + 1
+        root_counts[root] = root_counts.get(root, 0) + 1
         winners += safe_int(row.get("is_winner"), 0)
         losers += safe_int(row.get("is_loser"), 0)
         flats += safe_int(row.get("is_flat"), 0)
         total_pnl += safe_float(row.get("pnl"), 0.0)
-        exit_problem_count += safe_int(row.get("exit_problem_flag"), 0)
-        entry_problem_count += safe_int(row.get("entry_problem_flag"), 0)
 
     print("TRADE INSPECTOR SUMMARY")
     print("-" * 80)
@@ -683,23 +796,26 @@ def print_summary(
     print_kv("losers", losers)
     print_kv("flats", flats)
     print_kv("total_pnl", total_pnl)
-    print_kv("entry_problem_count", entry_problem_count)
-    print_kv("exit_problem_count", exit_problem_count)
+
     print("")
     print("QUALITY CLASS COUNTS")
     print("-" * 80)
-    for key in ["excellent", "good", "neutral", "weak", "bad"]:
+    for key in ["excellent", "good", "acceptable", "weak", "bad"]:
         print_kv(key, class_counts.get(key, 0))
+
+    print("")
+    print("ROOT CAUSE COUNTS")
+    print("-" * 80)
+    for key, value in sorted(root_counts.items(), key=lambda item: item[1], reverse=True):
+        print_kv(key, value)
 
 
 def export_ml_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-
     if not rows:
         raise ValueError("No trades to export.")
 
     fieldnames = list(rows[0].keys())
-
     with output_path.open("w", encoding="utf-8", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
@@ -714,27 +830,23 @@ def main() -> int:
     parser.add_argument("--archive-dir", default=str(DEFAULT_ARCHIVE_DIR))
     parser.add_argument("--market-csv", default=str(DEFAULT_MARKET_CSV))
     parser.add_argument("--trade-index", type=int)
-    parser.add_argument("--best", type=int)
-    parser.add_argument("--worst", type=int)
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--export-ml-csv", default="")
     args = parser.parse_args()
 
     archive_dir = Path(args.archive_dir)
-
-    trades_path = archive_dir / "trades_l1.jsonl"
-    audit_path = archive_dir / "execution_audit.jsonl"
-
-    trades = read_jsonl(trades_path)
-    audit_rows = read_jsonl(audit_path)
+    trades = read_jsonl(archive_dir / "trades_l1.jsonl")
+    audit_rows = read_jsonl(archive_dir / "execution_audit.jsonl")
     timestamps, prices = parse_market_rows(Path(args.market_csv))
 
-    print("TRADE INSPECTOR V1C")
+    print("TRADE INSPECTOR V1E")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
     print("market_rows:", len(timestamps))
     print("")
+
+    rows = build_rows(trades, audit_rows, timestamps, prices)
 
     if args.trade_index is not None:
         if args.trade_index < 1 or args.trade_index > len(trades):
@@ -744,34 +856,19 @@ def main() -> int:
         print_trade_report(args.trade_index, trade, entry, exit_, timestamps, prices)
         return 0
 
-    if args.best is not None:
-        print("BEST TRADES")
-        print("-" * 80)
-        list_ranked(trades, audit_rows, args.best, True, timestamps, prices)
-        return 0
-
-    if args.worst is not None:
-        print("WORST TRADES")
-        print("-" * 80)
-        list_ranked(trades, audit_rows, args.worst, False, timestamps, prices)
-        return 0
-
     if args.summary:
-        print_summary(trades, audit_rows, timestamps, prices)
+        print_summary(rows)
         return 0
 
     if args.export_ml_csv:
-        rows = build_rows(trades, audit_rows, timestamps, prices)
         export_ml_csv(rows, Path(args.export_ml_csv))
         return 0
 
     print("No selection provided.")
     print("Examples:")
     print("python3 tools/trade_inspector/inspect_trades.py --trade-index 1")
-    print("python3 tools/trade_inspector/inspect_trades.py --worst 10")
-    print("python3 tools/trade_inspector/inspect_trades.py --best 10")
     print("python3 tools/trade_inspector/inspect_trades.py --summary")
-    print("python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v1c.csv")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v1d.csv")
     return 0
 
 
