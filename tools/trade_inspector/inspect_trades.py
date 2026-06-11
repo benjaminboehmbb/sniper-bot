@@ -203,14 +203,102 @@ def compute_quality_score(
     return score, quality_class, positives, negatives
 
 
+def parse_market_rows(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing market CSV: {path}")
+
+    rows: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            rows.append(dict(row))
+    return rows
+
+
+def market_timestamp(row: dict[str, Any]) -> str:
+    for key in ("timestamp_utc", "timestamp", "open_time"):
+        value = safe_text(row.get(key))
+        if value:
+            return value.replace("_", " ")
+    return ""
+
+
+def market_price(row: dict[str, Any]) -> float:
+    for key in ("close", "price", "close_price"):
+        value = row.get(key)
+        if value is not None and safe_text(value) != "":
+            return safe_float(value, 0.0)
+    return 0.0
+
+
+def calculate_trade_path(
+    trade: dict[str, Any],
+    market_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    entry_ts = safe_text(trade.get("entry_timestamp_utc")).replace("_", " ")
+    exit_ts = safe_text(trade.get("exit_timestamp_utc")).replace("_", " ")
+    side = safe_text(trade.get("side")).lower()
+    entry_price = safe_float(trade.get("entry_price"), 0.0)
+
+    prices: list[float] = []
+
+    for row in market_rows:
+        ts = market_timestamp(row)
+        if ts >= entry_ts and ts <= exit_ts:
+            price = market_price(row)
+            if price > 0:
+                prices.append(price)
+
+    if not prices or entry_price <= 0:
+        return {
+            "bars_held": 0,
+            "best_price_during_trade": 0.0,
+            "worst_price_during_trade": 0.0,
+            "mfe_abs": 0.0,
+            "mfe_pct": 0.0,
+            "mae_abs": 0.0,
+            "mae_pct": 0.0,
+            "path_available": 0,
+        }
+
+    if side == "long":
+        best_price = max(prices)
+        worst_price = min(prices)
+        mfe_abs = best_price - entry_price
+        mae_abs = worst_price - entry_price
+    elif side == "short":
+        best_price = min(prices)
+        worst_price = max(prices)
+        mfe_abs = entry_price - best_price
+        mae_abs = entry_price - worst_price
+    else:
+        best_price = max(prices)
+        worst_price = min(prices)
+        mfe_abs = 0.0
+        mae_abs = 0.0
+
+    return {
+        "bars_held": len(prices),
+        "best_price_during_trade": float(best_price),
+        "worst_price_during_trade": float(worst_price),
+        "mfe_abs": float(mfe_abs),
+        "mfe_pct": float(mfe_abs / entry_price) if entry_price > 0 else 0.0,
+        "mae_abs": float(mae_abs),
+        "mae_pct": float(mae_abs / entry_price) if entry_price > 0 else 0.0,
+        "path_available": 1,
+    }
+
+
 def build_ml_row(
     idx: int,
     trade: dict[str, Any],
     entry: dict[str, Any] | None,
     exit_: dict[str, Any] | None,
+    market_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     score, quality_class, positives, negatives = compute_quality_score(trade, entry, exit_)
     flags = quality_flags(trade, entry, exit_)
+    path = calculate_trade_path(trade, market_rows or [])
 
     pnl = safe_float(trade.get("pnl"), 0.0)
     duration = safe_float(trade.get("duration_sec"), 0.0)
@@ -241,6 +329,14 @@ def build_ml_row(
         "flags": "|".join(flags),
         "positive_factors": "|".join(positives),
         "negative_factors": "|".join(negatives),
+        "bars_held": path["bars_held"],
+        "best_price_during_trade": path["best_price_during_trade"],
+        "worst_price_during_trade": path["worst_price_during_trade"],
+        "mfe_abs": path["mfe_abs"],
+        "mfe_pct": path["mfe_pct"],
+        "mae_abs": path["mae_abs"],
+        "mae_pct": path["mae_pct"],
+        "path_available": path["path_available"],
     }
 
 
@@ -253,8 +349,10 @@ def print_trade_report(
     trade: dict[str, Any],
     entry: dict[str, Any] | None,
     exit_: dict[str, Any] | None,
+    market_rows: list[dict[str, Any]] | None = None,
 ) -> None:
     score, quality_class, positives, negatives = compute_quality_score(trade, entry, exit_)
+    path = calculate_trade_path(trade, market_rows or [])
 
     print("=" * 80)
     print(f"TRADE REPORT #{idx}")
@@ -283,6 +381,21 @@ def print_trade_report(
     print_kv("quality_class", quality_class)
     print_kv("positive_factors", ",".join(positives) if positives else "none")
     print_kv("negative_factors", ",".join(negatives) if negatives else "none")
+
+    print("")
+    print("TRADE PATH")
+    print("-" * 80)
+    for key in [
+        "path_available",
+        "bars_held",
+        "best_price_during_trade",
+        "worst_price_during_trade",
+        "mfe_abs",
+        "mfe_pct",
+        "mae_abs",
+        "mae_pct",
+    ]:
+        print_kv(key, path.get(key, ""))
 
     print("")
     print("ENTRY AUDIT CONTEXT")
@@ -344,11 +457,11 @@ def list_ranked(
         )
 
 
-def print_summary(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]]) -> None:
+def print_summary(trades: list[dict[str, Any]], audit_rows: list[dict[str, Any]], market_rows: list[dict[str, Any]]) -> None:
     rows = []
     for idx, trade in enumerate(trades, start=1):
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        rows.append(build_ml_row(idx, trade, entry, exit_))
+        rows.append(build_ml_row(idx, trade, entry, exit_, market_rows))
 
     class_counts: dict[str, int] = {}
     winners = 0
@@ -382,13 +495,14 @@ def export_ml_csv(
     trades: list[dict[str, Any]],
     audit_rows: list[dict[str, Any]],
     output_path: Path,
+    market_rows: list[dict[str, Any]],
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     rows = []
     for idx, trade in enumerate(trades, start=1):
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        rows.append(build_ml_row(idx, trade, entry, exit_))
+        rows.append(build_ml_row(idx, trade, entry, exit_, market_rows))
 
     if not rows:
         raise ValueError("No trades to export.")
@@ -412,6 +526,7 @@ def main() -> int:
     parser.add_argument("--worst", type=int)
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--export-ml-csv", default="")
+    parser.add_argument("--market-csv", default="data/l1_full_run.csv")
     args = parser.parse_args()
 
     archive_dir = Path(args.archive_dir)
@@ -421,11 +536,13 @@ def main() -> int:
 
     trades = read_jsonl(trades_path)
     audit_rows = read_jsonl(audit_path)
+    market_rows = parse_market_rows(Path(args.market_csv))
 
-    print("TRADE INSPECTOR V1A")
+    print("TRADE INSPECTOR V1B")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
+    print("market_rows:", len(market_rows))
     print("")
 
     if args.trade_index is not None:
@@ -433,7 +550,7 @@ def main() -> int:
             raise SystemExit(f"Invalid trade index: {args.trade_index}")
         trade = trades[args.trade_index - 1]
         entry, exit_ = find_matching_entry_exit(trade, audit_rows)
-        print_trade_report(args.trade_index, trade, entry, exit_)
+        print_trade_report(args.trade_index, trade, entry, exit_, market_rows)
         return 0
 
     if args.best is not None:
@@ -449,11 +566,11 @@ def main() -> int:
         return 0
 
     if args.summary:
-        print_summary(trades, audit_rows)
+        print_summary(trades, audit_rows, market_rows)
         return 0
 
     if args.export_ml_csv:
-        export_ml_csv(trades, audit_rows, Path(args.export_ml_csv))
+        export_ml_csv(trades, audit_rows, Path(args.export_ml_csv), market_rows)
         return 0
 
     print("No selection provided.")
