@@ -264,3 +264,147 @@ P79A Run 2:
 PASS
 
 Resume-based accelerated PAPER operation is valid for the tested 1000000 tick continuation.
+
+---
+
+# Run 3 Full Resume Observation
+
+## Run 3 Objective
+
+Validate accelerated PAPER operation across the full 4300000 tick validation window using resume from P79A Run 2.
+
+This run intentionally reused active runtime logs and state files.
+
+## Run 3 Configuration
+
+Profile:
+
+PAPER
+
+Flags:
+
+- L1_REQUIRE_WSL=1
+- L1_PROFILE=PAPER
+- L1_STARTUP_RECOVERY=1
+- L1_STARTUP_RECONCILIATION_GATE=1
+- L1_DECISION_TICK_SECONDS=0
+- L1_MARKET_CSV_PATH=data/l1_full_run.csv
+- SEEDS_5M_CSV=seeds/5m/btcusdt_5m_timing_core_v2.csv
+
+Max ticks:
+
+2800000
+
+## Runtime Result
+
+RUNTIME_RC:
+
+0
+
+Final snapshot:
+
+CSV-04300000
+
+Final tick:
+
+2800000
+
+Final timestamp:
+
+2025-11-10 05:22 UTC
+
+Final position:
+
+FLAT
+
+Closed trades:
+
+556
+
+trades_l1.jsonl lines:
+
+556
+
+## Resume Validation
+
+Run 2 ended at:
+
+CSV-01500000
+
+Run 3 ended at:
+
+CSV-04300000
+
+Expected continuation:
+
+1500000 + 2800000 = 4300000
+
+Observed:
+
+CSV-04300000
+
+Result:
+
+PASS
+
+## Reconciliation
+
+Result:
+
+PASS
+
+Details:
+
+- audit_json_valid: PASS, events=2319, bad_json_lines=0
+- audit_vs_s2_position: PASS, position=FLAT
+- audit_vs_trades: PASS, closed_trades=556
+- trade_time_order: PASS, trades_checked=556
+- loss_cluster_state: PASS, pause_entries_remaining=0, recent_closed_trade_pnls=10
+
+## Observations
+
+Runtime completed successfully.
+
+No crash observed.
+
+No unhandled exception observed.
+
+State persisted through 2800000 additional ticks.
+
+System stopped correctly because max_ticks was reached.
+
+Observed at final tick:
+
+- guard_reason=guard_ok
+- s4_kill_level=SOFT
+- position=FLAT
+
+The persistent SOFT kill level remains a documented operational observation and is not treated as a blocker because reconciliation passed and runtime state remained consistent.
+
+## Assessment
+
+P79A Run 3:
+
+PASS
+
+Full accelerated resume-based PAPER operation is valid for the complete 4300000 tick validation window.
+
+## Final P79A Assessment
+
+P79A PASS
+
+Accelerated practical PAPER operation completed successfully.
+
+Validated:
+
+- Clean start
+- Resume continuation
+- Full 4300000 tick progression
+- Recovery-enabled runtime
+- Reconciliation-gated runtime
+- Audit consistency
+- Trade consistency
+- State persistence
+- Final FLAT state
+
+P79A is considered successfully completed.
