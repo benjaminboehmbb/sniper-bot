@@ -812,6 +812,48 @@ def build_trade_id(trade: dict[str, Any]) -> str:
     return f"T_{entry}_{side}_{symbol}"
 
 
+
+def build_trade_family(row: dict[str, Any]) -> dict[str, Any]:
+    regime = safe_text(row.get("entry_regime_label")) or "unknown_regime"
+    risk = safe_text(row.get("entry_risk_label")) or "unknown_risk"
+    root = safe_text(row.get("root_cause")) or "unknown_cause"
+    side = safe_text(row.get("side")) or "unknown_side"
+
+    regime_changed = safe_int(row.get("regime_changed_during_trade"), 0)
+    aligned = safe_int(row.get("regime_aligned"), 0)
+
+    family_parts = [side, regime, risk, root]
+
+    if regime_changed == 1:
+        family_parts.append("regime_flip")
+
+    if aligned == 1:
+        family_parts.append("aligned")
+    elif aligned == -1:
+        family_parts.append("counter_regime")
+    else:
+        family_parts.append("neutral_regime")
+
+    trade_family = "_".join(family_parts)
+
+    if root == "early_exit" and risk == "bad_atr":
+        family_group = "exit_risk_trap"
+    elif root == "early_exit" and regime_changed == 1:
+        family_group = "exit_after_regime_flip"
+    elif risk == "good_atr" and aligned == 1:
+        family_group = "aligned_good_risk"
+    elif regime == "chop":
+        family_group = "chop_context"
+    elif aligned == -1:
+        family_group = "counter_regime"
+    else:
+        family_group = "general"
+
+    return {
+        "trade_family": trade_family,
+        "trade_family_group": family_group,
+    }
+
 def build_ml_row(
     idx: int,
     trade: dict[str, Any],
@@ -876,6 +918,7 @@ def build_ml_row(
     row.update(diagnosis)
     row.update(regime)
     row.update(compute_confidence_layer(row))
+    row.update(build_trade_family(row))
     return row
 
 
@@ -1142,6 +1185,22 @@ def print_group_table(title: str, groups: dict[str, list[dict[str, Any]]], sort_
         )
 
 
+
+def print_trade_family_summary(rows: list[dict[str, Any]]) -> None:
+    print_group_table(
+        "PERFORMANCE BY TRADE FAMILY GROUP",
+        group_rows(rows, "trade_family_group"),
+        "total_pnl",
+        reverse=True,
+    )
+
+    print_group_table(
+        "PERFORMANCE BY TRADE FAMILY",
+        group_rows(rows, "trade_family"),
+        "total_pnl",
+        reverse=True,
+    )
+
 def print_top_improvement_candidates(rows: list[dict[str, Any]], limit: int = 20) -> None:
     print("")
     print("TOP IMPROVEMENT CANDIDATES")
@@ -1342,6 +1401,8 @@ def print_aggregate_intelligence(rows: list[dict[str, Any]]) -> None:
         reverse=True,
     )
 
+    print_trade_family_summary(rows)
+
     print_top_improvement_candidates(rows, limit=20)
     print_root_cause_attribution(rows)
 
@@ -1449,6 +1510,8 @@ def export_aggregate_csvs(rows: list[dict[str, Any]], output_dir: Path) -> None:
         "priority",
         "quality_class",
         "overall_score_band",
+        "trade_family_group",
+        "trade_family",
     ]
 
     for key in group_keys:
@@ -1512,7 +1575,7 @@ def main() -> int:
     if args.update_label_registry:
         save_label_registry(Path(args.label_registry), label_map)
 
-    print("TRADE INSPECTOR V3B")
+    print("TRADE INSPECTOR V3C")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
