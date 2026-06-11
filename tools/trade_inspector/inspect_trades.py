@@ -699,6 +699,32 @@ def extract_regime_features(
     }
 
 
+
+def compact_trade_time(value: object) -> str:
+    dt = parse_ts(value)
+    if dt is None:
+        return "UNKNOWN_TIME"
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc)
+    return dt.strftime("%Y%m%d_%H%M%S")
+
+
+def chart_time(value: object) -> str:
+    dt = parse_ts(value)
+    if dt is None:
+        return ""
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc)
+    return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def build_trade_id(trade: dict[str, Any]) -> str:
+    entry = compact_trade_time(trade.get("entry_timestamp_utc"))
+    side = safe_text(trade.get("side")).upper() or "UNKNOWN_SIDE"
+    symbol = safe_text(trade.get("symbol")) or "BTCUSDT"
+    return f"T_{entry}_{side}_{symbol}"
+
+
 def build_ml_row(
     idx: int,
     trade: dict[str, Any],
@@ -720,8 +746,14 @@ def build_ml_row(
     diagnosis = compute_diagnosis(path, cf, pnl)
     regime = extract_regime_features(trade, regime_index)
 
+    trade_id = build_trade_id(trade)
+
     row: dict[str, Any] = {
         "trade_index": idx,
+        "trade_id": trade_id,
+        "symbol": safe_text(trade.get("symbol")) or "BTCUSDT",
+        "entry_time_chart": chart_time(trade.get("entry_timestamp_utc")),
+        "exit_time_chart": chart_time(trade.get("exit_timestamp_utc")),
         "side": safe_text(trade.get("side")),
         "entry_timestamp_utc": safe_text(trade.get("entry_timestamp_utc")),
         "exit_timestamp_utc": safe_text(trade.get("exit_timestamp_utc")),
@@ -780,8 +812,25 @@ def print_trade_report(
     print("")
     print("TRADE SUMMARY")
     print("-" * 80)
-    for key in ["side", "entry_timestamp_utc", "exit_timestamp_utc", "duration_sec", "entry_price", "exit_price", "pnl", "pnl_pct", "exit_reason"]:
-        print_kv(key, trade.get(key, ""))
+    for key in [
+        "trade_id",
+        "symbol",
+        "entry_time_chart",
+        "exit_time_chart",
+        "side",
+        "entry_timestamp_utc",
+        "exit_timestamp_utc",
+        "duration_sec",
+        "entry_price",
+        "exit_price",
+        "pnl",
+        "pnl_pct",
+        "exit_reason",
+    ]:
+        if key in row:
+            print_kv(key, row.get(key, ""))
+        else:
+            print_kv(key, trade.get(key, ""))
 
     print("")
     print("TRADE DIAGNOSIS")
@@ -960,7 +1009,7 @@ def main() -> int:
     regime_index = build_regime_index(regime_rows)
     timestamps, prices = parse_market_rows(Path(args.market_csv))
 
-    print("TRADE INSPECTOR V2")
+    print("TRADE INSPECTOR V2A")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
