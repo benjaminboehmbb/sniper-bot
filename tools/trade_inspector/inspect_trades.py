@@ -1232,6 +1232,128 @@ def print_aggregate_intelligence(rows: list[dict[str, Any]]) -> None:
 
     print_top_improvement_candidates(rows, limit=20)
 
+
+def write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    if not rows:
+        with path.open("w", encoding="utf-8", newline="") as fh:
+            fh.write("")
+        return
+
+    fieldnames = list(rows[0].keys())
+
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def aggregate_group_rows(rows: list[dict[str, Any]], group_key: str) -> list[dict[str, Any]]:
+    output: list[dict[str, Any]] = []
+
+    for group_name, items in group_rows(rows, group_key).items():
+        stats = group_stats(items)
+        output.append({
+            "group_key": group_key,
+            "group": group_name,
+            "count": stats["count"],
+            "winners": stats["winners"],
+            "losers": stats["losers"],
+            "winrate": stats["winrate"],
+            "total_pnl": stats["total_pnl"],
+            "avg_pnl": stats["avg_pnl"],
+            "avg_pnl_pct": stats["avg_pnl_pct"],
+            "avg_exit_efficiency_24h_pct": stats["avg_exit_efficiency_24h_pct"],
+            "avg_opportunity_loss_24h_pct": stats["avg_opportunity_loss_24h_pct"],
+            "avg_overall_score": stats["avg_overall_score"],
+        })
+
+    output.sort(key=lambda row: safe_float(row.get("total_pnl"), 0.0), reverse=True)
+    return output
+
+
+def aggregate_top_improvement_rows(rows: list[dict[str, Any]], limit: int = 100) -> list[dict[str, Any]]:
+    ranked = sorted(
+        rows,
+        key=lambda row: (
+            safe_float(row.get("priority_score"), 0.0),
+            safe_float(row.get("impact_score"), 0.0),
+            safe_float(row.get("opportunity_loss_24h_pct"), 0.0),
+        ),
+        reverse=True,
+    )
+
+    output: list[dict[str, Any]] = []
+    for rank, row in enumerate(ranked[:limit], start=1):
+        output.append({
+            "rank": rank,
+            "human_label": safe_text(row.get("human_label")),
+            "trade_id": safe_text(row.get("trade_id")),
+            "root_cause": safe_text(row.get("root_cause")),
+            "priority": safe_text(row.get("priority")),
+            "priority_score": safe_int(row.get("priority_score"), 0),
+            "impact_score": safe_int(row.get("impact_score"), 0),
+            "root_cause_confidence": safe_int(row.get("root_cause_confidence"), 0),
+            "opportunity_loss_24h_pct": safe_float(row.get("opportunity_loss_24h_pct"), 0.0),
+            "exit_efficiency_24h_pct": safe_float(row.get("exit_efficiency_24h_pct"), 0.0),
+            "pnl": safe_float(row.get("pnl"), 0.0),
+            "pnl_pct": safe_float(row.get("pnl_pct"), 0.0),
+            "entry_regime_label": safe_text(row.get("entry_regime_label")),
+            "entry_risk_label": safe_text(row.get("entry_risk_label")),
+            "regime_aligned": safe_int(row.get("regime_aligned"), 0),
+            "regime_changed_during_trade": safe_int(row.get("regime_changed_during_trade"), 0),
+            "entry_score_at_entry": safe_int(row.get("entry_score_at_entry"), 0),
+            "entry_time_chart": safe_text(row.get("entry_time_chart")),
+            "exit_time_chart": safe_text(row.get("exit_time_chart")),
+        })
+
+    return output
+
+
+def export_aggregate_csvs(rows: list[dict[str, Any]], output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    global_stats = group_stats(rows)
+    write_csv_rows(output_dir / "aggregate_global_summary.csv", [{
+        "trades": global_stats["count"],
+        "winners": global_stats["winners"],
+        "losers": global_stats["losers"],
+        "winrate": global_stats["winrate"],
+        "total_pnl": global_stats["total_pnl"],
+        "avg_pnl": global_stats["avg_pnl"],
+        "avg_pnl_pct": global_stats["avg_pnl_pct"],
+        "avg_exit_efficiency_24h_pct": global_stats["avg_exit_efficiency_24h_pct"],
+        "avg_opportunity_loss_24h_pct": global_stats["avg_opportunity_loss_24h_pct"],
+        "avg_overall_score": global_stats["avg_overall_score"],
+    }])
+
+    group_keys = [
+        "root_cause",
+        "entry_regime_label",
+        "entry_risk_label",
+        "regime_aligned",
+        "priority",
+        "quality_class",
+        "overall_score_band",
+    ]
+
+    for key in group_keys:
+        write_csv_rows(
+            output_dir / f"aggregate_by_{key}.csv",
+            aggregate_group_rows(rows, key),
+        )
+
+    write_csv_rows(
+        output_dir / "aggregate_top_improvement_candidates.csv",
+        aggregate_top_improvement_rows(rows, limit=100),
+    )
+
+    print("Aggregate CSV export directory:", output_dir)
+    print("files:")
+    for path in sorted(output_dir.glob("*.csv")):
+        print("-", path)
+
 def export_ml_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
@@ -1255,6 +1377,7 @@ def main() -> int:
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--aggregate", action="store_true")
     parser.add_argument("--export-ml-csv", default="")
+    parser.add_argument("--export-aggregate-csv-dir", default="")
     parser.add_argument("--label-list", default=str(DEFAULT_LABEL_LIST))
     parser.add_argument("--label-registry", default=str(DEFAULT_LABEL_REGISTRY))
     parser.add_argument("--update-label-registry", action="store_true")
@@ -1274,7 +1397,7 @@ def main() -> int:
     if args.update_label_registry:
         save_label_registry(Path(args.label_registry), label_map)
 
-    print("TRADE INSPECTOR V3")
+    print("TRADE INSPECTOR V3A")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
@@ -1306,12 +1429,17 @@ def main() -> int:
         export_ml_csv(rows, Path(args.export_ml_csv))
         return 0
 
+    if args.export_aggregate_csv_dir:
+        export_aggregate_csvs(rows, Path(args.export_aggregate_csv_dir))
+        return 0
+
     print("No selection provided.")
     print("Examples:")
     print("python3 tools/trade_inspector/inspect_trades.py --trade-index 1")
     print("python3 tools/trade_inspector/inspect_trades.py --summary")
     print("python3 tools/trade_inspector/inspect_trades.py --aggregate")
     print("python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v3.csv")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-aggregate-csv-dir reports/trade_inspector/aggregate_v3a")
     return 0
 
 
