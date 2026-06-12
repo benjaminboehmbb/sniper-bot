@@ -1532,6 +1532,106 @@ def export_aggregate_csvs(rows: list[dict[str, Any]], output_dir: Path) -> None:
     for path in sorted(output_dir.glob("*.csv")):
         print("-", path)
 
+
+def add_ml_targets(row: dict[str, Any]) -> dict[str, Any]:
+    pnl = safe_float(row.get("pnl"), 0.0)
+    pnl_pct = safe_float(row.get("pnl_pct"), 0.0)
+    overall_score = safe_int(row.get("overall_score"), 0)
+    exit_eff = safe_float(row.get("exit_efficiency_24h_pct"), 0.0)
+    opp_loss = safe_float(row.get("opportunity_loss_24h_pct"), 0.0)
+    mae_pct = safe_float(row.get("mae_pct"), 0.0)
+    mfe_pct = safe_float(row.get("mfe_pct"), 0.0)
+
+    return {
+        "target_winner": 1 if pnl > 0 else 0,
+        "target_loser": 1 if pnl < 0 else 0,
+        "target_flat": 1 if abs(pnl) < 1e-12 else 0,
+        "target_positive_pct": 1 if pnl_pct > 0 else 0,
+        "target_quality_good": 1 if overall_score >= 60 else 0,
+        "target_quality_bad": 1 if overall_score < 40 else 0,
+        "target_exit_efficiency_high": 1 if exit_eff >= 0.6 else 0,
+        "target_exit_efficiency_low": 1 if exit_eff < 0.3 else 0,
+        "target_opportunity_loss_high": 1 if opp_loss >= 0.02 else 0,
+        "target_adverse_move_high": 1 if mae_pct <= -0.01 else 0,
+        "target_favorable_move_present": 1 if mfe_pct > 0 else 0,
+        "target_pnl": pnl,
+        "target_pnl_pct": pnl_pct,
+        "target_future_return_24h_pct": safe_float(row.get("cf_return_24h_pct"), 0.0),
+        "target_future_return_72h_pct": safe_float(row.get("cf_return_72h_pct"), 0.0),
+        "target_future_return_168h_pct": safe_float(row.get("cf_return_168h_pct"), 0.0),
+    }
+
+
+def dataset_split_from_trade_id(trade_id: str) -> str:
+    total = sum(ord(ch) for ch in trade_id)
+    bucket = total % 100
+
+    if bucket < 70:
+        return "train"
+    if bucket < 85:
+        return "validation"
+    return "test"
+
+
+def build_ml_dataset_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    dataset_rows: list[dict[str, Any]] = []
+
+    for row in rows:
+        out = dict(row)
+        out.update(add_ml_targets(row))
+        out["ml_split"] = dataset_split_from_trade_id(safe_text(row.get("trade_id")))
+        out["ml_dataset_version"] = "v4"
+        dataset_rows.append(out)
+
+    return dataset_rows
+
+
+def export_ml_dataset(rows: list[dict[str, Any]], output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    dataset_rows = build_ml_dataset_rows(rows)
+
+    all_path = output_dir / "trade_dataset_v4.csv"
+    write_csv_rows(all_path, dataset_rows)
+
+    for split in ["train", "validation", "test"]:
+        split_rows = [row for row in dataset_rows if safe_text(row.get("ml_split")) == split]
+        write_csv_rows(output_dir / f"trade_dataset_v4_{split}.csv", split_rows)
+
+    split_counts: dict[str, int] = {}
+    for row in dataset_rows:
+        split = safe_text(row.get("ml_split"))
+        split_counts[split] = split_counts.get(split, 0) + 1
+
+    manifest_rows = [{
+        "ml_dataset_version": "v4",
+        "rows_total": len(dataset_rows),
+        "rows_train": split_counts.get("train", 0),
+        "rows_validation": split_counts.get("validation", 0),
+        "rows_test": split_counts.get("test", 0),
+        "target_columns": "|".join([
+            "target_winner",
+            "target_loser",
+            "target_quality_good",
+            "target_quality_bad",
+            "target_exit_efficiency_high",
+            "target_opportunity_loss_high",
+            "target_pnl",
+            "target_pnl_pct",
+            "target_future_return_24h_pct",
+            "target_future_return_72h_pct",
+            "target_future_return_168h_pct",
+        ]),
+        "feature_scope": "trade|path|counterfactual|diagnosis|confidence|regime|family",
+    }]
+
+    write_csv_rows(output_dir / "trade_dataset_v4_manifest.csv", manifest_rows)
+
+    print("ML dataset export directory:", output_dir)
+    print("files:")
+    for path in sorted(output_dir.glob("*.csv")):
+        print("-", path)
+
 def export_ml_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
@@ -1556,6 +1656,7 @@ def main() -> int:
     parser.add_argument("--aggregate", action="store_true")
     parser.add_argument("--export-ml-csv", default="")
     parser.add_argument("--export-aggregate-csv-dir", default="")
+    parser.add_argument("--export-ml-dataset-dir", default="")
     parser.add_argument("--label-list", default=str(DEFAULT_LABEL_LIST))
     parser.add_argument("--label-registry", default=str(DEFAULT_LABEL_REGISTRY))
     parser.add_argument("--update-label-registry", action="store_true")
@@ -1575,7 +1676,7 @@ def main() -> int:
     if args.update_label_registry:
         save_label_registry(Path(args.label_registry), label_map)
 
-    print("TRADE INSPECTOR V3C")
+    print("TRADE INSPECTOR V4")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
@@ -1611,6 +1712,10 @@ def main() -> int:
         export_aggregate_csvs(rows, Path(args.export_aggregate_csv_dir))
         return 0
 
+    if args.export_ml_dataset_dir:
+        export_ml_dataset(rows, Path(args.export_ml_dataset_dir))
+        return 0
+
     print("No selection provided.")
     print("Examples:")
     print("python3 tools/trade_inspector/inspect_trades.py --trade-index 1")
@@ -1618,6 +1723,7 @@ def main() -> int:
     print("python3 tools/trade_inspector/inspect_trades.py --aggregate")
     print("python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v3.csv")
     print("python3 tools/trade_inspector/inspect_trades.py --export-aggregate-csv-dir reports/trade_inspector/aggregate_v3a")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-ml-dataset-dir data/ml/trade_inspector_v4")
     return 0
 
 
