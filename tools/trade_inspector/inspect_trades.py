@@ -1580,35 +1580,94 @@ def build_ml_dataset_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         out = dict(row)
         out.update(add_ml_targets(row))
         out["ml_split"] = dataset_split_from_trade_id(safe_text(row.get("trade_id")))
-        out["ml_dataset_version"] = "v4"
+        out["ml_dataset_version"] = "v4a"
         dataset_rows.append(out)
 
     return dataset_rows
 
+
+
+def evaluate_split_quality(dataset_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    split_counts: dict[str, int] = {"train": 0, "validation": 0, "test": 0}
+
+    for row in dataset_rows:
+        split = safe_text(row.get("ml_split"))
+        if split in split_counts:
+            split_counts[split] += 1
+
+    total = len(dataset_rows)
+    warnings: list[str] = []
+
+    if total < 30:
+        warnings.append("dataset_too_small_for_reliable_ml")
+
+    for split in ["train", "validation", "test"]:
+        if split_counts[split] == 0:
+            warnings.append(f"empty_{split}_split")
+
+    if split_counts["train"] > 0 and split_counts["validation"] > 0 and split_counts["test"] > 0:
+        status = "PASS"
+    elif total < 30:
+        status = "WARN"
+    else:
+        status = "FAIL"
+
+    return {
+        "split_quality_status": status,
+        "split_quality_warnings": "|".join(warnings) if warnings else "none",
+        "rows_total": total,
+        "rows_train": split_counts["train"],
+        "rows_validation": split_counts["validation"],
+        "rows_test": split_counts["test"],
+        "train_share": split_counts["train"] / total if total else 0.0,
+        "validation_share": split_counts["validation"] / total if total else 0.0,
+        "test_share": split_counts["test"] / total if total else 0.0,
+    }
+
+
+def print_split_quality(split_quality: dict[str, Any]) -> None:
+    print("")
+    print("ML SPLIT QUALITY")
+    print("-" * 80)
+    for key in [
+        "split_quality_status",
+        "split_quality_warnings",
+        "rows_total",
+        "rows_train",
+        "rows_validation",
+        "rows_test",
+        "train_share",
+        "validation_share",
+        "test_share",
+    ]:
+        print_kv(key, split_quality.get(key, ""))
 
 def export_ml_dataset(rows: list[dict[str, Any]], output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     dataset_rows = build_ml_dataset_rows(rows)
 
-    all_path = output_dir / "trade_dataset_v4.csv"
+    all_path = output_dir / "trade_dataset_v4a.csv"
     write_csv_rows(all_path, dataset_rows)
 
     for split in ["train", "validation", "test"]:
         split_rows = [row for row in dataset_rows if safe_text(row.get("ml_split")) == split]
-        write_csv_rows(output_dir / f"trade_dataset_v4_{split}.csv", split_rows)
+        write_csv_rows(output_dir / f"trade_dataset_v4a_{split}.csv", split_rows)
 
-    split_counts: dict[str, int] = {}
-    for row in dataset_rows:
-        split = safe_text(row.get("ml_split"))
-        split_counts[split] = split_counts.get(split, 0) + 1
+    split_quality = evaluate_split_quality(dataset_rows)
+    print_split_quality(split_quality)
 
     manifest_rows = [{
-        "ml_dataset_version": "v4",
-        "rows_total": len(dataset_rows),
-        "rows_train": split_counts.get("train", 0),
-        "rows_validation": split_counts.get("validation", 0),
-        "rows_test": split_counts.get("test", 0),
+        "ml_dataset_version": "v4a",
+        "split_quality_status": split_quality["split_quality_status"],
+        "split_quality_warnings": split_quality["split_quality_warnings"],
+        "rows_total": split_quality["rows_total"],
+        "rows_train": split_quality["rows_train"],
+        "rows_validation": split_quality["rows_validation"],
+        "rows_test": split_quality["rows_test"],
+        "train_share": split_quality["train_share"],
+        "validation_share": split_quality["validation_share"],
+        "test_share": split_quality["test_share"],
         "target_columns": "|".join([
             "target_winner",
             "target_loser",
@@ -1623,9 +1682,10 @@ def export_ml_dataset(rows: list[dict[str, Any]], output_dir: Path) -> None:
             "target_future_return_168h_pct",
         ]),
         "feature_scope": "trade|path|counterfactual|diagnosis|confidence|regime|family",
+        "split_method": "deterministic_trade_id_ascii_bucket",
     }]
 
-    write_csv_rows(output_dir / "trade_dataset_v4_manifest.csv", manifest_rows)
+    write_csv_rows(output_dir / "trade_dataset_v4a_manifest.csv", manifest_rows)
 
     print("ML dataset export directory:", output_dir)
     print("files:")
@@ -1676,7 +1736,7 @@ def main() -> int:
     if args.update_label_registry:
         save_label_registry(Path(args.label_registry), label_map)
 
-    print("TRADE INSPECTOR V4")
+    print("TRADE INSPECTOR V4A")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
