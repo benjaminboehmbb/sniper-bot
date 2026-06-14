@@ -2520,6 +2520,99 @@ def export_predictive_signal_discovery(rows: list[dict[str, Any]], output_dir: P
         print("-", path)
 
 
+
+def export_cross_archive_root_cause(rows: list[dict[str, Any]], output_dir: Path, archive_id: str) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    enriched_rows: list[dict[str, Any]] = []
+
+    for idx, row in enumerate(rows, start=1):
+        local_trade_id = (
+            row.get("trade_id")
+            or row.get("stable_trade_id")
+            or row.get("local_trade_id")
+            or row.get("id")
+            or f"T{idx:06d}"
+        )
+        global_trade_id = f"{archive_id}::{local_trade_id}"
+
+        enriched_rows.append({
+            "archive_id": archive_id,
+            "local_trade_id": local_trade_id,
+            "global_trade_id": global_trade_id,
+            "trade_index": safe_int(row.get("trade_index"), idx),
+            "symbol": safe_text(row.get("symbol")),
+            "side": safe_text(row.get("side")),
+            "entry_time_chart": safe_text(row.get("entry_time_chart")),
+            "exit_time_chart": safe_text(row.get("exit_time_chart")),
+            "pnl": safe_float(row.get("pnl"), 0.0),
+            "pnl_pct": safe_float(row.get("pnl_pct"), 0.0),
+            "quality_score": safe_int(row.get("quality_score"), 0),
+            "quality_class": safe_text(row.get("quality_class")),
+            "root_cause": safe_text(row.get("root_cause")) or "unknown_cause",
+            "root_cause_weight": safe_int(row.get("root_cause_weight"), 0),
+            "root_cause_confidence": safe_int(row.get("root_cause_confidence"), 0),
+            "cause_weights": safe_text(row.get("cause_weights")),
+            "opportunity_loss_24h_pct": safe_float(row.get("opportunity_loss_24h_pct"), 0.0),
+            "additional_cause_1": safe_text(row.get("additional_cause_1")),
+            "additional_cause_1_weight": safe_int(row.get("additional_cause_1_weight"), 0),
+            "additional_cause_2": safe_text(row.get("additional_cause_2")),
+            "additional_cause_2_weight": safe_int(row.get("additional_cause_2_weight"), 0),
+            "priority": safe_text(row.get("priority")),
+            "priority_score": safe_int(row.get("priority_score"), 0),
+            "impact_score": safe_int(row.get("impact_score"), 0),
+            "trade_family": safe_text(row.get("trade_family")),
+            "trade_family_group": safe_text(row.get("trade_family_group")),
+            "entry_regime_label": safe_text(row.get("entry_regime_label")),
+            "exit_regime_label": safe_text(row.get("exit_regime_label")),
+            "entry_risk_label": safe_text(row.get("entry_risk_label")),
+            "exit_risk_label": safe_text(row.get("exit_risk_label")),
+        })
+
+    attribution = compute_root_cause_attribution(enriched_rows)
+
+    for row in attribution:
+        row["archive_scope"] = "single_archive_validation"
+        row["archive_count"] = 1
+        row["source_archive_id"] = archive_id
+        row["statistical_interpretation_allowed"] = "no"
+
+    write_csv_rows(output_dir / "cross_archive_root_cause_trades_v7d.csv", enriched_rows)
+    write_csv_rows(output_dir / "cross_archive_root_cause_attribution_v7d.csv", attribution)
+
+    manifest = [{
+        "engine_version": "v7d",
+        "archive_id": archive_id,
+        "archive_count": 1,
+        "trade_count": len(enriched_rows),
+        "root_cause_groups": len(attribution),
+        "mode": "single_archive_infrastructure_validation",
+        "statistical_interpretation_allowed": "no",
+        "minimum_recommended_archives": 2,
+        "minimum_recommended_trades": 30,
+    }]
+    write_csv_rows(output_dir / "cross_archive_root_cause_v7d_manifest.csv", manifest)
+
+    summary_path = output_dir / "v7d_cross_archive_root_cause_summary.md"
+    with summary_path.open("w", encoding="utf-8") as fh:
+        fh.write("# V7D CROSS-ARCHIVE ROOT CAUSE SUMMARY\n\n")
+        fh.write("Status: infrastructure export\n\n")
+        fh.write(f"archive_id: {archive_id}\n")
+        fh.write("archive_count: 1\n")
+        fh.write(f"trade_count: {len(enriched_rows)}\n")
+        fh.write(f"root_cause_groups: {len(attribution)}\n\n")
+        fh.write("Important limitation:\n\n")
+        fh.write("This output validates the V7D infrastructure only.\n")
+        fh.write("It must not be interpreted as statistically robust cross-archive root cause analysis yet.\n")
+
+    print("Cross-archive root cause export directory:", output_dir)
+    print("archive_id:", archive_id)
+    print("trades:", len(enriched_rows))
+    print("root_cause_groups:", len(attribution))
+    for path in sorted(output_dir.glob("*")):
+        print(" -", path)
+
+
 def export_global_trade_database(rows: list[dict[str, Any]], output_dir: Path, archive_id: str) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2655,6 +2748,7 @@ def main() -> int:
     parser.add_argument("--export-feature-stability-dir", default="")
     parser.add_argument("--export-signal-discovery-dir", default="")
     parser.add_argument("--export-global-trades-dir", default="")
+    parser.add_argument("--export-cross-archive-root-cause-dir", default="")
     parser.add_argument("--archive-id", default="P79A_pre_run_2026-06-10")
     parser.add_argument("--label-list", default=str(DEFAULT_LABEL_LIST))
     parser.add_argument("--label-registry", default=str(DEFAULT_LABEL_REGISTRY))
@@ -2739,6 +2833,10 @@ def main() -> int:
         export_global_trade_database(rows, Path(args.export_global_trades_dir), args.archive_id)
         return 0
 
+    if args.export_cross_archive_root_cause_dir:
+        export_cross_archive_root_cause(rows, Path(args.export_cross_archive_root_cause_dir), args.archive_id)
+        return 0
+
     print("No selection provided.")
     print("Examples:")
     print("python3 tools/trade_inspector/inspect_trades.py --trade-index 1")
@@ -2753,6 +2851,7 @@ def main() -> int:
     print("python3 tools/trade_inspector/inspect_trades.py --export-feature-stability-dir data/ml/trade_inspector_v5c")
     print("python3 tools/trade_inspector/inspect_trades.py --export-signal-discovery-dir data/ml/trade_inspector_v6")
     print("python3 tools/trade_inspector/inspect_trades.py --export-global-trades-dir outputs/trade_inspector/v7 --archive-id P79A_pre_run_2026-06-10")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-cross-archive-root-cause-dir outputs/trade_inspector/v7d --archive-id P79A_pre_run_2026-06-10")
     return 0
 
 
