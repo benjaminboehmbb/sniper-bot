@@ -2338,10 +2338,23 @@ def discover_signal_groups(rows: list[dict[str, Any]], group_key: str) -> list[d
         else:
             status = "WEAK"
 
+        support_class = classify_signal_support(count)
+        reliability_score, reliability_class, warning_level, minimum_required_support = classify_signal_reliability(
+            len(rows),
+            count,
+            status,
+        )
+
         output.append({
             "group_key": group_key,
             "group": group_name,
             "count": count,
+            "support_count": count,
+            "minimum_required_support": minimum_required_support,
+            "support_class": support_class,
+            "reliability_score": reliability_score,
+            "reliability_class": reliability_class,
+            "warning_level": warning_level,
             "winrate": winrate,
             "global_winrate": global_winrate,
             "winrate_edge": winrate_edge,
@@ -2358,6 +2371,54 @@ def discover_signal_groups(rows: list[dict[str, Any]], group_key: str) -> list[d
 
     output.sort(key=lambda row: safe_float(row.get("discovery_score"), 0.0), reverse=True)
     return output
+
+
+
+def classify_signal_support(count: int) -> str:
+    if count < 3:
+        return "VERY_LOW"
+    if count < 10:
+        return "LOW"
+    if count < 30:
+        return "MEDIUM"
+    return "HIGH"
+
+
+def classify_signal_reliability(rows_total: int, count: int, discovery_status: str) -> tuple[int, str, str, int]:
+    minimum_required_support = 30
+
+    if rows_total < minimum_required_support:
+        return 0, "NOT_ACTIONABLE", "DATASET_TOO_SMALL", minimum_required_support
+
+    support_ratio = (count / rows_total) if rows_total else 0.0
+
+    score = 0
+
+    if count >= 30:
+        score += 40
+    elif count >= 10:
+        score += 25
+    elif count >= 3:
+        score += 10
+
+    if support_ratio >= 0.20:
+        score += 20
+    elif support_ratio >= 0.10:
+        score += 10
+
+    if discovery_status == "PROMISING":
+        score += 30
+    elif discovery_status == "WATCH":
+        score += 15
+
+    score = max(0, min(100, score))
+
+    if score >= 70:
+        return score, "ACTIONABLE_CANDIDATE", "LOW", minimum_required_support
+    if score >= 40:
+        return score, "WATCH_ONLY", "MEDIUM", minimum_required_support
+    return score, "NOT_ACTIONABLE", "HIGH", minimum_required_support
+
 
 
 def discover_pair_groups(rows: list[dict[str, Any]], key_a: str, key_b: str) -> list[dict[str, Any]]:
@@ -2415,20 +2476,29 @@ def export_predictive_signal_discovery(rows: list[dict[str, Any]], output_dir: P
     promising = sum(1 for row in all_discoveries if safe_text(row.get("discovery_status")) == "PROMISING")
     watch = sum(1 for row in all_discoveries if safe_text(row.get("discovery_status")) == "WATCH")
     low_support = sum(1 for row in all_discoveries if safe_text(row.get("discovery_status")) == "LOW_SUPPORT")
+    not_actionable = sum(1 for row in all_discoveries if safe_text(row.get("reliability_class")) == "NOT_ACTIONABLE")
+    watch_only = sum(1 for row in all_discoveries if safe_text(row.get("reliability_class")) == "WATCH_ONLY")
+    actionable = sum(1 for row in all_discoveries if safe_text(row.get("reliability_class")) == "ACTIONABLE_CANDIDATE")
+    high_warning = sum(1 for row in all_discoveries if safe_text(row.get("warning_level")) in {"HIGH", "DATASET_TOO_SMALL"})
 
     status = "PASS" if len(rows) >= 30 else "WARN"
     warning = "dataset_too_small_for_reliable_signal_discovery" if len(rows) < 30 else "none"
 
     manifest = [{
-        "engine_version": "v6",
+        "engine_version": "v6a",
         "rows_total": len(rows),
         "groups_evaluated": len(all_discoveries),
         "promising_groups": promising,
         "watch_groups": watch,
         "low_support_groups": low_support,
+        "not_actionable_groups": not_actionable,
+        "watch_only_groups": watch_only,
+        "actionable_candidate_groups": actionable,
+        "high_warning_groups": high_warning,
+        "minimum_required_support": 30,
         "discovery_status": status,
         "discovery_warning": warning,
-        "method": "group_edge_vs_global_baseline",
+        "method": "group_edge_vs_global_baseline_with_reliability_layer",
     }]
 
     write_csv_rows(output_dir / "predictive_signal_discovery_v6_manifest.csv", manifest)
@@ -2441,6 +2511,10 @@ def export_predictive_signal_discovery(rows: list[dict[str, Any]], output_dir: P
     print("promising_groups:", promising)
     print("watch_groups:", watch)
     print("low_support_groups:", low_support)
+    print("not_actionable_groups:", not_actionable)
+    print("watch_only_groups:", watch_only)
+    print("actionable_candidate_groups:", actionable)
+    print("high_warning_groups:", high_warning)
     print("files:")
     for path in sorted(output_dir.glob("*.csv")):
         print("-", path)
