@@ -2521,6 +2521,111 @@ def export_predictive_signal_discovery(rows: list[dict[str, Any]], output_dir: P
 
 
 
+
+def export_cross_archive_feature_importance(rows: list[dict[str, Any]], output_dir: Path, archive_id: str) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    dataset_rows = build_ml_dataset_rows(rows)
+    model_ready_rows, _catalog = build_model_ready_rows(dataset_rows)
+    _leakage_report, allowed_features, _blocked_features = audit_feature_leakage(model_ready_rows)
+
+    training_columns = ["trade_id", "human_label", "ml_split"] + allowed_features
+    target_columns = ["trade_id", "human_label", "ml_split"] + sorted(TARGET_COLUMNS)
+
+    training_rows = [
+        {col: row.get(col, "") for col in training_columns if col in row}
+        for row in model_ready_rows
+    ]
+
+    target_rows = [
+        {col: row.get(col, "") for col in target_columns if col in row}
+        for row in model_ready_rows
+    ]
+
+    main_targets = [
+        "target_winner",
+        "target_loser",
+        "target_quality_good",
+        "target_quality_bad",
+        "target_opportunity_loss_high",
+        "target_exit_efficiency_high",
+        "target_pnl_pct",
+        "target_future_return_24h_pct",
+        "target_future_return_72h_pct",
+    ]
+
+    all_importance: list[dict[str, Any]] = []
+
+    for target in main_targets:
+        target_importance = feature_importance_rows(training_rows, target_rows, target)
+        for item in target_importance:
+            out = dict(item)
+            out["archive_scope"] = "single_archive_validation"
+            out["archive_count"] = 1
+            out["source_archive_id"] = archive_id
+            out["statistical_interpretation_allowed"] = "no"
+            out["minimum_recommended_archives"] = 2
+            out["minimum_recommended_trades"] = 30
+            all_importance.append(out)
+
+    all_importance.sort(key=lambda row: safe_float(row.get("importance_score"), 0.0), reverse=True)
+
+    write_csv_rows(output_dir / "cross_archive_feature_importance_v7e.csv", all_importance)
+
+    for target in main_targets:
+        target_rows_out = [row for row in all_importance if safe_text(row.get("target_column")) == target]
+        write_csv_rows(output_dir / f"cross_archive_feature_importance_v7e_{target}.csv", target_rows_out)
+
+    rows_total = len(model_ready_rows)
+    status = "PASS" if rows_total >= 30 else "WARN"
+    warning = "dataset_too_small_for_reliable_cross_archive_feature_importance" if rows_total < 30 else "none"
+
+    manifest = [{
+        "engine_version": "v7e",
+        "archive_id": archive_id,
+        "archive_count": 1,
+        "rows_total": rows_total,
+        "allowed_features": len(allowed_features),
+        "targets_evaluated": len(main_targets),
+        "importance_rows": len(all_importance),
+        "method": "absolute_pearson_correlation_after_leakage_audit",
+        "model_training": "not_performed",
+        "mode": "single_archive_infrastructure_validation",
+        "feature_importance_status": status,
+        "feature_importance_warning": warning,
+        "statistical_interpretation_allowed": "no",
+        "minimum_recommended_archives": 2,
+        "minimum_recommended_trades": 30,
+    }]
+
+    write_csv_rows(output_dir / "cross_archive_feature_importance_v7e_manifest.csv", manifest)
+
+    summary_path = output_dir / "v7e_cross_archive_feature_importance_summary.md"
+    with summary_path.open("w", encoding="utf-8") as fh:
+        fh.write("# V7E CROSS-ARCHIVE FEATURE IMPORTANCE SUMMARY\n\n")
+        fh.write("Status: infrastructure export\n\n")
+        fh.write(f"archive_id: {archive_id}\n")
+        fh.write("archive_count: 1\n")
+        fh.write(f"rows_total: {rows_total}\n")
+        fh.write(f"allowed_features: {len(allowed_features)}\n")
+        fh.write(f"targets_evaluated: {len(main_targets)}\n")
+        fh.write(f"importance_rows: {len(all_importance)}\n\n")
+        fh.write("Important limitation:\n\n")
+        fh.write("This output validates the V7E infrastructure only.\n")
+        fh.write("It must not be interpreted as statistically robust cross-archive feature importance yet.\n")
+
+    print("Cross-archive feature importance export directory:", output_dir)
+    print("archive_id:", archive_id)
+    print("rows_total:", rows_total)
+    print("allowed_features:", len(allowed_features))
+    print("targets_evaluated:", len(main_targets))
+    print("importance_rows:", len(all_importance))
+    print("feature_importance_status:", status)
+    print("feature_importance_warning:", warning)
+    for path in sorted(output_dir.glob("*")):
+        print(" -", path)
+
+
 def export_cross_archive_root_cause(rows: list[dict[str, Any]], output_dir: Path, archive_id: str) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2749,6 +2854,7 @@ def main() -> int:
     parser.add_argument("--export-signal-discovery-dir", default="")
     parser.add_argument("--export-global-trades-dir", default="")
     parser.add_argument("--export-cross-archive-root-cause-dir", default="")
+    parser.add_argument("--export-cross-archive-feature-importance-dir", default="")
     parser.add_argument("--archive-id", default="P79A_pre_run_2026-06-10")
     parser.add_argument("--label-list", default=str(DEFAULT_LABEL_LIST))
     parser.add_argument("--label-registry", default=str(DEFAULT_LABEL_REGISTRY))
@@ -2837,6 +2943,10 @@ def main() -> int:
         export_cross_archive_root_cause(rows, Path(args.export_cross_archive_root_cause_dir), args.archive_id)
         return 0
 
+    if args.export_cross_archive_feature_importance_dir:
+        export_cross_archive_feature_importance(rows, Path(args.export_cross_archive_feature_importance_dir), args.archive_id)
+        return 0
+
     print("No selection provided.")
     print("Examples:")
     print("python3 tools/trade_inspector/inspect_trades.py --trade-index 1")
@@ -2852,6 +2962,7 @@ def main() -> int:
     print("python3 tools/trade_inspector/inspect_trades.py --export-signal-discovery-dir data/ml/trade_inspector_v6")
     print("python3 tools/trade_inspector/inspect_trades.py --export-global-trades-dir outputs/trade_inspector/v7 --archive-id P79A_pre_run_2026-06-10")
     print("python3 tools/trade_inspector/inspect_trades.py --export-cross-archive-root-cause-dir outputs/trade_inspector/v7d --archive-id P79A_pre_run_2026-06-10")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-cross-archive-feature-importance-dir outputs/trade_inspector/v7e --archive-id P79A_pre_run_2026-06-10")
     return 0
 
 
