@@ -2138,6 +2138,313 @@ def export_feature_importance(rows: list[dict[str, Any]], output_dir: Path) -> N
     for path in sorted(output_dir.glob("*.csv")):
         print("-", path)
 
+
+def median(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    s = sorted(values)
+    n = len(s)
+    mid = n // 2
+    if n % 2 == 1:
+        return s[mid]
+    return (s[mid - 1] + s[mid]) / 2.0
+
+
+def std(values: list[float]) -> float:
+    if len(values) < 2:
+        return 0.0
+    m = avg(values)
+    return (sum((v - m) ** 2 for v in values) / (len(values) - 1)) ** 0.5
+
+
+def stability_class(score: float) -> str:
+    if score >= 90:
+        return "elite"
+    if score >= 75:
+        return "stable"
+    if score >= 50:
+        return "moderate"
+    if score >= 25:
+        return "weak"
+    return "unstable"
+
+
+def export_feature_stability(rows: list[dict[str, Any]], output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    dataset_rows = build_ml_dataset_rows(rows)
+    model_ready_rows, _catalog = build_model_ready_rows(dataset_rows)
+    _leakage_report, allowed_features, _blocked_features = audit_feature_leakage(model_ready_rows)
+
+    training_columns = ["trade_id", "human_label", "ml_split"] + allowed_features
+    target_columns = ["trade_id", "human_label", "ml_split"] + sorted(TARGET_COLUMNS)
+
+    training_rows = [
+        {col: row.get(col, "") for col in training_columns if col in row}
+        for row in model_ready_rows
+    ]
+
+    target_rows = [
+        {col: row.get(col, "") for col in target_columns if col in row}
+        for row in model_ready_rows
+    ]
+
+    targets = [
+        "target_winner",
+        "target_loser",
+        "target_quality_good",
+        "target_quality_bad",
+        "target_opportunity_loss_high",
+        "target_exit_efficiency_high",
+        "target_pnl_pct",
+        "target_future_return_24h_pct",
+        "target_future_return_72h_pct",
+    ]
+
+    by_feature: dict[str, list[dict[str, Any]]] = {}
+    matrix: dict[str, dict[str, Any]] = {}
+
+    for target in targets:
+        importance = feature_importance_rows(training_rows, target_rows, target)
+
+        for rank, row in enumerate(importance, start=1):
+            feature = safe_text(row.get("feature_name"))
+            score = safe_float(row.get("importance_score"), 0.0)
+
+            by_feature.setdefault(feature, []).append({
+                "target": target,
+                "importance": score,
+                "rank": rank,
+            })
+
+            matrix.setdefault(feature, {"feature_name": feature})
+            matrix[feature][target] = score
+            matrix[feature][f"{target}_rank"] = rank
+
+    stability_rows: list[dict[str, Any]] = []
+
+    for feature, items in by_feature.items():
+        importances = [safe_float(item.get("importance"), 0.0) for item in items]
+        ranks = [safe_float(item.get("rank"), 0.0) for item in items]
+
+        top10_count = sum(1 for r in ranks if r <= 10)
+        top20_count = sum(1 for r in ranks if r <= 20)
+
+        importance_mean = avg(importances)
+        importance_median = median(importances)
+        importance_std = std(importances)
+        rank_mean = avg(ranks)
+        rank_std = std(ranks)
+
+        score = 0.0
+        score += min(60.0, importance_mean * 100.0)
+        score += (top10_count / len(targets)) * 25.0
+        score += (top20_count / len(targets)) * 15.0
+        score -= min(25.0, importance_std * 100.0)
+        score = max(0.0, min(100.0, score))
+
+        stability_rows.append({
+            "feature_name": feature,
+            "importance_mean": importance_mean,
+            "importance_median": importance_median,
+            "importance_std": importance_std,
+            "rank_mean": rank_mean,
+            "rank_std": rank_std,
+            "target_count": len(items),
+            "top10_count": top10_count,
+            "top20_count": top20_count,
+            "stability_score": score,
+            "stability_class": stability_class(score),
+        })
+
+    stability_rows.sort(key=lambda row: safe_float(row.get("stability_score"), 0.0), reverse=True)
+
+    matrix_rows = list(matrix.values())
+    matrix_rows.sort(key=lambda row: safe_text(row.get("feature_name")))
+
+    write_csv_rows(output_dir / "feature_stability_v5c.csv", stability_rows)
+    write_csv_rows(output_dir / "feature_stability_v5c_target_matrix.csv", matrix_rows)
+
+    class_counts: dict[str, int] = {}
+    for row in stability_rows:
+        cls = safe_text(row.get("stability_class"))
+        class_counts[cls] = class_counts.get(cls, 0) + 1
+
+    status = "PASS" if len(model_ready_rows) >= 30 else "WARN"
+    warning = "dataset_too_small_for_reliable_stability" if len(model_ready_rows) < 30 else "none"
+
+    manifest = [{
+        "engine_version": "v5c",
+        "rows_total": len(model_ready_rows),
+        "features_analyzed": len(stability_rows),
+        "targets_analyzed": len(targets),
+        "elite_features": class_counts.get("elite", 0),
+        "stable_features": class_counts.get("stable", 0),
+        "moderate_features": class_counts.get("moderate", 0),
+        "weak_features": class_counts.get("weak", 0),
+        "unstable_features": class_counts.get("unstable", 0),
+        "stability_status": status,
+        "stability_warning": warning,
+        "method": "multi_target_absolute_pearson_stability",
+    }]
+
+    write_csv_rows(output_dir / "feature_stability_v5c_manifest.csv", manifest)
+
+    print("Feature stability export directory:", output_dir)
+    print("stability_status:", status)
+    print("stability_warning:", warning)
+    print("rows_total:", len(model_ready_rows))
+    print("features_analyzed:", len(stability_rows))
+    print("targets_analyzed:", len(targets))
+    print("files:")
+    for path in sorted(output_dir.glob("*.csv")):
+        print("-", path)
+
+
+def safe_rate(num: float, den: float) -> float:
+    return num / den if den else 0.0
+
+
+def discover_signal_groups(rows: list[dict[str, Any]], group_key: str) -> list[dict[str, Any]]:
+    groups = group_rows(rows, group_key)
+    global_stats = group_stats(rows)
+    global_winrate = safe_float(global_stats.get("winrate"), 0.0)
+    global_avg_pnl_pct = safe_float(global_stats.get("avg_pnl_pct"), 0.0)
+
+    output: list[dict[str, Any]] = []
+
+    for group_name, items in groups.items():
+        stats = group_stats(items)
+
+        count = safe_int(stats.get("count"), 0)
+        winrate = safe_float(stats.get("winrate"), 0.0)
+        avg_pnl_pct = safe_float(stats.get("avg_pnl_pct"), 0.0)
+        avg_opp = safe_float(stats.get("avg_opportunity_loss_24h_pct"), 0.0)
+        avg_exit_eff = safe_float(stats.get("avg_exit_efficiency_24h_pct"), 0.0)
+
+        winrate_edge = winrate - global_winrate
+        pnl_edge = avg_pnl_pct - global_avg_pnl_pct
+
+        support_score = min(100.0, count * 10.0)
+        edge_score = max(0.0, (winrate_edge * 100.0) + (pnl_edge * 1000.0))
+        quality_score = max(0.0, min(100.0, support_score * 0.35 + edge_score * 0.65))
+
+        if count < 3:
+            status = "LOW_SUPPORT"
+        elif quality_score >= 60:
+            status = "PROMISING"
+        elif quality_score >= 35:
+            status = "WATCH"
+        else:
+            status = "WEAK"
+
+        output.append({
+            "group_key": group_key,
+            "group": group_name,
+            "count": count,
+            "winrate": winrate,
+            "global_winrate": global_winrate,
+            "winrate_edge": winrate_edge,
+            "avg_pnl_pct": avg_pnl_pct,
+            "global_avg_pnl_pct": global_avg_pnl_pct,
+            "pnl_edge": pnl_edge,
+            "avg_opportunity_loss_24h_pct": avg_opp,
+            "avg_exit_efficiency_24h_pct": avg_exit_eff,
+            "support_score": support_score,
+            "edge_score": edge_score,
+            "discovery_score": quality_score,
+            "discovery_status": status,
+        })
+
+    output.sort(key=lambda row: safe_float(row.get("discovery_score"), 0.0), reverse=True)
+    return output
+
+
+def discover_pair_groups(rows: list[dict[str, Any]], key_a: str, key_b: str) -> list[dict[str, Any]]:
+    combined_rows: list[dict[str, Any]] = []
+
+    for row in rows:
+        out = dict(row)
+        out[f"{key_a}__{key_b}"] = f"{safe_text(row.get(key_a))}__{safe_text(row.get(key_b))}"
+        combined_rows.append(out)
+
+    return discover_signal_groups(combined_rows, f"{key_a}__{key_b}")
+
+
+def export_predictive_signal_discovery(rows: list[dict[str, Any]], output_dir: Path) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    group_keys = [
+        "entry_regime_label",
+        "entry_risk_label",
+        "regime_aligned",
+        "risk_good_at_entry",
+        "entry_score_at_entry",
+        "entry_atr_signal",
+        "entry_ma200_signal",
+        "entry_mfi_signal",
+        "trade_family_group",
+        "trade_family",
+    ]
+
+    all_discoveries: list[dict[str, Any]] = []
+
+    for key in group_keys:
+        result = discover_signal_groups(rows, key)
+        all_discoveries.extend(result)
+        write_csv_rows(output_dir / f"predictive_signal_discovery_by_{key}.csv", result)
+
+    pair_specs = [
+        ("entry_regime_label", "entry_risk_label"),
+        ("entry_regime_label", "entry_atr_signal"),
+        ("entry_risk_label", "regime_aligned"),
+        ("entry_ma200_signal", "entry_mfi_signal"),
+        ("entry_score_at_entry", "entry_risk_label"),
+        ("trade_family_group", "entry_risk_label"),
+    ]
+
+    for key_a, key_b in pair_specs:
+        result = discover_pair_groups(rows, key_a, key_b)
+        all_discoveries.extend(result)
+        write_csv_rows(output_dir / f"predictive_signal_discovery_by_{key_a}__{key_b}.csv", result)
+
+    all_discoveries.sort(key=lambda row: safe_float(row.get("discovery_score"), 0.0), reverse=True)
+    write_csv_rows(output_dir / "predictive_signal_discovery_v6_all.csv", all_discoveries)
+    write_csv_rows(output_dir / "predictive_signal_discovery_v6_top.csv", all_discoveries[:50])
+
+    promising = sum(1 for row in all_discoveries if safe_text(row.get("discovery_status")) == "PROMISING")
+    watch = sum(1 for row in all_discoveries if safe_text(row.get("discovery_status")) == "WATCH")
+    low_support = sum(1 for row in all_discoveries if safe_text(row.get("discovery_status")) == "LOW_SUPPORT")
+
+    status = "PASS" if len(rows) >= 30 else "WARN"
+    warning = "dataset_too_small_for_reliable_signal_discovery" if len(rows) < 30 else "none"
+
+    manifest = [{
+        "engine_version": "v6",
+        "rows_total": len(rows),
+        "groups_evaluated": len(all_discoveries),
+        "promising_groups": promising,
+        "watch_groups": watch,
+        "low_support_groups": low_support,
+        "discovery_status": status,
+        "discovery_warning": warning,
+        "method": "group_edge_vs_global_baseline",
+    }]
+
+    write_csv_rows(output_dir / "predictive_signal_discovery_v6_manifest.csv", manifest)
+
+    print("Predictive signal discovery export directory:", output_dir)
+    print("discovery_status:", status)
+    print("discovery_warning:", warning)
+    print("rows_total:", len(rows))
+    print("groups_evaluated:", len(all_discoveries))
+    print("promising_groups:", promising)
+    print("watch_groups:", watch)
+    print("low_support_groups:", low_support)
+    print("files:")
+    for path in sorted(output_dir.glob("*.csv")):
+        print("-", path)
+
 def export_ml_dataset(rows: list[dict[str, Any]], output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2216,6 +2523,8 @@ def main() -> int:
     parser.add_argument("--export-feature-prep-dir", default="")
     parser.add_argument("--export-leakage-audit-dir", default="")
     parser.add_argument("--export-feature-importance-dir", default="")
+    parser.add_argument("--export-feature-stability-dir", default="")
+    parser.add_argument("--export-signal-discovery-dir", default="")
     parser.add_argument("--label-list", default=str(DEFAULT_LABEL_LIST))
     parser.add_argument("--label-registry", default=str(DEFAULT_LABEL_REGISTRY))
     parser.add_argument("--update-label-registry", action="store_true")
@@ -2235,7 +2544,7 @@ def main() -> int:
     if args.update_label_registry:
         save_label_registry(Path(args.label_registry), label_map)
 
-    print("TRADE INSPECTOR V5")
+    print("TRADE INSPECTOR V6")
     print("archive_dir:", archive_dir)
     print("trades:", len(trades))
     print("audit_events:", len(audit_rows))
@@ -2287,6 +2596,14 @@ def main() -> int:
         export_feature_importance(rows, Path(args.export_feature_importance_dir))
         return 0
 
+    if args.export_feature_stability_dir:
+        export_feature_stability(rows, Path(args.export_feature_stability_dir))
+        return 0
+
+    if args.export_signal_discovery_dir:
+        export_predictive_signal_discovery(rows, Path(args.export_signal_discovery_dir))
+        return 0
+
     print("No selection provided.")
     print("Examples:")
     print("python3 tools/trade_inspector/inspect_trades.py --trade-index 1")
@@ -2298,6 +2615,8 @@ def main() -> int:
     print("python3 tools/trade_inspector/inspect_trades.py --export-feature-prep-dir data/ml/trade_inspector_v4b")
     print("python3 tools/trade_inspector/inspect_trades.py --export-leakage-audit-dir data/ml/trade_inspector_v4c")
     print("python3 tools/trade_inspector/inspect_trades.py --export-feature-importance-dir data/ml/trade_inspector_v5")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-feature-stability-dir data/ml/trade_inspector_v5c")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-signal-discovery-dir data/ml/trade_inspector_v6")
     return 0
 
 
