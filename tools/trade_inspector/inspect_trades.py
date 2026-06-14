@@ -2445,6 +2445,61 @@ def export_predictive_signal_discovery(rows: list[dict[str, Any]], output_dir: P
     for path in sorted(output_dir.glob("*.csv")):
         print("-", path)
 
+
+def export_global_trade_database(rows: list[dict[str, Any]], output_dir: Path, archive_id: str) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    global_rows: list[dict[str, Any]] = []
+
+    for idx, row in enumerate(rows, start=1):
+        local_trade_id = (
+            row.get("trade_id")
+            or row.get("stable_trade_id")
+            or row.get("local_trade_id")
+            or row.get("id")
+            or f"T{idx:06d}"
+        )
+
+        global_trade_id = f"{archive_id}::{local_trade_id}"
+
+        out = dict(row)
+        out["archive_id"] = archive_id
+        out["local_trade_id"] = local_trade_id
+        out["global_trade_id"] = global_trade_id
+        out["v7_global_row_index"] = idx
+
+        global_rows.append(out)
+
+    write_csv_rows(output_dir / "global_trades_v7c.csv", global_rows)
+
+    summary_path = output_dir / "v7c_global_trade_database_summary.md"
+    with summary_path.open("w", encoding="utf-8") as fh:
+        fh.write("# V7C GLOBAL TRADE DATABASE SUMMARY\n\n")
+        fh.write("Status: infrastructure export\n\n")
+        fh.write(f"archive_id: {archive_id}\n")
+        fh.write(f"trade_count: {len(global_rows)}\n")
+        fh.write("mode: single-archive validation\n\n")
+        fh.write("Important limitation:\n\n")
+        fh.write("This output validates the V7C infrastructure only.\n")
+        fh.write("It must not be interpreted as statistically robust cross-archive analysis yet.\n")
+
+    manifest = [{
+        "archive_id": archive_id,
+        "trade_count": len(global_rows),
+        "output_file": "global_trades_v7c.csv",
+        "summary_file": "v7c_global_trade_database_summary.md",
+        "status": "infrastructure_validation",
+        "statistical_interpretation_allowed": "no",
+    }]
+    write_csv_rows(output_dir / "global_trades_v7c_manifest.csv", manifest)
+
+    print("Global trade database export directory:", output_dir)
+    print("archive_id:", archive_id)
+    print("global_trades:", len(global_rows))
+    for path in sorted(output_dir.glob("*")):
+        print(" -", path)
+
+
 def export_ml_dataset(rows: list[dict[str, Any]], output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2525,6 +2580,8 @@ def main() -> int:
     parser.add_argument("--export-feature-importance-dir", default="")
     parser.add_argument("--export-feature-stability-dir", default="")
     parser.add_argument("--export-signal-discovery-dir", default="")
+    parser.add_argument("--export-global-trades-dir", default="")
+    parser.add_argument("--archive-id", default="P79A_pre_run_2026-06-10")
     parser.add_argument("--label-list", default=str(DEFAULT_LABEL_LIST))
     parser.add_argument("--label-registry", default=str(DEFAULT_LABEL_REGISTRY))
     parser.add_argument("--update-label-registry", action="store_true")
@@ -2604,6 +2661,10 @@ def main() -> int:
         export_predictive_signal_discovery(rows, Path(args.export_signal_discovery_dir))
         return 0
 
+    if args.export_global_trades_dir:
+        export_global_trade_database(rows, Path(args.export_global_trades_dir), args.archive_id)
+        return 0
+
     print("No selection provided.")
     print("Examples:")
     print("python3 tools/trade_inspector/inspect_trades.py --trade-index 1")
@@ -2617,6 +2678,7 @@ def main() -> int:
     print("python3 tools/trade_inspector/inspect_trades.py --export-feature-importance-dir data/ml/trade_inspector_v5")
     print("python3 tools/trade_inspector/inspect_trades.py --export-feature-stability-dir data/ml/trade_inspector_v5c")
     print("python3 tools/trade_inspector/inspect_trades.py --export-signal-discovery-dir data/ml/trade_inspector_v6")
+    print("python3 tools/trade_inspector/inspect_trades.py --export-global-trades-dir outputs/trade_inspector/v7 --archive-id P79A_pre_run_2026-06-10")
     return 0
 
 
