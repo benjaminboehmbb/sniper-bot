@@ -9,7 +9,8 @@ Status: Minimal registry for first archive
 
 | archive_id | archive_path | run_label | created_at | source_device | market_data | strategy_profile | include_in_v7 |
 |---|---|---|---|---|---|---|---|
-| P79A_pre_run_2026-06-10 | live_logs/archive/P79A_pre_run_2026-06-10 | P79A pre run reference archive | 2026-06-10 | G15/AR15 | data/l1_full_run.csv | Live L1 PAPER | yes |
+| P79A_completed_2026-06-11 | live_logs/archive/P79A_completed_2026-06-11 | P79A completed workstation runtime archive | 2026-06-11 | workstation | data/l1_full_run.csv | Live L1 PAPER | yes |
+| P82A_completed_7d_workstation_2026-06-18 | live_logs/archive/P82A_completed_7d_workstation_2026-06-18 | P82A completed 7-day workstation runtime archive | 2026-06-18 | workstation | data/l1_full_run.csv | Live L1 PAPER | yes |
 
 ## Notes
 
@@ -17,8 +18,8 @@ This is the first minimal V7 archive registry.
 
 Known archive contents:
 
-- 9 trades
-- 18 audit events
+- 231 trades
+- 951 audit events
 - 4,330,970 regime snapshots
 
 Current use:
@@ -39,5 +40,5 @@ live_logs/archive/P79A_pre_run_2026-06-10/trades_l1.jsonl
 
 Expected result:
 
-Readable JSONL trade file with 9 trades.
+Readable JSONL trade file with 231 trades.
 

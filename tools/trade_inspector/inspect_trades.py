@@ -772,20 +772,19 @@ def assign_human_labels(
         raise ValueError("Label registry contains duplicate labels.")
 
     available = [label for label in label_list if label not in used_labels]
-
     trade_ids = sorted({build_trade_id(trade) for trade in trades})
 
     assigned = dict(registry)
 
-    for trade_id in trade_ids:
+    for idx, trade_id in enumerate(trade_ids):
         if trade_id in assigned:
             continue
-        if not available:
-            raise ValueError("Not enough human labels. Extend config/trade_inspector/human_labels.txt.")
-        assigned[trade_id] = available.pop(0)
+        if available:
+            assigned[trade_id] = available.pop(0)
+        else:
+            assigned[trade_id] = f"auto_label_{len(assigned) + idx + 1:06d}"
 
     return assigned
-
 
 def compact_trade_time(value: object) -> str:
     dt = parse_ts(value)
@@ -2721,6 +2720,10 @@ def export_multi_archive_loader(
 
 def export_cross_archive_signal_discovery(rows: list[dict[str, Any]], output_dir: Path, archive_id: str) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
+    source_archive_ids = sorted({str(row.get("archive_id", "")).strip() for row in rows if str(row.get("archive_id", "")).strip()})
+    archive_count = len(source_archive_ids)
+    statistical_allowed = "yes" if archive_count >= 2 and len(rows) >= 30 else "no"
+    export_mode = "multi_archive_analysis" if archive_count >= 2 else "single_archive_infrastructure_validation"
 
     group_keys = [
         "entry_regime_label",
@@ -2745,7 +2748,7 @@ def export_cross_archive_signal_discovery(rows: list[dict[str, Any]], output_dir
             out["archive_scope"] = "single_archive_validation"
             out["archive_count"] = 1
             out["source_archive_id"] = archive_id
-            out["statistical_interpretation_allowed"] = "no"
+            out["statistical_interpretation_allowed"] = statistical_allowed
             out["minimum_recommended_archives"] = 2
             out["minimum_recommended_trades"] = 30
             enriched.append(out)
@@ -2769,7 +2772,7 @@ def export_cross_archive_signal_discovery(rows: list[dict[str, Any]], output_dir
             out["archive_scope"] = "single_archive_validation"
             out["archive_count"] = 1
             out["source_archive_id"] = archive_id
-            out["statistical_interpretation_allowed"] = "no"
+            out["statistical_interpretation_allowed"] = statistical_allowed
             out["minimum_recommended_archives"] = 2
             out["minimum_recommended_trades"] = 30
             enriched.append(out)
@@ -2795,7 +2798,7 @@ def export_cross_archive_signal_discovery(rows: list[dict[str, Any]], output_dir
     manifest = [{
         "engine_version": "v7f",
         "archive_id": archive_id,
-        "archive_count": 1,
+        "archive_count": archive_count,
         "rows_total": len(rows),
         "groups_evaluated": len(all_discoveries),
         "promising_groups": promising,
@@ -2805,11 +2808,11 @@ def export_cross_archive_signal_discovery(rows: list[dict[str, Any]], output_dir
         "watch_only_groups": watch_only,
         "actionable_candidate_groups": actionable,
         "high_warning_groups": high_warning,
-        "mode": "single_archive_infrastructure_validation",
+        "mode": export_mode,
         "method": "group_edge_vs_global_baseline_with_reliability_layer",
         "signal_discovery_status": status,
         "signal_discovery_warning": warning,
-        "statistical_interpretation_allowed": "no",
+        "statistical_interpretation_allowed": statistical_allowed,
         "minimum_recommended_archives": 2,
         "minimum_recommended_trades": 30,
     }]
@@ -2821,7 +2824,7 @@ def export_cross_archive_signal_discovery(rows: list[dict[str, Any]], output_dir
         fh.write("# V7F CROSS-ARCHIVE SIGNAL DISCOVERY SUMMARY\n\n")
         fh.write("Status: infrastructure export\n\n")
         fh.write(f"archive_id: {archive_id}\n")
-        fh.write("archive_count: 1\n")
+        fh.write(f"archive_count: {archive_count}\n")
         fh.write(f"rows_total: {len(rows)}\n")
         fh.write(f"groups_evaluated: {len(all_discoveries)}\n")
         fh.write(f"promising_groups: {promising}\n")
@@ -2830,7 +2833,7 @@ def export_cross_archive_signal_discovery(rows: list[dict[str, Any]], output_dir
         fh.write(f"actionable_candidate_groups: {actionable}\n\n")
         fh.write("Important limitation:\n\n")
         fh.write("This output validates the V7F infrastructure only.\n")
-        fh.write("It must not be interpreted as statistically robust cross-archive signal discovery yet.\n")
+        fh.write(f"statistical_interpretation_allowed: {statistical_allowed}\n")
 
     print("Cross-archive signal discovery export directory:", output_dir)
     print("archive_id:", archive_id)
@@ -2851,6 +2854,10 @@ def export_cross_archive_signal_discovery(rows: list[dict[str, Any]], output_dir
 
 def export_cross_archive_feature_importance(rows: list[dict[str, Any]], output_dir: Path, archive_id: str) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
+    source_archive_ids = sorted({str(row.get("archive_id", "")).strip() for row in rows if str(row.get("archive_id", "")).strip()})
+    archive_count = len(source_archive_ids)
+    statistical_allowed = "yes" if archive_count >= 2 and len(rows) >= 30 else "no"
+    export_mode = "multi_archive_analysis" if archive_count >= 2 else "single_archive_infrastructure_validation"
 
     dataset_rows = build_ml_dataset_rows(rows)
     model_ready_rows, _catalog = build_model_ready_rows(dataset_rows)
@@ -2890,7 +2897,7 @@ def export_cross_archive_feature_importance(rows: list[dict[str, Any]], output_d
             out["archive_scope"] = "single_archive_validation"
             out["archive_count"] = 1
             out["source_archive_id"] = archive_id
-            out["statistical_interpretation_allowed"] = "no"
+            out["statistical_interpretation_allowed"] = statistical_allowed
             out["minimum_recommended_archives"] = 2
             out["minimum_recommended_trades"] = 30
             all_importance.append(out)
@@ -2910,17 +2917,17 @@ def export_cross_archive_feature_importance(rows: list[dict[str, Any]], output_d
     manifest = [{
         "engine_version": "v7e",
         "archive_id": archive_id,
-        "archive_count": 1,
+        "archive_count": archive_count,
         "rows_total": rows_total,
         "allowed_features": len(allowed_features),
         "targets_evaluated": len(main_targets),
         "importance_rows": len(all_importance),
         "method": "absolute_pearson_correlation_after_leakage_audit",
         "model_training": "not_performed",
-        "mode": "single_archive_infrastructure_validation",
+        "mode": export_mode,
         "feature_importance_status": status,
         "feature_importance_warning": warning,
-        "statistical_interpretation_allowed": "no",
+        "statistical_interpretation_allowed": statistical_allowed,
         "minimum_recommended_archives": 2,
         "minimum_recommended_trades": 30,
     }]
@@ -2932,14 +2939,14 @@ def export_cross_archive_feature_importance(rows: list[dict[str, Any]], output_d
         fh.write("# V7E CROSS-ARCHIVE FEATURE IMPORTANCE SUMMARY\n\n")
         fh.write("Status: infrastructure export\n\n")
         fh.write(f"archive_id: {archive_id}\n")
-        fh.write("archive_count: 1\n")
+        fh.write(f"archive_count: {archive_count}\n")
         fh.write(f"rows_total: {rows_total}\n")
         fh.write(f"allowed_features: {len(allowed_features)}\n")
         fh.write(f"targets_evaluated: {len(main_targets)}\n")
         fh.write(f"importance_rows: {len(all_importance)}\n\n")
         fh.write("Important limitation:\n\n")
         fh.write("This output validates the V7E infrastructure only.\n")
-        fh.write("It must not be interpreted as statistically robust cross-archive feature importance yet.\n")
+        fh.write(f"statistical_interpretation_allowed: {statistical_allowed}\n")
 
     print("Cross-archive feature importance export directory:", output_dir)
     print("archive_id:", archive_id)
@@ -2955,6 +2962,10 @@ def export_cross_archive_feature_importance(rows: list[dict[str, Any]], output_d
 
 def export_cross_archive_root_cause(rows: list[dict[str, Any]], output_dir: Path, archive_id: str) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
+    source_archive_ids = sorted({str(row.get("archive_id", "")).strip() for row in rows if str(row.get("archive_id", "")).strip()})
+    archive_count = len(source_archive_ids)
+    statistical_allowed = "yes" if archive_count >= 2 and len(rows) >= 30 else "no"
+    export_mode = "multi_archive_analysis" if archive_count >= 2 else "single_archive_infrastructure_validation"
 
     enriched_rows: list[dict[str, Any]] = []
 
@@ -3007,7 +3018,7 @@ def export_cross_archive_root_cause(rows: list[dict[str, Any]], output_dir: Path
         row["archive_scope"] = "single_archive_validation"
         row["archive_count"] = 1
         row["source_archive_id"] = archive_id
-        row["statistical_interpretation_allowed"] = "no"
+        row["statistical_interpretation_allowed"] = statistical_allowed
 
     write_csv_rows(output_dir / "cross_archive_root_cause_trades_v7d.csv", enriched_rows)
     write_csv_rows(output_dir / "cross_archive_root_cause_attribution_v7d.csv", attribution)
@@ -3015,11 +3026,11 @@ def export_cross_archive_root_cause(rows: list[dict[str, Any]], output_dir: Path
     manifest = [{
         "engine_version": "v7d",
         "archive_id": archive_id,
-        "archive_count": 1,
+        "archive_count": archive_count,
         "trade_count": len(enriched_rows),
         "root_cause_groups": len(attribution),
-        "mode": "single_archive_infrastructure_validation",
-        "statistical_interpretation_allowed": "no",
+        "mode": export_mode,
+        "statistical_interpretation_allowed": statistical_allowed,
         "minimum_recommended_archives": 2,
         "minimum_recommended_trades": 30,
     }]
@@ -3030,12 +3041,12 @@ def export_cross_archive_root_cause(rows: list[dict[str, Any]], output_dir: Path
         fh.write("# V7D CROSS-ARCHIVE ROOT CAUSE SUMMARY\n\n")
         fh.write("Status: infrastructure export\n\n")
         fh.write(f"archive_id: {archive_id}\n")
-        fh.write("archive_count: 1\n")
+        fh.write(f"archive_count: {archive_count}\n")
         fh.write(f"trade_count: {len(enriched_rows)}\n")
         fh.write(f"root_cause_groups: {len(attribution)}\n\n")
         fh.write("Important limitation:\n\n")
-        fh.write("This output validates the V7D infrastructure only.\n")
-        fh.write("It must not be interpreted as statistically robust cross-archive root cause analysis yet.\n")
+        fh.write("This output validates the V7D cross-archive analysis pipeline.\n")
+        fh.write(f"statistical_interpretation_allowed: {statistical_allowed}\n")
 
     print("Cross-archive root cause export directory:", output_dir)
     print("archive_id:", archive_id)
@@ -3088,7 +3099,7 @@ def export_global_trade_database(rows: list[dict[str, Any]], output_dir: Path, a
         "output_file": "global_trades_v7c.csv",
         "summary_file": "v7c_global_trade_database_summary.md",
         "status": "infrastructure_validation",
-        "statistical_interpretation_allowed": "no",
+        "statistical_interpretation_allowed": statistical_allowed,
     }]
     write_csv_rows(output_dir / "global_trades_v7c_manifest.csv", manifest)
 
@@ -3188,7 +3199,7 @@ def count_valid_jsonl(path: Path) -> tuple[int, int]:
 
 
 def run_archive_intake_validation(args: Any) -> int:
-    archive_dir = Path(args.archive_intake_dir)
+    archive_dir = Path(args.archive_dir)
 
     print("TRADE INSPECTOR V7I ARCHIVE INTAKE VALIDATION")
     print("archive_dir:", archive_dir)
@@ -3571,6 +3582,46 @@ def main() -> int:
     if args.export_global_trades_dir:
         export_global_trade_database(rows, Path(args.export_global_trades_dir), args.archive_id)
         return 0
+
+    cross_archive_export_requested = (
+        args.export_cross_archive_root_cause_dir
+        or args.export_cross_archive_feature_importance_dir
+        or args.export_cross_archive_signal_discovery_dir
+    )
+
+    if cross_archive_export_requested and args.archive_registry_md:
+        registry_rows = load_archive_registry_md(Path(args.archive_registry_md))
+        cross_rows = []
+        errors = []
+
+        for registry_row in registry_rows:
+            if str(registry_row.get("include_in_v7", "")).strip().lower() != "yes":
+                continue
+
+            source_archive_id = str(registry_row.get("archive_id", "")).strip()
+            source_archive_path = Path(str(registry_row.get("archive_path", "")).strip())
+
+            try:
+                loaded_rows = load_rows_for_archive(
+                    source_archive_id,
+                    source_archive_path,
+                    Path(args.market_csv),
+                    Path(args.label_list),
+                    Path(args.label_registry),
+                )
+                cross_rows.extend(loaded_rows)
+            except Exception as exc:
+                errors.append(f"{source_archive_id}: {exc}")
+
+        if errors:
+            raise SystemExit("Cross-archive load failed: " + " | ".join(errors))
+
+        rows = cross_rows
+        args.archive_id = "MULTI_ARCHIVE_REGISTRY"
+        print("cross_archive_registry:", args.archive_registry_md)
+        print("cross_archive_rows:", len(rows))
+        print("cross_archive_archives:", len(registry_rows))
+        print("")
 
     if args.export_cross_archive_root_cause_dir:
         export_cross_archive_root_cause(rows, Path(args.export_cross_archive_root_cause_dir), args.archive_id)
