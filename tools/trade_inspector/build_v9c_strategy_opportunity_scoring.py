@@ -12,41 +12,14 @@ ASCII-only.
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing input file: {path}")
-    with path.open("r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import clamp, to_float as fnum
 
 
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-
-    fields = list(rows[0].keys())
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(rows)
 
 
-def fnum(value: object, default: float = 0.0) -> float:
-    try:
-        if value is None or value == "":
-            return default
-        return float(value)
-    except Exception:
-        return default
-
-
-def clamp(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
-    return max(lo, min(hi, value))
 
 
 def warning_penalty(warning: str) -> float:
@@ -194,7 +167,7 @@ def main() -> int:
     opportunities.sort(key=lambda r: float(r["opportunity_score"]), reverse=True)
 
     out_csv = out_dir / "v9c_strategy_opportunities.csv"
-    write_csv(out_csv, opportunities)
+    write_csv(out_csv, opportunities, ['group_key', 'group', 'experiment_type', 'count', 'evidence_score', 'expected_benefit_proxy', 'complexity_penalty', 'warning_penalty', 'validation_bonus', 'opportunity_score', 'opportunity_class', 'recommended_action', 'recommended_next_step', 'warning_level', 'evidence_class', 'reliability_class', 'discovery_status'])
 
     class_counts: dict[str, int] = {}
     type_counts: dict[str, int] = {}

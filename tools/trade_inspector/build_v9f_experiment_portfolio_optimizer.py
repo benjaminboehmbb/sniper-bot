@@ -17,10 +17,12 @@ ASCII only.
 from __future__ import annotations
 
 import argparse
-import csv
 import hashlib
 from pathlib import Path
 from typing import Any
+
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import to_float as fnum
 
 
 PORTFOLIO_FIELDS = [
@@ -60,28 +62,7 @@ PORTFOLIO_FIELDS = [
 ]
 
 
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing input file: {path}")
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
 
-
-def write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def fnum(value: Any, default: float = 0.0) -> float:
-    try:
-        if value is None or value == "":
-            return default
-        return float(value)
-    except Exception:
-        return default
 
 
 def stable_key(group_key: str, group: str) -> str:

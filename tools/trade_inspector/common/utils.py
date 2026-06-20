@@ -55,7 +55,7 @@ def inum(value: Any, default: str = "") -> str:
         return default
 
 
-def clamp(value: float, low: float, high: float) -> float:
+def clamp(value: float, low: float = 0.0, high: float = 100.0) -> float:
     """Clamp numeric value into inclusive range."""
     return max(low, min(high, value))
 

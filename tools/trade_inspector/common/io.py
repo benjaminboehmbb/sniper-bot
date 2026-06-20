@@ -10,10 +10,13 @@ from typing import Iterable
 def read_csv(path: str | Path) -> list[dict[str, str]]:
     """Read a UTF-8 CSV file as a list of dictionaries.
 
-    Missing files and header-only/empty files return an empty list.
+    Missing files raise FileNotFoundError.
+    Header-only/empty files return an empty list.
     """
     p = Path(path)
-    if not p.exists() or p.stat().st_size == 0:
+    if not p.exists():
+        raise FileNotFoundError(f"Missing input file: {p}")
+    if p.stat().st_size == 0:
         return []
 
     with p.open("r", encoding="utf-8", newline="") as f:

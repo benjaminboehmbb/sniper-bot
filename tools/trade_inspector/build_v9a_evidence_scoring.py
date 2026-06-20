@@ -4,28 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing input file: {path}")
-    with path.open("r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import clamp, to_float as fnum
 
 
-def fnum(value: object, default: float = 0.0) -> float:
-    try:
-        if value is None or value == "":
-            return default
-        return float(value)
-    except Exception:
-        return default
 
-
-def clamp(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
-    return max(lo, min(hi, value))
 
 
 def support_score(count: float) -> float:
@@ -94,17 +79,6 @@ def actionability(score_class: str, warning: str, count: float) -> str:
         return "WATCHLIST_ONLY"
     return "DO_NOT_ACT"
 
-
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-    fields = list(rows[0].keys())
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def main() -> int:
@@ -186,7 +160,7 @@ def main() -> int:
     reject = [r for r in scored if r["recommended_action"] == "DO_NOT_ACT"]
 
     out_csv = out_dir / "v9a_evidence_scores.csv"
-    write_csv(out_csv, scored)
+    write_csv(out_csv, scored, ['group_key', 'group', 'count', 'winrate', 'winrate_edge', 'pnl_edge', 'discovery_score', 'discovery_status', 'reliability_class', 'warning_level', 'support_score', 'reliability_score', 'edge_score', 'status_score', 'discovery_component', 'warning_penalty', 'evidence_score', 'evidence_class', 'recommended_action'])
 
     report = out_dir / "V9A_EVIDENCE_SCORING_REPORT_2026-06-18.md"
 

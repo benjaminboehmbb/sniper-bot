@@ -13,38 +13,14 @@ ASCII-only.
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 from statistics import mean
 
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing input file: {path}")
-    with path.open("r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import to_float as fnum
 
 
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
 
-    fields = list(rows[0].keys())
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def fnum(value: object, default: float = 0.0) -> float:
-    try:
-        if value is None or value == "":
-            return default
-        return float(value)
-    except Exception:
-        return default
 
 
 def classify_stability(
@@ -204,7 +180,7 @@ def main() -> int:
     )
 
     out_csv = out_dir / "v9b_evidence_stability.csv"
-    write_csv(out_csv, output_rows)
+    write_csv(out_csv, output_rows, ['group_key', 'group', 'observations', 'first_seen_run', 'last_seen_run', 'first_evidence_score', 'latest_evidence_score', 'mean_evidence_score', 'min_evidence_score', 'max_evidence_score', 'evidence_score_range', 'evidence_score_delta', 'rank_best', 'rank_worst', 'rank_latest', 'rank_drift', 'latest_evidence_class', 'latest_recommended_action', 'latest_warning_level', 'high_warning_count', 'validation_priority_count', 'stable_action_count', 'stability_class'])
 
     summary_counts: dict[str, int] = {}
     for row in output_rows:

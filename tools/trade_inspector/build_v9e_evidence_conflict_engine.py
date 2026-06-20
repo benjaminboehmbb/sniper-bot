@@ -12,38 +12,14 @@ ASCII-only.
 from __future__ import annotations
 
 import argparse
-import csv
 from itertools import combinations
 from pathlib import Path
 
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing input file: {path}")
-    with path.open("r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import to_float as fnum
 
 
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
 
-    fields = list(rows[0].keys())
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def fnum(value: object, default: float = 0.0) -> float:
-    try:
-        if value is None or value == "":
-            return default
-        return float(value)
-    except Exception:
-        return default
 
 
 def tokens(text: str) -> set[str]:
@@ -165,8 +141,8 @@ def main() -> int:
     out_conflicts = out_dir / "v9e_hypothesis_conflicts.csv"
     out_matrix = out_dir / "v9e_hypothesis_compatibility_matrix.csv"
 
-    write_csv(out_conflicts, relationships)
-    write_csv(out_matrix, matrix_rows)
+    write_csv(out_conflicts, relationships, ['hypothesis_a_id', 'hypothesis_b_id', 'hypothesis_a_group_key', 'hypothesis_a_group', 'hypothesis_b_group_key', 'hypothesis_b_group', 'relationship_class', 'relationship_score', 'reason', 'a_opportunity_score', 'b_opportunity_score', 'a_opportunity_class', 'b_opportunity_class'])
+    write_csv(out_matrix, matrix_rows, ['hypothesis_id', 'group_key', 'group', 'experiment_type', 'opportunity_score', 'opportunity_class'])
 
     class_counts: dict[str, int] = {}
     for row in relationships:
