@@ -12,25 +12,11 @@ ASCII only.
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 
-
-def read_csv(path: Path):
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
+from tools.trade_inspector.common.io import read_csv, write_csv
 
 
-def write_csv(path: Path, rows):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        return
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def validation_type(phase: str) -> str:
@@ -177,7 +163,7 @@ def main():
 
     csv_path = out_dir / "v10b_validation_specifications.csv"
 
-    write_csv(csv_path, out)
+    write_csv(csv_path, out, ['validation_id', 'hypothesis_id', 'hypothesis_group', 'validation_phase', 'validation_type', 'replay_required', 'runtime_required', 'required_archives', 'required_trades', 'metrics_to_measure', 'acceptance_criteria', 'rejection_criteria', 'validation_sequence', 'execution_environment', 'documentation_required', 'estimated_runtime', 'status'])
 
     report = out_dir / "V10B_VALIDATION_SPECIFICATION_REPORT_2026-06-19.md"
 

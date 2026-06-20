@@ -14,32 +14,11 @@ ASCII only.
 from __future__ import annotations
 
 import argparse
-import csv
-from datetime import datetime, timezone
 from pathlib import Path
 
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import now_utc
 
-def now_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
-
-
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def runner_status(schedule_class: str) -> tuple[str, str]:
@@ -97,7 +76,7 @@ def main() -> int:
     finished_at = now_utc()
 
     out_csv = out_dir / "v10d_validation_results.csv"
-    write_csv(out_csv, results)
+    write_csv(out_csv, results, ['execution_order', 'validation_id', 'hypothesis_id', 'hypothesis_group', 'schedule_class', 'validation_type', 'runner_status', 'runner_reason', 'replay_executed', 'runtime_executed', 'strategy_modified', 'started_at_utc', 'finished_at_utc', 'error_code', 'execution_environment'])
 
     status_counts: dict[str, int] = {}
     for row in results:

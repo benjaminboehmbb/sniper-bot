@@ -14,36 +14,13 @@ ASCII only.
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import to_int as inum
 
 
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
 
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def inum(value: object, default: int = 0) -> int:
-    try:
-        if value is None or value == "":
-            return default
-        return int(float(str(value)))
-    except Exception:
-        return default
 
 
 def runtime_weight(value: str) -> int:
@@ -165,7 +142,7 @@ def main() -> int:
         output_rows.append(clean)
 
     out_csv = out_dir / "v10c_validation_execution_schedule.csv"
-    write_csv(out_csv, output_rows)
+    write_csv(out_csv, output_rows, ['validation_id', 'hypothesis_id', 'hypothesis_group', 'validation_phase', 'validation_type', 'schedule_class', 'schedule_reason', 'replay_required', 'runtime_required', 'required_archives', 'required_trades', 'estimated_runtime', 'execution_environment', 'status', '_sort_key'])
 
     class_counts: dict[str, int] = {}
     for row in output_rows:

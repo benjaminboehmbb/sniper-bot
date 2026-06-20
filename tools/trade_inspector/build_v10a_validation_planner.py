@@ -14,36 +14,13 @@ ASCII only.
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import to_float as fnum
 
 
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
 
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def fnum(value: object, default: float = 0.0) -> float:
-    try:
-        if value is None or value == "":
-            return default
-        return float(value)
-    except Exception:
-        return default
 
 
 def validation_phase(decision: str, portfolio_class: str) -> str:
@@ -226,7 +203,7 @@ def main() -> int:
     )
 
     out_csv = out_dir / "v10a_validation_plan.csv"
-    write_csv(out_csv, plan)
+    write_csv(out_csv, plan, ['validation_id', 'hypothesis_id', 'group', 'research_decision', 'decision_reason', 'portfolio_score', 'portfolio_class', 'conflict_penalty', 'validation_phase', 'validation_priority', 'required_archives_min', 'required_trades_min', 'required_metrics', 'acceptance_criteria', 'failure_criteria', 'blocking_dependencies', 'estimated_effort', 'documentation_required', 'execution_environment'])
 
     phase_counts: dict[str, int] = {}
     for row in plan:

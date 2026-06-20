@@ -19,34 +19,13 @@ ASCII only.
 from __future__ import annotations
 
 import argparse
-import csv
 import shlex
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import now_utc
 
-def now_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
-
-
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def safe_command_allowed(command: str) -> tuple[bool, str]:
@@ -185,7 +164,7 @@ def main() -> int:
     finished_at = now_utc()
 
     out_csv = out_dir / "v10f_replay_execution_results.csv"
-    write_csv(out_csv, results)
+    write_csv(out_csv, results, ['validation_id', 'hypothesis_id', 'hypothesis_group', 'replay_validation_status', 'replay_validation_decision', 'replay_execution_status', 'replay_execution_reason', 'allow_execute', 'replay_command_attached', 'replay_command', 'replay_executed', 'runtime_executed', 'strategy_modified', 'return_code', 'stdout_tail', 'stderr_tail', 'started_at_utc', 'finished_at_utc'])
 
     status_counts: dict[str, int] = {}
     for row in results:
