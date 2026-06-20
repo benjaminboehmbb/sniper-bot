@@ -4,27 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
+from tools.trade_inspector.common.io import write_csv
+from tools.trade_inspector.common.utils import now_utc
 
-def now_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def run_step(name: str, command: list[str]) -> dict[str, object]:
@@ -173,7 +159,7 @@ def main() -> int:
             break
 
     manifest_csv = root_out / "v11g_autonomous_learning_loop_manifest.csv"
-    write_csv(manifest_csv, manifest)
+    write_csv(manifest_csv, manifest, ['step', 'status', 'return_code', 'started_at_utc', 'finished_at_utc', 'command', 'stdout_tail', 'stderr_tail'])
 
     report = root_out / "V11G_AUTONOMOUS_LEARNING_LOOP_REPORT_2026-06-19.md"
 

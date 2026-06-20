@@ -4,27 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import csv
 from collections import defaultdict
-from datetime import datetime, timezone
 from pathlib import Path
 
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import now_utc as now
 
-def now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def read_csv(path):
-    with open(path, "r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
-
-
-def write_csv(path, rows):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def status(score, blocked, pending):
@@ -116,7 +101,7 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
 
     csv_file = outdir / "v11c_research_knowledge_base.csv"
-    write_csv(csv_file, unique)
+    write_csv(csv_file, unique, ['hypothesis_id', 'hypothesis_group', 'knowledge_score', 'successful_validations', 'failed_validations', 'pending_validations', 'blocked_events', 'knowledge_updates', 'research_status', 'updated_at_utc'])
 
     counts = defaultdict(int)
     for r in unique:

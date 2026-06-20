@@ -4,36 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import to_float as num
 
 
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
 
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def num(value: object, default: float = 0.0) -> float:
-    try:
-        if value is None or value == "":
-            return default
-        return float(value)
-    except Exception:
-        return default
 
 
 def classify(row: dict[str, str]) -> tuple[str, str, int]:
@@ -113,7 +90,7 @@ def main() -> int:
     )
 
     out_csv = out_dir / "v11d_knowledge_consistency.csv"
-    write_csv(out_csv, reviewed)
+    write_csv(out_csv, reviewed, ['hypothesis_id', 'hypothesis_group', 'knowledge_score', 'successful_validations', 'failed_validations', 'pending_validations', 'blocked_events', 'knowledge_updates', 'research_status', 'consistency_class', 'consistency_reason', 'review_priority'])
 
     counts: dict[str, int] = {}
     for row in reviewed:

@@ -4,32 +4,11 @@
 from __future__ import annotations
 
 import argparse
-import csv
-from datetime import datetime, timezone
 from pathlib import Path
 
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import now_utc
 
-def now_utc() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
-
-
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def update_rule(outcome: str) -> tuple[str, float, str]:
@@ -83,7 +62,7 @@ def main() -> int:
         )
 
     out_csv = out_dir / "v11b_validation_evidence_updates.csv"
-    write_csv(out_csv, updates)
+    write_csv(out_csv, updates, ['validation_id', 'hypothesis_id', 'hypothesis_group', 'validation_outcome', 'learning_action', 'evidence_update_action', 'confidence_delta', 'update_reason', 'use_for_learning', 'created_at_utc'])
 
     counts: dict[str, int] = {}
     for row in updates:

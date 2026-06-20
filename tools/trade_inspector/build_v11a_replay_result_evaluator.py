@@ -4,27 +4,11 @@
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 
-
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(path)
-    with path.open("r", encoding="utf-8", newline="") as fh:
-        return list(csv.DictReader(fh))
+from tools.trade_inspector.common.io import read_csv, write_csv
 
 
-def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def evaluate(row: dict[str, str]) -> tuple[str, str, str]:
@@ -84,7 +68,7 @@ def main() -> int:
         })
 
     out_csv = out_dir / "v11a_replay_result_evaluation.csv"
-    write_csv(out_csv, evaluated)
+    write_csv(out_csv, evaluated, ['validation_id', 'hypothesis_id', 'hypothesis_group', 'replay_execution_status', 'replay_executed', 'return_code', 'validation_outcome', 'evaluation_reason', 'learning_action', 'strategy_modified'])
 
     counts: dict[str, int] = {}
     for row in evaluated:
