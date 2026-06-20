@@ -1195,5 +1195,391 @@ docs/STATE_DYNAMICS_RESEARCH.md
 
 
 
+# MASTER ANALYSIS BLUEPRINT - TRADE INSPECTOR STATUS UPDATE
+
+Date: 2026-06-15
+
+## Current Situation
+
+The Trade Inspector has evolved from a simple trade viewer into a complete post-trade research and intelligence platform for the Sniper-Bot.
+
+The system is now capable of reconstructing, diagnosing, classifying, scoring, aggregating and preparing trades for future machine learning and cross-archive analysis.
+
+Current bottleneck is no longer software functionality.
+
+Current bottleneck is data volume.
+
+The architecture is now significantly ahead of the available trade sample size.
+
+---
+
+## Implemented Capabilities
+
+### Trade Reconstruction Layer
+
+Implemented:
+
+* Stable Trade IDs
+* Human Labels
+* Trade Reconstruction
+* Audit Reconstruction
+* Trade Path Analysis
+* MFE Analysis
+* MAE Analysis
+* Counterfactual Analysis
+
+Supported horizons:
+
+* 15m
+* 1h
+* 4h
+* 24h
+* 72h
+* 168h
+
+---
+
+### Context Layer
+
+Implemented:
+
+* Regime Context
+* Risk Context
+* Entry Context
+* Exit Context
+* Regime Alignment Detection
+* Risk Quality Detection
+
+---
+
+### Diagnostic Layer
+
+Implemented:
+
+* Root Cause Diagnosis
+* Root Cause Weighting
+* Confidence Scoring
+* Impact Scoring
+* Priority Scoring
+* Quality Scoring
+* Improvement Suggestions
+
+Typical root causes:
+
+* early_exit
+* entry_filter_quality
+* risk_management
+* high_adverse_move
+
+---
+
+### Aggregate Intelligence Layer
+
+Implemented:
+
+* Aggregate Trade Statistics
+* Root Cause Attribution
+* Trade Family Classification
+
+Examples:
+
+* aligned_good_risk
+* exit_risk_trap
+* chop_context
+
+---
+
+### Machine Learning Layer
+
+Implemented:
+
+#### V4
+
+* ML Dataset Builder
+* Train/Test Split
+* Feature Catalog
+* Feature Preparation
+
+#### V4C Leakage Audit
+
+Leakage audit framework operational.
+
+Current result:
+
+* 128 features audited
+* 32 features approved
+* 96 features blocked
+* 86 high-risk leakage features detected
+
+Training and target separation enforced.
+
+---
+
+### Feature Intelligence Layer
+
+#### V5 Feature Importance
+
+Implemented:
+
+* Feature Importance Engine
+* Correlation-based importance analysis
+
+Current limitation:
+
+* dataset too small for statistical reliability
+
+#### V5C Feature Stability
+
+Implemented:
+
+* Stability scoring
+* Cross-target consistency analysis
+
+Current limitation:
+
+* insufficient sample size
+
+---
+
+### Signal Discovery Layer
+
+#### V6 Predictive Signal Discovery
+
+Implemented:
+
+* Group-based signal discovery
+* Pair-combination discovery
+* Baseline comparison framework
+
+Current observations:
+
+* good_atr
+* risk_good_at_entry
+* aligned_good_risk
+* entry_atr_signal = 1
+
+These observations are NOT validated alpha signals.
+
+---
+
+### V6A Reliability Layer
+
+Implemented:
+
+* Reliability Scoring
+* Support Classification
+* Minimum Support Thresholds
+* Warning Levels
+
+New classifications:
+
+* ACTIONABLE
+* WATCH_ONLY
+* NOT_ACTIONABLE
+
+Current result:
+
+All discovered groups remain NOT_ACTIONABLE due to insufficient sample size.
+
+---
+
+## Cross-Archive Intelligence Framework
+
+### V7A
+
+Cross-Archive Architecture Plan completed.
+
+### V7B
+
+Archive Registry framework completed.
+
+Reference archive:
+
+P79A_pre_run_2026-06-10
+
+### V7C
+
+Global Trade Database completed.
+
+Features:
+
+* archive_id
+* local_trade_id
+* global_trade_id
+
+Global ID format:
+
+archive_id::local_trade_id
+
+Collision-safe across archives.
+
+### V7D
+
+Cross-Archive Root Cause Infrastructure completed.
+
+Supports:
+
+* archive-wide attribution
+* root-cause aggregation
+* weighted contribution analysis
+
+### V7E
+
+Cross-Archive Feature Importance Infrastructure completed.
+
+Supports:
+
+* multi-archive feature ranking
+* leakage-safe processing
+* future archive aggregation
+
+### V7F
+
+Cross-Archive Signal Discovery Infrastructure completed.
+
+Supports:
+
+* archive-spanning signal discovery
+* reliability integration
+* future large-scale discovery
+
+### V7G
+
+Multi-Archive Loader completed.
+
+Supports:
+
+* archive registry loading
+* archive validation
+* global trade merging
+* archive-aware trade database construction
+
+Current validation:
+
+* archives_registered = 1
+* archives_loaded = 1
+* trade_count = 9
+* errors = 0
+
+### V7H
+
+Built-In Regression Validation completed.
+
+Purpose:
+
+* protect Trade Inspector functionality during future development
+* prevent regressions
+* provide fast validation after modifications
+
+### V7I
+
+Archive Intake Pipeline completed.
+
+Validates:
+
+* archive structure
+* required files
+* JSONL integrity
+* metadata integrity
+* trade counts
+* audit counts
+
+Result:
+
+ARCHIVE_INTAKE = PASS
+
+---
+
+## Archive Standardization
+
+Implemented:
+
+ARCHIVE_METADATA_STANDARD_2026-06-15
+
+Defines:
+
+* archive structure
+* archive naming
+* required files
+* metadata schema
+* validation rules
+
+Future archives are now standardized.
+
+---
+
+## Documentation
+
+Implemented:
+
+* TRADE_INSPECTOR_TECHNICAL_STATUS_2026-06-11.md
+* TRADE_INSPECTOR_MASTER_STATUS_2026-06-14.md
+* TRADE_INSPECTOR_USAGE_2026-06-11.md
+* TRADE_INSPECTOR_COMMAND_REFERENCE_2026-06-14.md
+* V6A documentation
+* V7A documentation
+* V7B documentation
+* V7C documentation
+* V7D documentation
+* V7E documentation
+* V7F documentation
+* V7G documentation
+* V7H documentation
+* V7I documentation
+* Archive Metadata Standard
+
+---
+
+## Current Reference Archive
+
+Archive:
+
+P79A_pre_run_2026-06-10
+
+Contents:
+
+* 9 trades
+* 18 audit events
+* 4,330,970 regime snapshots
+
+Purpose:
+
+Framework validation only.
+
+Not statistically sufficient.
+
+---
+
+## Current Bottleneck
+
+The bottleneck is no longer software.
+
+The bottleneck is:
+
+* insufficient trade count
+* insufficient archive count
+* insufficient statistical mass
+
+The Trade Inspector architecture is currently ahead of the available data.
+
+---
+
+## Next Major Milestone
+
+Wait for completion of the current Workstation runtime run.
+
+After completion:
+
+1. Create archive
+2. Create archive_metadata.json
+3. Run V7I Archive Intake Validation
+4. Add archive to registry
+5. Run V7G Multi-Archive Loader
+6. Execute first real cross-archive analysis
+
+This will be the first point where the V7 architecture can begin generating statistically meaningful insights.
+
+
+
 
 
