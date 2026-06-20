@@ -6,10 +6,16 @@ from datetime import datetime, timezone
 from typing import Any
 
 
-def pick(row: dict[str, Any], *keys: str, default: Any = "") -> Any:
-    """Return the first non-empty value for the given keys."""
+def pick(row: dict[str, Any], *keys: Any, default: Any = "") -> Any:
+    """Return the first non-empty value for the given keys.
+
+    Supports both pick(row, "a", "b") and legacy pick(row, ["a", "b"]).
+    """
+    if len(keys) == 1 and isinstance(keys[0], (list, tuple)):
+        keys = tuple(keys[0])
+
     for key in keys:
-        value = row.get(key)
+        value = row.get(str(key))
         if value is not None and value != "":
             return value
     return default

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
-import csv
 from datetime import date
 from pathlib import Path
+
+from tools.trade_inspector.common.io import read_csv, write_csv
+from tools.trade_inspector.common.utils import pick, to_float
 
 
 REQUIRED_COLUMNS_ANY = [
@@ -16,35 +18,8 @@ REQUIRED_COLUMNS_ANY = [
 ]
 
 
-def read_csv(path: Path) -> list[dict[str, str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Missing input file: {path}")
-    with path.open("r", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
 
 
-def write_csv(path: Path, rows: list[dict[str, object]], fieldnames: list[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
-
-
-def pick(row: dict[str, str], names: list[str], default: str = "") -> str:
-    for name in names:
-        value = row.get(name)
-        if value not in (None, ""):
-            return str(value)
-    return default
-
-
-def to_float(value: str, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except Exception:
-        return default
 
 
 def build_campaigns(hypotheses: list[dict[str, str]], max_campaigns: int) -> list[dict[str, object]]:
