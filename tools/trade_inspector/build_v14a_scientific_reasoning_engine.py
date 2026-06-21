@@ -25,6 +25,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from tools.trade_inspector.common import (
+    group_by,
+    index_by,
     clamp,
     now_utc,
     read_csv,
@@ -117,14 +119,6 @@ class ReasoningObject:
             "created_at_utc": now_utc(),
         }
 
-
-def group_by(rows: list[dict[str, str]], key: str) -> dict[str, list[dict[str, str]]]:
-    out: dict[str, list[dict[str, str]]] = {}
-    for row in rows:
-        value = row.get(key, "")
-        if value:
-            out.setdefault(value, []).append(row)
-    return out
 
 
 def opportunity_by_hypothesis(rows: list[dict[str, str]]) -> dict[str, dict[str, str]]:

@@ -24,6 +24,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from tools.trade_inspector.common import (
+    group_by,
+    index_by,
     clamp,
     now_utc,
     read_csv,
@@ -60,9 +62,6 @@ PLAN_FIELDS = [
 SUMMARY_FIELDS = ["metric", "value"]
 MANIFEST_FIELDS = ["artifact", "path", "rows", "status"]
 
-
-def index_by(rows: list[dict[str, str]], key: str) -> dict[str, dict[str, str]]:
-    return {row[key]: row for row in rows if row.get(key)}
 
 
 def priority(score: float, status: str) -> str:

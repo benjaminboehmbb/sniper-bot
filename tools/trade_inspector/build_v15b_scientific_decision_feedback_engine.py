@@ -24,6 +24,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from tools.trade_inspector.common import (
+    group_by,
+    index_by,
     clamp,
     now_utc,
     read_csv,
@@ -211,9 +213,6 @@ def build_learning_events(feedback_rows: list[dict[str, Any]]) -> list[dict[str,
 
     return events
 
-
-def index_by(rows: list[dict[str, str]], key: str) -> dict[str, dict[str, str]]:
-    return {row[key]: row for row in rows if row.get(key)}
 
 
 def build_summary(feedback_rows: list[dict[str, Any]], learning_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
