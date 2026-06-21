@@ -20,9 +20,15 @@ Guardrails:
 from __future__ import annotations
 
 import argparse
-import csv
+import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from typing import Dict, List
+
+from tools.trade_inspector.common.execution_utils import read_csv, write_csv, write_text
 
 
 DEFAULT_EXECUTION_PLAN = (
@@ -47,29 +53,6 @@ REQUIRED_COLUMNS = [
     "input_row_hash",
 ]
 
-
-def read_csv(path: Path) -> Tuple[List[Dict[str, str]], List[str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Input file not found: {path}")
-
-    with path.open("r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        rows = [dict(row) for row in reader]
-        fieldnames = list(reader.fieldnames or [])
-
-    if not fieldnames:
-        raise ValueError(f"Input file has no header: {path}")
-
-    return rows, fieldnames
-
-
-def write_csv(path: Path, rows: List[Dict[str, str]], fieldnames: List[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def validate_schema(fieldnames: List[str]) -> List[str]:
@@ -226,8 +209,7 @@ It does not execute experiments.
 V16B is a monitoring layer only. It evaluates whether prepared execution plans
 remain structurally safe and ready for controlled human-reviewed execution.
 """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    write_text(path, text)
 
 
 def parse_args() -> argparse.Namespace:

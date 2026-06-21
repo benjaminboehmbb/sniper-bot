@@ -26,9 +26,15 @@ V16C must not:
 from __future__ import annotations
 
 import argparse
-import csv
+import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from typing import Dict, List
+
+from tools.trade_inspector.common.execution_utils import index_by, read_csv, safe_int, write_csv, write_text
 
 
 DEFAULT_EXECUTION_PLAN = (
@@ -50,45 +56,6 @@ PRIORITY_RANK = {
     "low": 3,
 }
 
-
-def read_csv(path: Path) -> Tuple[List[Dict[str, str]], List[str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Input file not found: {path}")
-
-    with path.open("r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        rows = [dict(row) for row in reader]
-        fieldnames = list(reader.fieldnames or [])
-
-    if not fieldnames:
-        raise ValueError(f"Input file has no header: {path}")
-
-    return rows, fieldnames
-
-
-def write_csv(path: Path, rows: List[Dict[str, str]], fieldnames: List[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def index_by(rows: List[Dict[str, str]], key: str) -> Dict[str, Dict[str, str]]:
-    indexed: Dict[str, Dict[str, str]] = {}
-    for row in rows:
-        value = row.get(key, "").strip()
-        if value:
-            indexed[value] = row
-    return indexed
-
-
-def safe_int(value: str, default: int) -> int:
-    try:
-        return int(str(value).strip())
-    except (TypeError, ValueError):
-        return default
 
 
 def normalize_priority(value: str) -> str:
@@ -276,8 +243,7 @@ It does not execute experiments.
 V16C is an adaptive control layer only. It may order and classify already
 approved execution plans, but it cannot create or change scientific decisions.
 """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    write_text(path, text)
 
 
 def parse_args() -> argparse.Namespace:

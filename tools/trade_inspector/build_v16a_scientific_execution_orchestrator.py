@@ -19,11 +19,15 @@ Guardrails:
 from __future__ import annotations
 
 import argparse
-import csv
-import hashlib
-import json
+import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from typing import Dict, Iterable, List
+
+from tools.trade_inspector.common.execution_utils import read_csv, stable_hash, write_csv, write_text
 
 
 DEFAULT_POLICY_INPUT = (
@@ -57,35 +61,6 @@ BLOCK_TOKENS = (
     "denied",
 )
 
-
-def read_csv(path: Path) -> Tuple[List[Dict[str, str]], List[str]]:
-    if not path.exists():
-        raise FileNotFoundError(f"Input file not found: {path}")
-
-    with path.open("r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        rows = [dict(row) for row in reader]
-        fieldnames = list(reader.fieldnames or [])
-
-    if not fieldnames:
-        raise ValueError(f"Input file has no header: {path}")
-
-    return rows, fieldnames
-
-
-def write_csv(path: Path, rows: List[Dict[str, str]], fieldnames: List[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def stable_hash(payload: Dict[str, str], prefix: str) -> str:
-    normalized = json.dumps(payload, sort_keys=True, ensure_ascii=True)
-    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
-    return f"{prefix}-{digest}"
 
 
 def get_first_present(row: Dict[str, str], candidates: Iterable[str]) -> str:
@@ -276,8 +251,7 @@ It does not execute experiments.
 V16A is an execution planning layer only. It separates scientific decision
 approval from controlled execution preparation.
 """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    write_text(path, text)
 
 
 def parse_args() -> argparse.Namespace:
