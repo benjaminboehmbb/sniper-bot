@@ -9,6 +9,11 @@ Status: Active Architecture Reference
 
 ## 1. Core Vision
 
+Leitsatz: The Sniper-Bot is a scientific engineering project whose objective is not to maximize short-term trading performance, but to maximize the long-term quality of evidence-based decision making through elegant, explainable and self-improving architecture.
+
+Engineering Integrity: Jede technische Entscheidung muss mit den Grundprinzipien des Projekts vereinbar sein – auch dann, wenn eine schnellere oder einfachere Abkürzung möglich wäre.
+
+
 The Sniper-Bot project is not only a trading-bot project.
 
 It is a scientific decision and research platform whose first application domain is algorithmic trading.
