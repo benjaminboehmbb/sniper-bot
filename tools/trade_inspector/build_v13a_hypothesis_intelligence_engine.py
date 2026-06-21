@@ -126,6 +126,33 @@ SUMMARY_FIELDS = [
     "value",
 ]
 
+KNOWLEDGE_STATE_FIELDS = [
+    "knowledge_state_id",
+    "hypothesis_count",
+    "relationship_count",
+    "research_gap_count",
+    "dependency_count",
+    "conflict_count",
+    "avg_evidence_strength",
+    "avg_evidence_diversity",
+    "avg_evidence_stability",
+    "avg_scientific_confidence",
+    "avg_scientific_uncertainty",
+    "avg_research_coverage",
+    "avg_expected_knowledge_gain",
+    "knowledge_completeness",
+    "knowledge_diversity",
+    "knowledge_stability",
+    "knowledge_confidence",
+    "knowledge_uncertainty",
+    "knowledge_maturity",
+    "knowledge_consistency",
+    "knowledge_fragmentation",
+    "overall_knowledge_state",
+    "knowledge_state_reason",
+    "created_at_utc",
+]
+
 MANIFEST_FIELDS = [
     "artifact",
     "path",
@@ -539,6 +566,130 @@ def count_relationships(rows: list[dict[str, Any]]) -> dict[str, dict[str, int]]
     return counts
 
 
+
+def avg_metric(rows: list[dict[str, Any]], field: str) -> float:
+    if not rows:
+        return 0.0
+    return sum(to_float(row.get(field)) for row in rows) / len(rows)
+
+
+def classify_knowledge_state(
+    completeness: float,
+    confidence: float,
+    uncertainty: float,
+    consistency: float,
+    fragmentation: float,
+) -> tuple[str, str]:
+    if uncertainty >= 70 or consistency < 35:
+        return "UNSTABLE", "high_uncertainty_or_low_consistency"
+    if completeness < 35:
+        return "EARLY_STAGE", "low_knowledge_completeness"
+    if fragmentation >= 65:
+        return "FRAGMENTED", "high_fragmentation"
+    if confidence >= 70 and uncertainty <= 35 and completeness >= 65:
+        return "MATURE", "high_confidence_low_uncertainty_good_completeness"
+    if confidence >= 50 and completeness >= 45:
+        return "GROWING", "moderate_confidence_and_expanding_coverage"
+    return "INCOMPLETE", "insufficient_confidence_or_completeness"
+
+
+def build_knowledge_state(
+    intelligence_rows: list[dict[str, Any]],
+    relationship_rows: list[dict[str, Any]],
+    dependency_rows: list[dict[str, Any]],
+    conflict_rows: list[dict[str, Any]],
+    gap_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    hypothesis_count = len(intelligence_rows)
+    relationship_count = len(relationship_rows)
+    dependency_count = len(dependency_rows)
+    conflict_count = len(conflict_rows)
+    gap_count = len(gap_rows)
+
+    avg_strength = avg_metric(intelligence_rows, "evidence_strength")
+    avg_diversity = avg_metric(intelligence_rows, "evidence_diversity")
+    avg_stability = avg_metric(intelligence_rows, "evidence_stability")
+    avg_confidence = avg_metric(intelligence_rows, "scientific_confidence")
+    avg_uncertainty = avg_metric(intelligence_rows, "scientific_uncertainty")
+    avg_coverage = avg_metric(intelligence_rows, "research_coverage_score")
+    avg_ekg = avg_metric(intelligence_rows, "expected_knowledge_gain")
+
+    knowledge_completeness = clamp(avg_coverage)
+    knowledge_diversity = clamp(avg_diversity)
+    knowledge_stability = clamp(avg_stability)
+    knowledge_confidence = clamp(avg_confidence)
+    knowledge_uncertainty = clamp(avg_uncertainty)
+
+    if hypothesis_count <= 0:
+        knowledge_maturity = 0.0
+    else:
+        knowledge_maturity = clamp(
+            avg_coverage * 0.35
+            + avg_stability * 0.25
+            + avg_confidence * 0.25
+            + min(hypothesis_count * 5.0, 15.0)
+        )
+
+    knowledge_consistency = clamp(
+        100.0
+        - min(conflict_count * 20.0, 60.0)
+        - min(gap_count * 5.0, 25.0)
+        + avg_stability * 0.25
+    )
+
+    knowledge_fragmentation = clamp(
+        min(gap_count * 12.0, 50.0)
+        + min(dependency_count * 15.0, 30.0)
+        + max(0.0, 40.0 - avg_diversity) * 0.50
+    )
+
+    state, reason = classify_knowledge_state(
+        knowledge_completeness,
+        knowledge_confidence,
+        knowledge_uncertainty,
+        knowledge_consistency,
+        knowledge_fragmentation,
+    )
+
+    return [
+        {
+            "knowledge_state_id": stable_hash_id(
+                "KSTATE-",
+                [
+                    hypothesis_count,
+                    relationship_count,
+                    gap_count,
+                    round(knowledge_confidence, 4),
+                    round(knowledge_uncertainty, 4),
+                ],
+            ),
+            "hypothesis_count": hypothesis_count,
+            "relationship_count": relationship_count,
+            "research_gap_count": gap_count,
+            "dependency_count": dependency_count,
+            "conflict_count": conflict_count,
+            "avg_evidence_strength": round(avg_strength, 4),
+            "avg_evidence_diversity": round(avg_diversity, 4),
+            "avg_evidence_stability": round(avg_stability, 4),
+            "avg_scientific_confidence": round(avg_confidence, 4),
+            "avg_scientific_uncertainty": round(avg_uncertainty, 4),
+            "avg_research_coverage": round(avg_coverage, 4),
+            "avg_expected_knowledge_gain": round(avg_ekg, 4),
+            "knowledge_completeness": round(knowledge_completeness, 4),
+            "knowledge_diversity": round(knowledge_diversity, 4),
+            "knowledge_stability": round(knowledge_stability, 4),
+            "knowledge_confidence": round(knowledge_confidence, 4),
+            "knowledge_uncertainty": round(knowledge_uncertainty, 4),
+            "knowledge_maturity": round(knowledge_maturity, 4),
+            "knowledge_consistency": round(knowledge_consistency, 4),
+            "knowledge_fragmentation": round(knowledge_fragmentation, 4),
+            "overall_knowledge_state": state,
+            "knowledge_state_reason": reason,
+            "created_at_utc": now_utc(),
+        }
+    ]
+
+
 def write_report(path: Path, intelligence_rows: list[dict[str, Any]], summary_rows: list[dict[str, Any]]) -> None:
     lines: list[str] = []
     lines.append("# V13A HYPOTHESIS INTELLIGENCE ENGINE REPORT")
@@ -810,6 +961,14 @@ def main() -> int:
                 }
             )
 
+    knowledge_state_rows = build_knowledge_state(
+        intelligence_rows,
+        relationship_rows,
+        dependency_rows,
+        conflict_rows,
+        gap_rows,
+    )
+
     summary_rows = [
         {"metric": "knowledge_rows", "value": len(knowledge_rows)},
         {"metric": "priority_rows", "value": len(priority_rows)},
@@ -828,6 +987,7 @@ def main() -> int:
     conflict_path = out_dir / "v13a_conflict_network.csv"
     gaps_path = out_dir / "v13a_research_gaps.csv"
     summary_path = out_dir / "v13a_summary.csv"
+    knowledge_state_path = out_dir / "v13a_knowledge_state.csv"
     manifest_path = out_dir / "v13a_manifest.csv"
     report_path = out_dir / f"V13A_HYPOTHESIS_INTELLIGENCE_ENGINE_REPORT_{date.today().isoformat()}.md"
 
@@ -837,6 +997,7 @@ def main() -> int:
     write_csv(conflict_path, conflict_rows, CONFLICT_FIELDS)
     write_csv(gaps_path, gap_rows, GAP_FIELDS)
     write_csv(summary_path, summary_rows, SUMMARY_FIELDS)
+    write_csv(knowledge_state_path, knowledge_state_rows, KNOWLEDGE_STATE_FIELDS)
 
     manifest_rows = [
         {"artifact": "v13a_hypothesis_intelligence.csv", "path": str(intelligence_path), "rows": len(intelligence_rows), "status": "created"},
@@ -845,6 +1006,7 @@ def main() -> int:
         {"artifact": "v13a_conflict_network.csv", "path": str(conflict_path), "rows": len(conflict_rows), "status": "created"},
         {"artifact": "v13a_research_gaps.csv", "path": str(gaps_path), "rows": len(gap_rows), "status": "created"},
         {"artifact": "v13a_summary.csv", "path": str(summary_path), "rows": len(summary_rows), "status": "created"},
+        {"artifact": "v13a_knowledge_state.csv", "path": str(knowledge_state_path), "rows": len(knowledge_state_rows), "status": "created"},
         {"artifact": report_path.name, "path": str(report_path), "rows": 1, "status": "created"},
     ]
     write_csv(manifest_path, manifest_rows, MANIFEST_FIELDS)
@@ -861,6 +1023,8 @@ def main() -> int:
     print("dependency_rows:", len(dependency_rows))
     print("conflict_rows:", len(conflict_rows))
     print("research_gap_rows:", len(gap_rows))
+    print("knowledge_state_rows:", len(knowledge_state_rows))
+    print("knowledge_state:", knowledge_state_rows[0]["overall_knowledge_state"] if knowledge_state_rows else "")
     print("report:", report_path)
     print("csv:", intelligence_path)
 
