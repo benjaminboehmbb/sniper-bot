@@ -382,3 +382,57 @@ Transition Analytics V1 is approved as the scientific foundation for future traj
 Status
 
 ACTIVE
+
+
+
+SSI-009
+
+Date
+
+2026-06-22
+
+Layer
+
+Trajectory Analytics
+
+Title
+
+Deterministic trajectory characterization validated
+
+Observation
+
+Trajectory Analytics successfully generated one deterministic analysis object for every reconstructed trajectory.
+
+Validation
+
+Trajectories:
+
+556
+
+Trajectory analyses:
+
+556
+
+Total states:
+
+15216
+
+Total transitions:
+
+14660
+
+Trajectories with repeated states:
+
+342
+
+Trajectories without repeated states:
+
+214
+
+Assessment
+
+Trajectory Analytics V1 establishes the first trajectory-level scientific descriptor layer of SSI and provides the deterministic foundation for future forecasting, clustering and higher-level behavioural analysis.
+
+Status
+
+ACTIVE
