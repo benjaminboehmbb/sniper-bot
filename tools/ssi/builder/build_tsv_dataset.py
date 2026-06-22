@@ -7,6 +7,11 @@ from tools.ssi.builder.lifecycle_loader import load_lifecycle_snapshots
 from tools.ssi.builder.tsv_dataset_builder import build_tsv_dataset
 from tools.ssi.builder.manifest import build_tsv_manifest, write_manifest
 from tools.ssi.builder.tsv_writer import write_tsv_csv
+from tools.ssi.builder.validation import (
+    assert_valid_manifest,
+    assert_valid_output_paths,
+    assert_valid_tsv_records,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -54,6 +59,14 @@ def main() -> int:
     input_path = Path(args.input)
     output_path = Path(args.output)
 
+    manifest_output = (
+        Path(args.manifest_output)
+        if args.manifest_output is not None
+        else output_path.with_name(output_path.stem + "_manifest.json")
+    )
+
+    assert_valid_output_paths(output_path, manifest_output)
+
     snapshots = load_lifecycle_snapshots(
         input_path=input_path,
         runtime_id=args.runtime_id,
@@ -64,15 +77,11 @@ def main() -> int:
         created_at_utc=args.created_at_utc,
     )
 
+    assert_valid_tsv_records(tsv_records)
+
     write_tsv_csv(
         records=tsv_records,
         output_path=output_path,
-    )
-
-    manifest_output = (
-        Path(args.manifest_output)
-        if args.manifest_output is not None
-        else output_path.with_name(output_path.stem + "_manifest.json")
     )
 
     manifest = build_tsv_manifest(
@@ -82,6 +91,8 @@ def main() -> int:
         records=tsv_records,
         validation_status="PASS",
     )
+
+    assert_valid_manifest(manifest)
 
     write_manifest(
         manifest=manifest,
