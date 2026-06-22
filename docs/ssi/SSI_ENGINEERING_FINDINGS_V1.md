@@ -436,3 +436,49 @@ Trajectory Analytics V1 establishes the first trajectory-level scientific descri
 Status
 
 ACTIVE
+
+
+
+SSI-010
+
+Date
+
+2026-06-22
+
+Layer
+
+Forecasting
+
+Title
+
+Deterministic forecasting layer validated
+
+Observation
+
+Forecasting V1 successfully generated one deterministic forecast for every trajectory analysis using a mean-delta extrapolation baseline.
+
+Validation
+
+Trajectory analyses:
+
+556
+
+Forecasts:
+
+556
+
+Mean-delta forecasts:
+
+555
+
+Hold-state baseline forecasts:
+
+1
+
+Assessment
+
+Forecasting V1 establishes the first predictive scientific layer of SSI while preserving deterministic and fully reproducible behaviour. No stochastic components or machine learning are introduced in V1.
+
+Status
+
+ACTIVE
