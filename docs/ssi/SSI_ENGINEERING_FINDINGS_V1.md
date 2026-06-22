@@ -313,3 +313,24 @@ Every validated engineering observation that may influence future development sh
 Knowledge shall never exist only in chat history.
 
 The repository is the long-term source of engineering knowledge.
+
+
+SSI-007
+
+Trajectory Reconstruction achieved deterministic reconstruction of all runtime trades.
+
+Validation:
+
+556 runtime trades
+
+556 reconstructed trajectories
+
+15216 / 15216 states assigned
+
+0 unassigned states
+
+0 side mismatches
+
+Assessment:
+
+Trajectory Reconstruction V1 is considered scientifically validated and suitable as the mandatory foundation for all future Transition Analytics.
