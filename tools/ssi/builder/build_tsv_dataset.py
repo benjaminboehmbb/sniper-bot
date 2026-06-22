@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from tools.ssi.builder.lifecycle_loader import load_lifecycle_snapshots
+from tools.ssi.builder.summary import write_tsv_summary
 from tools.ssi.builder.tsv_dataset_builder import build_tsv_dataset
 from tools.ssi.builder.manifest import build_tsv_manifest, write_manifest
 from tools.ssi.builder.tsv_writer import write_tsv_csv
@@ -45,6 +46,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--summary-output",
+        required=False,
+        default=None,
+        help="Optional output path for tsv_dataset_v1_summary.md",
+    )
+
+    parser.add_argument(
         "--created-at-utc",
         default=None,
         help="Optional fixed creation timestamp for deterministic tests.",
@@ -65,7 +73,15 @@ def main() -> int:
         else output_path.with_name(output_path.stem + "_manifest.json")
     )
 
+    summary_output = (
+        Path(args.summary_output)
+        if args.summary_output is not None
+        else output_path.with_name(output_path.stem + "_summary.md")
+    )
+
     assert_valid_output_paths(output_path, manifest_output)
+    assert_valid_output_paths(output_path, summary_output)
+    assert_valid_output_paths(manifest_output, summary_output)
 
     snapshots = load_lifecycle_snapshots(
         input_path=input_path,
@@ -99,12 +115,21 @@ def main() -> int:
         output_path=manifest_output,
     )
 
+    write_tsv_summary(
+        records=tsv_records,
+        runtime_id=args.runtime_id,
+        csv_output_path=output_path,
+        manifest_output_path=manifest_output,
+        summary_output_path=summary_output,
+    )
+
     print("TSV_DATASET_BUILD_PASS")
     print(f"input={input_path}")
     print(f"output={output_path}")
     print(f"snapshots={len(snapshots)}")
     print(f"tsv_records={len(tsv_records)}")
     print(f"manifest={manifest_output}")
+    print(f"summary={summary_output}")
 
     return 0
 
