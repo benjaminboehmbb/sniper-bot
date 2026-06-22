@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tools.ssi.builder.lifecycle_loader import load_lifecycle_snapshots
 from tools.ssi.builder.tsv_dataset_builder import build_tsv_dataset
+from tools.ssi.builder.manifest import build_tsv_manifest, write_manifest
 from tools.ssi.builder.tsv_writer import write_tsv_csv
 
 
@@ -29,6 +30,13 @@ def parse_args() -> argparse.Namespace:
         "--output",
         required=True,
         help="Output path for tsv_dataset_v1.csv",
+    )
+
+    parser.add_argument(
+        "--manifest-output",
+        required=False,
+        default=None,
+        help="Optional output path for tsv_dataset_v1_manifest.json",
     )
 
     parser.add_argument(
@@ -61,11 +69,31 @@ def main() -> int:
         output_path=output_path,
     )
 
+    manifest_output = (
+        Path(args.manifest_output)
+        if args.manifest_output is not None
+        else output_path.with_name(output_path.stem + "_manifest.json")
+    )
+
+    manifest = build_tsv_manifest(
+        runtime_id=args.runtime_id,
+        input_path=input_path,
+        output_path=output_path,
+        records=tsv_records,
+        validation_status="PASS",
+    )
+
+    write_manifest(
+        manifest=manifest,
+        output_path=manifest_output,
+    )
+
     print("TSV_DATASET_BUILD_PASS")
     print(f"input={input_path}")
     print(f"output={output_path}")
     print(f"snapshots={len(snapshots)}")
     print(f"tsv_records={len(tsv_records)}")
+    print(f"manifest={manifest_output}")
 
     return 0
 
