@@ -627,3 +627,80 @@ Future extensions such as evidence weighting, Bayesian inference, evidence fusio
 Status
 
 ACTIVE
+
+
+
+SSI-013
+
+Date
+
+2026-06-23
+
+Layer
+
+Decision Engine
+
+Title
+
+First deterministic scientific decision layer introduced
+
+Observation
+
+Decision Engine V1 introduces the first deterministic scientific decision layer of the SSI architecture.
+
+The layer transforms validated DecisionEvidence into a ScientificDecision while remaining completely independent of execution and domain-specific actions.
+
+The adopted architecture is:
+
+DecisionEvidenceResult
+
+↓
+
+DecisionValidator
+
+↓
+
+ScientificDecision
+
+↓
+
+DecisionResult
+
+DecisionValidator contains all decision logic.
+
+ScientificDecision remains a passive scientific data object.
+
+Decision Engine V1 intentionally supports only the following decision states:
+
+SUPPORTED
+NOT_SUPPORTED
+UNDECIDED
+
+No trading-specific concepts (BUY, SELL, LONG, SHORT) are introduced.
+
+Validation
+
+Validation Status:
+
+PASS
+
+Scientific Decisions:
+
+1
+
+Runtime:
+
+paper_4300000_2026-06-22
+
+Assessment
+
+Decision Engine V1 establishes the first scientifically explainable decision layer within SSI.
+
+It preserves deterministic behaviour, explainability and modularity while preparing the architecture for future extensions such as Bayesian Decision Support, Evidence Weighting and Machine Learning without changing the public API.
+
+Status
+
+ACTIVE
+
+
+
