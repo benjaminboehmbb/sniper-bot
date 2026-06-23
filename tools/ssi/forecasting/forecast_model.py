@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from tools.ssi.common.scientific_object import ScientificObject
-from tools.ssi.trajectory_analytics.trajectory_analysis import TrajectoryAnalysis
+from tools.ssi.trajectory_analytics.trajectory_analysis_model import TrajectoryAnalysis
 
 
 @dataclass(frozen=True, slots=True)

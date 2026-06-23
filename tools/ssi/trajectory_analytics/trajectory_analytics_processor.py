@@ -8,7 +8,7 @@ from tools.ssi.trajectory.trajectory_reconstruction_result import (
     TrajectoryReconstructionResult,
 )
 from tools.ssi.transition.transition_analytics_result import TransitionAnalyticsResult
-from tools.ssi.trajectory_analytics.trajectory_analysis import build_trajectory_analysis
+from tools.ssi.trajectory_analytics.trajectory_analysis_model import build_trajectory_analysis
 from tools.ssi.trajectory_analytics.trajectory_analytics_result import (
     TrajectoryAnalyticsMetrics,
     TrajectoryAnalyticsResult,
