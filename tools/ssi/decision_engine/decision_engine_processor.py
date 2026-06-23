@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tools.ssi.decision_evidence.result import DecisionEvidenceResult
+from tools.ssi.decision_evidence.decision_evidence_result import DecisionEvidenceResult
 
 from .result import DecisionResult
 from .validator import DecisionValidator

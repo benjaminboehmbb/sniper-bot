@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from tools.ssi.decision_evidence.result import DecisionEvidenceResult
+from tools.ssi.decision_evidence.decision_evidence_result import DecisionEvidenceResult
 
 from .models import (
     DecisionStatistics,

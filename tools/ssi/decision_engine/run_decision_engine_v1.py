@@ -3,13 +3,13 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from tools.ssi.decision_engine.persistence import (
+from tools.ssi.decision_engine.decision_engine_persistence import (
     DecisionEnginePersistence,
 )
-from tools.ssi.decision_engine.processor import (
+from tools.ssi.decision_engine.decision_engine_processor import (
     DecisionEngineProcessor,
 )
-from tools.ssi.decision_engine.renderer import (
+from tools.ssi.decision_engine.decision_engine_renderer import (
     DecisionEngineRenderer,
 )
 from tools.ssi.forecasting.forecasting_processor import (
@@ -32,7 +32,7 @@ from tools.ssi.transition.transition_analytics_processor import (
     TransitionAnalyticsInput,
     TransitionAnalyticsProcessor,
 )
-from tools.ssi.decision_evidence.processor import (
+from tools.ssi.decision_evidence.decision_evidence_processor import (
     DecisionEvidenceProcessor,
 )
 

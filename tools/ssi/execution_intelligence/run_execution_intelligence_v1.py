@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from tools.ssi.decision_engine.processor import (
+from tools.ssi.decision_engine.decision_engine_processor import (
     DecisionEngineProcessor,
 )
-from tools.ssi.decision_evidence.processor import (
+from tools.ssi.decision_evidence.decision_evidence_processor import (
     DecisionEvidenceProcessor,
 )
 from tools.ssi.execution_intelligence.execution_intelligence_persistence import (

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tools.ssi.decision_engine.result import DecisionResult
+from tools.ssi.decision_engine.decision_engine_result import DecisionResult
 
 from .execution_intelligence_persistence import ExecutionIntelligencePersistence
 from .execution_intelligence_processor import ExecutionIntelligenceProcessor

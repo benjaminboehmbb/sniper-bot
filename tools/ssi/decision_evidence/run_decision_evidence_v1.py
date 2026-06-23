@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from tools.ssi.decision_evidence.persistence import DecisionEvidencePersistence
-from tools.ssi.decision_evidence.processor import DecisionEvidenceProcessor
-from tools.ssi.decision_evidence.renderer import DecisionEvidenceRenderer
+from tools.ssi.decision_evidence.decision_evidence_persistence import DecisionEvidencePersistence
+from tools.ssi.decision_evidence.decision_evidence_processor import DecisionEvidenceProcessor
+from tools.ssi.decision_evidence.decision_evidence_renderer import DecisionEvidenceRenderer
 from tools.ssi.forecasting.forecasting_processor import (
     ForecastingInput,
     ForecastingProcessor,
