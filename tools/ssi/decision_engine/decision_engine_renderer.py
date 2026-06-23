@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict
 from typing import Any
 
-from .result import DecisionResult
+from .decision_engine_result import DecisionResult
 
 
 class DecisionEngineRenderer:

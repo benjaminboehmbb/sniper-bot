@@ -3,14 +3,20 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from tools.ssi.decision_evidence.decision_evidence_persistence import DecisionEvidencePersistence
-from tools.ssi.decision_evidence.decision_evidence_processor import DecisionEvidenceProcessor
-from tools.ssi.decision_evidence.decision_evidence_renderer import DecisionEvidenceRenderer
-from tools.ssi.forecasting.forecast_modeling_processor import (
+from tools.ssi.decision_evidence.decision_evidence_persistence import (
+    DecisionEvidencePersistence,
+)
+from tools.ssi.decision_evidence.decision_evidence_processor import (
+    DecisionEvidenceProcessor,
+)
+from tools.ssi.decision_evidence.decision_evidence_renderer import (
+    DecisionEvidenceRenderer,
+)
+from tools.ssi.forecasting.forecasting_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )
-from tools.ssi.knowledge.scientific_knowledge_extraction_processor import (
+from tools.ssi.knowledge.knowledge_extraction_processor import (
     KnowledgeExtractionInput,
     KnowledgeExtractionProcessor,
 )
@@ -105,7 +111,9 @@ def main() -> int:
     print(f"tsv_input={args.tsv_input}")
     print(f"trades_input={args.trades_input}")
     print(f"output_dir={args.output_dir}")
-    print(f"validation_status={decision_evidence_result.validation_summary['status']}")
+    print(
+        f"validation_status={decision_evidence_result.validation_summary['status']}"
+    )
     print(f"evidence_items={len(decision_evidence_result.evidence)}")
 
     return 0

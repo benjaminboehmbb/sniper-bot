@@ -4,9 +4,9 @@ from pathlib import Path
 
 from tools.ssi.decision_evidence.decision_evidence_result import DecisionEvidenceResult
 
-from .persistence import DecisionEnginePersistence
-from .processor import DecisionEngineProcessor
-from .renderer import DecisionEngineRenderer
+from .decision_engine_persistence import DecisionEnginePersistence
+from .decision_engine_processor import DecisionEngineProcessor
+from .decision_engine_renderer import DecisionEngineRenderer
 
 
 class DecisionEngineRunner:

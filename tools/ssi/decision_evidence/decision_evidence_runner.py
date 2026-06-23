@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tools.ssi.knowledge.scientific_knowledge_extraction_result import KnowledgeExtractionResult
+from tools.ssi.knowledge.knowledge_extraction_result import KnowledgeExtractionResult
 
-from .persistence import DecisionEvidencePersistence
-from .processor import DecisionEvidenceProcessor
-from .renderer import DecisionEvidenceRenderer
+from .decision_evidence_persistence import DecisionEvidencePersistence
+from .decision_evidence_processor import DecisionEvidenceProcessor
+from .decision_evidence_renderer import DecisionEvidenceRenderer
 
 
 class DecisionEvidenceRunner:

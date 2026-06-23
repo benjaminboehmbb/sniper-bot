@@ -5,7 +5,7 @@ from typing import Any
 
 from tools.ssi.decision_evidence.decision_evidence_result import DecisionEvidenceResult
 
-from .models import (
+from .decision_engine_models import (
     DecisionStatistics,
     ScientificDecision,
 )

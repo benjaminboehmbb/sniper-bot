@@ -3,14 +3,14 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from tools.ssi.forecasting.forecast_modeling_artifact_persistence import (
+from tools.ssi.forecasting.forecasting_artifact_persistence import (
     ForecastingArtifactPersistence,
 )
-from tools.ssi.forecasting.forecast_modeling_processor import (
+from tools.ssi.forecasting.forecasting_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )
-from tools.ssi.forecasting.forecast_modeling_renderer import ForecastingRenderer
+from tools.ssi.forecasting.forecasting_renderer import ForecastingRenderer
 from tools.ssi.trajectory.trajectory_reconstruction_processor import (
     TrajectoryReconstructionInput,
     TrajectoryReconstructionProcessor,

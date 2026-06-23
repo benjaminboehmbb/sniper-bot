@@ -12,11 +12,14 @@ from tools.ssi.decision_engine.decision_engine_processor import (
 from tools.ssi.decision_engine.decision_engine_renderer import (
     DecisionEngineRenderer,
 )
-from tools.ssi.forecasting.forecast_modeling_processor import (
+from tools.ssi.decision_evidence.decision_evidence_processor import (
+    DecisionEvidenceProcessor,
+)
+from tools.ssi.forecasting.forecasting_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )
-from tools.ssi.knowledge.scientific_knowledge_extraction_processor import (
+from tools.ssi.knowledge.knowledge_extraction_processor import (
     KnowledgeExtractionInput,
     KnowledgeExtractionProcessor,
 )
@@ -31,9 +34,6 @@ from tools.ssi.trajectory_analytics.trajectory_analytics_processor import (
 from tools.ssi.transition.transition_analytics_processor import (
     TransitionAnalyticsInput,
     TransitionAnalyticsProcessor,
-)
-from tools.ssi.decision_evidence.decision_evidence_processor import (
-    DecisionEvidenceProcessor,
 )
 
 

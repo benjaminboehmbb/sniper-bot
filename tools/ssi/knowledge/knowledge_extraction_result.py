@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from tools.ssi.common.scientific_result import ScientificResult, ScientificResultMetadata
 from tools.ssi.knowledge.scientific_knowledge import Knowledge
-from tools.ssi.knowledge.scientific_knowledge_candidate import KnowledgeCandidate
+from tools.ssi.knowledge.knowledge_candidate import KnowledgeCandidate
 
 
 @dataclass(frozen=True, slots=True)

@@ -18,11 +18,11 @@ from tools.ssi.execution_intelligence.execution_intelligence_processor import (
 from tools.ssi.execution_intelligence.execution_intelligence_renderer import (
     ExecutionIntelligenceRenderer,
 )
-from tools.ssi.forecasting.forecast_modeling_processor import (
+from tools.ssi.forecasting.forecasting_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )
-from tools.ssi.knowledge.scientific_knowledge_extraction_processor import (
+from tools.ssi.knowledge.knowledge_extraction_processor import (
     KnowledgeExtractionInput,
     KnowledgeExtractionProcessor,
 )

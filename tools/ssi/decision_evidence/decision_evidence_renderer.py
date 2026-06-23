@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict
 from typing import Any
 
-from .result import DecisionEvidenceResult
+from .decision_evidence_result import DecisionEvidenceResult
 
 
 class DecisionEvidenceRenderer:

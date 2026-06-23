@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from tools.ssi.decision_evidence.decision_evidence_result import DecisionEvidenceResult
 
-from .result import DecisionResult
-from .validator import DecisionValidator
+from .decision_engine_result import DecisionResult
+from .decision_engine_validator import DecisionValidator
 
 
 class DecisionEngineProcessor:
