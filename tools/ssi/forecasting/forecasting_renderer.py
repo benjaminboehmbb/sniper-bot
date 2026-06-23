@@ -9,7 +9,7 @@ from tools.ssi.common.scientific_artifacts import (
     TextArtifact,
 )
 from tools.ssi.common.scientific_renderer import ScientificRenderer
-from tools.ssi.forecasting.forecasting_result import ForecastingResult
+from tools.ssi.forecasting.forecast_modeling_result import ForecastingResult
 
 
 class ForecastingRenderer(ScientificRenderer[ForecastingResult]):

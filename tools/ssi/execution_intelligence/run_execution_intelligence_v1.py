@@ -18,7 +18,7 @@ from tools.ssi.execution_intelligence.execution_intelligence_processor import (
 from tools.ssi.execution_intelligence.execution_intelligence_renderer import (
     ExecutionIntelligenceRenderer,
 )
-from tools.ssi.forecasting.forecasting_processor import (
+from tools.ssi.forecasting.forecast_modeling_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )

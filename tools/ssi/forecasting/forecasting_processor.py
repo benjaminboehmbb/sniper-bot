@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 from tools.ssi.common.scientific_object import ScientificObject
 from tools.ssi.common.scientific_processor import ScientificProcessor
-from tools.ssi.forecasting.forecast import build_forecast_from_trajectory_analysis
-from tools.ssi.forecasting.forecasting_result import (
+from tools.ssi.forecasting.forecast_model import build_forecast_from_trajectory_analysis
+from tools.ssi.forecasting.forecast_modeling_result import (
     ForecastingMetrics,
     ForecastingResult,
     build_forecasting_metadata,

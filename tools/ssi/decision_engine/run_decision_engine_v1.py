@@ -12,7 +12,7 @@ from tools.ssi.decision_engine.decision_engine_processor import (
 from tools.ssi.decision_engine.decision_engine_renderer import (
     DecisionEngineRenderer,
 )
-from tools.ssi.forecasting.forecasting_processor import (
+from tools.ssi.forecasting.forecast_modeling_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )

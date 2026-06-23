@@ -6,7 +6,7 @@ from pathlib import Path
 from tools.ssi.decision_evidence.decision_evidence_persistence import DecisionEvidencePersistence
 from tools.ssi.decision_evidence.decision_evidence_processor import DecisionEvidenceProcessor
 from tools.ssi.decision_evidence.decision_evidence_renderer import DecisionEvidenceRenderer
-from tools.ssi.forecasting.forecasting_processor import (
+from tools.ssi.forecasting.forecast_modeling_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )

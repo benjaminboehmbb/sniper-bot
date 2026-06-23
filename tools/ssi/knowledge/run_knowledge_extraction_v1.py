@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from tools.ssi.forecasting.forecasting_processor import (
+from tools.ssi.forecasting.forecast_modeling_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )

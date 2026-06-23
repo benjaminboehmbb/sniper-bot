@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from tools.ssi.common.scientific_result import ScientificResult, ScientificResultMetadata
-from tools.ssi.forecasting.forecast import Forecast
+from tools.ssi.forecasting.forecast_model import Forecast
 
 
 @dataclass(frozen=True, slots=True)

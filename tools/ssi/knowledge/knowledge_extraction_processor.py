@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from tools.ssi.common.scientific_object import ScientificObject
 from tools.ssi.common.scientific_processor import ScientificProcessor
-from tools.ssi.forecasting.forecasting_result import ForecastingResult
+from tools.ssi.forecasting.forecast_modeling_result import ForecastingResult
 from tools.ssi.knowledge.scientific_knowledge_candidate import (
     KnowledgeCandidate,
     build_knowledge_candidate,
