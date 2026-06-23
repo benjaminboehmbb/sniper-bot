@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from tools.ssi.knowledge.knowledge import Knowledge, knowledge_from_candidate
-from tools.ssi.knowledge.knowledge_candidate import KnowledgeCandidate
+from tools.ssi.knowledge.scientific_knowledge import Knowledge, knowledge_from_candidate
+from tools.ssi.knowledge.scientific_knowledge_candidate import KnowledgeCandidate
 
 
 class KnowledgeValidationError(ValueError):

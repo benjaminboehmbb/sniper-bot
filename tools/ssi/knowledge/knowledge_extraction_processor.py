@@ -5,16 +5,16 @@ from dataclasses import dataclass
 from tools.ssi.common.scientific_object import ScientificObject
 from tools.ssi.common.scientific_processor import ScientificProcessor
 from tools.ssi.forecasting.forecasting_result import ForecastingResult
-from tools.ssi.knowledge.knowledge_candidate import (
+from tools.ssi.knowledge.scientific_knowledge_candidate import (
     KnowledgeCandidate,
     build_knowledge_candidate,
 )
-from tools.ssi.knowledge.knowledge_extraction_result import (
+from tools.ssi.knowledge.scientific_knowledge_extraction_result import (
     KnowledgeExtractionMetrics,
     KnowledgeExtractionResult,
     build_knowledge_extraction_metadata,
 )
-from tools.ssi.knowledge.knowledge_validator import validate_and_promote_candidates
+from tools.ssi.knowledge.scientific_knowledge_validator import validate_and_promote_candidates
 from tools.ssi.trajectory_analytics.trajectory_analytics_result import (
     TrajectoryAnalyticsResult,
 )

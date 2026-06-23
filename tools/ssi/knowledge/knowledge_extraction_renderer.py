@@ -9,7 +9,7 @@ from tools.ssi.common.scientific_artifacts import (
     TextArtifact,
 )
 from tools.ssi.common.scientific_renderer import ScientificRenderer
-from tools.ssi.knowledge.knowledge_extraction_result import KnowledgeExtractionResult
+from tools.ssi.knowledge.scientific_knowledge_extraction_result import KnowledgeExtractionResult
 
 
 class KnowledgeExtractionRenderer(ScientificRenderer[KnowledgeExtractionResult]):

@@ -7,14 +7,14 @@ from tools.ssi.forecasting.forecasting_processor import (
     ForecastingInput,
     ForecastingProcessor,
 )
-from tools.ssi.knowledge.knowledge_extraction_artifact_persistence import (
+from tools.ssi.knowledge.scientific_knowledge_extraction_artifact_persistence import (
     KnowledgeExtractionArtifactPersistence,
 )
-from tools.ssi.knowledge.knowledge_extraction_processor import (
+from tools.ssi.knowledge.scientific_knowledge_extraction_processor import (
     KnowledgeExtractionInput,
     KnowledgeExtractionProcessor,
 )
-from tools.ssi.knowledge.knowledge_extraction_renderer import (
+from tools.ssi.knowledge.scientific_knowledge_extraction_renderer import (
     KnowledgeExtractionRenderer,
 )
 from tools.ssi.trajectory.trajectory_reconstruction_processor import (

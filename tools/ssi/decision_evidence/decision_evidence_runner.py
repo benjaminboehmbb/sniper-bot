@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tools.ssi.knowledge.knowledge_extraction_result import KnowledgeExtractionResult
+from tools.ssi.knowledge.scientific_knowledge_extraction_result import KnowledgeExtractionResult
 
 from .persistence import DecisionEvidencePersistence
 from .processor import DecisionEvidenceProcessor

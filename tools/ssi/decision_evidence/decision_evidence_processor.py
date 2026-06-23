@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tools.ssi.knowledge.knowledge_extraction_result import KnowledgeExtractionResult
+from tools.ssi.knowledge.scientific_knowledge_extraction_result import KnowledgeExtractionResult
 
 from .result import DecisionEvidenceResult
 from .validator import EvidenceValidator
