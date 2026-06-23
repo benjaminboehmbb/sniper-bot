@@ -482,3 +482,148 @@ Forecasting V1 establishes the first predictive scientific layer of SSI while pr
 Status
 
 ACTIVE
+
+
+
+SSI-011
+
+Date
+
+2026-06-22
+
+Layer
+
+Knowledge Extraction
+
+Title
+
+Validated scientific knowledge architecture introduced
+
+Observation
+
+Knowledge Extraction V1 introduces the first scientific abstraction layer of SSI.
+
+Unlike all previous layers, Knowledge Extraction no longer describes individual runtime objects. Instead, it transforms deterministic observations into reusable scientific knowledge.
+
+To preserve scientific rigor and future extensibility, a three-stage architecture was introduced:
+
+KnowledgeCandidate
+
+↓
+
+KnowledgeValidator
+
+↓
+
+Knowledge
+
+This separates observation, validation and reusable knowledge into independent scientific responsibilities.
+
+Validation
+
+Knowledge Candidates:
+
+4
+
+Validated Knowledge Objects:
+
+4
+
+Validation:
+
+PASS
+
+Knowledge Objects
+
+RepeatedStateBehaviour
+NonRepeatedStateBehaviour
+MeanDeltaForecastDominance
+HoldStateForecastEdgeCase
+
+Assessment
+
+The introduction of the KnowledgeCandidate → KnowledgeValidator → Knowledge architecture establishes the first reusable scientific knowledge base within SSI.
+
+This design enables future extensions such as:
+
+statistical significance testing
+cross-runtime validation
+cross-dataset validation
+Bayesian validation
+machine learning assisted validation
+
+without modifying the public Knowledge representation.
+
+The architecture therefore provides a stable long-term foundation for the upcoming Decision Evidence layer.
+
+Status
+
+ACTIVE
+
+
+
+SSI-012
+
+Date
+
+2026-06-23
+
+Layer
+
+Decision Evidence
+
+Title
+
+Deterministic scientific evidence layer introduced
+
+Observation
+
+Decision Evidence V1 introduces the first evidence layer of SSI.
+
+Unlike Knowledge Extraction, which produces validated scientific knowledge, Decision Evidence groups one or more Knowledge objects into validated scientific evidence that can later support deterministic decision making.
+
+To keep the architecture minimal while remaining extensible, the following architecture was adopted:
+
+KnowledgeExtractionResult
+
+↓
+
+EvidenceValidator
+
+↓
+
+DecisionEvidence
+
+↓
+
+DecisionEvidenceResult
+
+DecisionEvidence remains a passive scientific data object.
+
+All evidence generation logic resides exclusively in EvidenceValidator.
+
+Validation
+
+Validation Status:
+
+PASS
+
+Evidence Objects:
+
+4
+
+Runtime:
+
+paper_4300000_2026-06-22
+
+Assessment
+
+Decision Evidence V1 establishes the scientific bridge between Knowledge Extraction and the future Decision Engine.
+
+The layer remains fully deterministic, reproducible and explainable while preserving a minimal public API and clear separation of responsibilities.
+
+Future extensions such as evidence weighting, Bayesian inference, evidence fusion and machine learning can be integrated without changing the public architecture.
+
+Status
+
+ACTIVE
