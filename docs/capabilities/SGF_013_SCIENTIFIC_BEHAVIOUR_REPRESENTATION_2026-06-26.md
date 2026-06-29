@@ -32,7 +32,7 @@ SGF_013_SCIENTIFIC_BEHAVIOUR_REPRESENTATION_2026-06-26.md
 
 ---
 
-# Vollständiger Pfad
+# Vollstaendiger Pfad
 
 ```text
 docs/capabilities/SGF_013_SCIENTIFIC_BEHAVIOUR_REPRESENTATION_2026-06-26.md
@@ -58,7 +58,7 @@ User + ChatGPT
 
 ---
 
-# Abhängigkeiten
+# Abhaengigkeiten
 
 * SGF_013A_0_CAPABILITY_READINESS_REVIEW_2026-06-26.md
 * SGF_013A_1_SCIENTIFIC_PROBLEM_ANALYSIS_2026-06-26.md
@@ -80,10 +80,10 @@ User + ChatGPT
 
 # Referenziert von
 
+* MR_008_METHODOLOGY_REVIEW_2026-06-26.md
+* SRR_006_SCIENTIFIC_ROADMAP_REVIEW_2026-06-26.md
+* SKAR_003_SCIENTIFIC_KNOWLEDGE_ARCHITECTURE_REVIEW_2026-06-26.md
 * SGF-014 Scientific Forecast Representation
-* Methodology Review after SGF-013
-* Scientific Roadmap Review after SGF-013
-* Scientific Knowledge Architecture Review after SGF-013
 
 ---
 
@@ -105,11 +105,15 @@ Validated Scientific Capability
 
 # 1. Purpose
 
-This document consolidates SGF-013 Scientific Behaviour Representation into a single Scientific Capability Specification.
+This document consolidates SGF-013 into a single Scientific Capability Specification.
 
-It preserves the validated conclusions of SGF-013A.0 through SGF-013J.
+The document preserves the validated scientific results of the SGF-013 derivation phases A.0 through J.
 
-This document does not introduce a new derivation phase. It does not modify the primary SGF-013 derivation documents. It summarizes the accepted capability, its responsibility, dependencies, observations, capability characteristics, Necessary Properties, Property Configuration, Scientific State Recognition, final review outcome and open scientific questions.
+It does not introduce a new derivation phase.
+
+It does not replace the SGF-013 primary documents.
+
+It records the accepted capability status of Scientific Behaviour Representation and makes the result available as a stable reference document for later scientific derivations.
 
 ---
 
@@ -123,35 +127,35 @@ Capability class:
 
 **Scientific Representation Capability**
 
-Validated responsibility:
+Validated scientific responsibility:
 
-**Representation of behavioural characteristics associated with scientific evolution.**
-
-Recognized Scientific State:
-
-**Scientific Behaviour Representation State**
+**Representation of behavioural characteristics of scientific evolution.**
 
 Lifecycle status:
 
 **Validated Scientific Capability**
 
+Recognized Scientific State:
+
+**Scientific Behaviour Representation State**
+
 ---
 
 # 3. Scientific Context
 
-Before SGF-013, the Scientific Representation Platform contained the following validated representation capabilities:
+Before SGF-013, the Scientific Representation Platform represented:
 
-* Scientific State
-* Scientific Relationship
+* Scientific States
+* Scientific Relationships
 * Scientific Ordering
-* Scientific Transition
-* Scientific Trajectory
+* Scientific Transitions
+* Scientific Trajectories
 * Scientific Dynamics
 * Scientific Time Representation
 
-These capabilities enabled representation of scientific entities, relationships, ordering, transitions, trajectories, dynamics and temporal properties.
+Together, these capabilities represented scientific structures, structural evolution and temporal properties.
 
-The SGF-013 problem analysis identified that the platform could represent:
+The current platform could represent:
 
 * what scientific entities exist,
 * how they relate,
@@ -161,43 +165,56 @@ The SGF-013 problem analysis identified that the platform could represent:
 * how trajectories are characterized,
 * how temporal properties are represented.
 
-The candidate gap was that the platform did not yet represent how scientific evolution behaves.
+However, the platform did not yet represent how scientific evolution itself behaves.
+
+This observation motivated SGF-013.
 
 ---
 
 # 4. Scientific Problem
 
-The central scientific question investigated in SGF-013 was:
+The scientific problem investigated by SGF-013 was whether behavioural characteristics of scientific evolution require an independent representation capability.
 
-> Can the behaviour of scientific evolution be represented independently from Scientific Dynamics, Scientific Time Representation, Scientific Trajectories and Scientific Transitions?
+The central scientific question was:
 
-The problem analysis did not assume that Scientific Behaviour Representation already existed.
+Can the behaviour of scientific evolution be represented independently from:
 
-The problem analysis established that the candidate gap was scientifically relevant and justified further investigation.
+* Scientific Dynamics,
+* Scientific Time Representation,
+* Scientific Trajectories,
+* Scientific Transitions?
+
+At the start of SGF-013, no assumption was made that Scientific Behaviour Representation existed.
+
+At the start of SGF-013, capability necessity, capability existence, scientific responsibility and scientific boundaries were unknown.
+
+SGF-013 therefore began as an investigation of a candidate representational gap.
 
 ---
 
 # 5. Scientific Neutrality
 
-SGF-013 investigated behaviour only as a scientific representation concept.
+SGF-013 investigated behaviour only as a possible scientific representation concept.
 
-The derivation explicitly excluded domain-specific and implementation-specific meanings of behaviour, including:
+The derivation intentionally excluded domain-specific meanings of behaviour, including:
 
 * biological behaviour,
 * human behaviour,
-* artificial intelligence,
+* artificial intelligence behaviour,
 * agent behaviour,
 * software behaviour,
 * physical behaviour,
-* control systems.
+* control-system behaviour.
 
-Scientific Behaviour Representation therefore does not represent domain behaviour. It represents behavioural characteristics associated with scientific evolution.
+Scientific Behaviour Representation is therefore not a domain-behaviour capability.
+
+It represents behavioural characteristics of scientific evolution.
 
 ---
 
 # 6. Scientific Constraints
 
-SGF-013 required the candidate capability to satisfy existing Scientific Representation principles.
+Any candidate capability derived during SGF-013 had to satisfy the existing Scientific Representation principles.
 
 The capability had to:
 
@@ -207,15 +224,21 @@ The capability had to:
 * preserve scientific minimality,
 * preserve architectural consistency.
 
-These constraints were active throughout the derivation.
+These constraints remained active throughout the derivation.
 
 ---
 
 # 7. Capability Readiness
 
-SGF-013A.0 evaluated whether the platform was ready to investigate Scientific Behaviour Representation.
+SGF-013A.0 evaluated whether the Scientific Representation Platform was prepared to investigate Scientific Behaviour Representation.
 
-The readiness review assessed:
+The candidate capability was identified as:
+
+**Scientific Behaviour Representation**
+
+The candidate scientific question was whether scientific evolution possesses behavioural characteristics that cannot be represented by Scientific Dynamics or Scientific Time Representation alone.
+
+The readiness review evaluated:
 
 * dependency readiness,
 * scientific motivation readiness,
@@ -223,73 +246,63 @@ The readiness review assessed:
 * architectural readiness,
 * knowledge readiness.
 
-All readiness dimensions passed.
+The readiness assessment concluded PASS for the evaluated readiness criteria.
 
 Scientific decision:
 
-**The Scientific Representation Platform was prepared to begin investigation of Scientific Behaviour Representation.**
+The Scientific Representation Platform was scientifically prepared to begin investigation of Scientific Behaviour Representation.
 
-The candidate capability was accepted for Scientific Problem Analysis.
+The capability candidate was accepted for Scientific Problem Analysis.
 
 ---
 
 # 8. Dependency Analysis
 
-SGF-013A.2 evaluated the scientific dependencies of Scientific Behaviour Representation.
+SGF-013A.2 determined the minimal scientific prerequisites required for Scientific Behaviour Representation.
 
-The dependency analysis distinguished:
+The analysis distinguished between:
 
 * roadmap dependency,
 * minimal ontological dependency,
 * scientific information dependency.
 
-The analysis retained only dependencies that were scientifically justified.
+No dependency was assumed without scientific justification.
 
 ---
 
 # 9. Roadmap Dependency
 
-The roadmap dependency placed Scientific Behaviour Representation after Scientific Time Representation.
-
-The validated roadmap sequence at SGF-013 was:
+The roadmap dependency evaluated in SGF-013A.2 was:
 
 Scientific State
 
-↓
+-> Scientific Relationship
 
-Scientific Relationship
+-> Scientific Ordering
 
-↓
+-> Scientific Transition
 
-Scientific Ordering
+-> Scientific Trajectory
 
-↓
+-> Scientific Dynamics
 
-Scientific Transition
+-> Scientific Time Representation
 
-↓
+-> Scientific Behaviour Representation
 
-Scientific Trajectory
+Assessment:
 
-↓
+Scientific Behaviour Representation was evaluated as the next validated roadmap capability.
 
-Scientific Dynamics
+Result:
 
-↓
-
-Scientific Time Representation
-
-↓
-
-Scientific Behaviour Representation
-
-This roadmap position passed the dependency consistency and architectural compatibility reviews.
+Supported.
 
 ---
 
 # 10. Minimal Ontological Dependency
 
-SGF-013A.2 identified that Scientific Behaviour Representation requires:
+Scientific Behaviour cannot exist without:
 
 * a scientific entity that may behave,
 * evolution of that entity,
@@ -299,31 +312,21 @@ The minimal prerequisite capability chain was therefore identified as:
 
 Scientific State
 
-↓
+-> Scientific Relationship
 
-Scientific Relationship
+-> Scientific Ordering
 
-↓
+-> Scientific Transition
 
-Scientific Ordering
+-> Scientific Trajectory
 
-↓
+-> Scientific Dynamics
 
-Scientific Transition
+-> Scientific Time Representation
 
-↓
+Assessment:
 
-Scientific Trajectory
-
-↓
-
-Scientific Dynamics
-
-↓
-
-Scientific Time Representation
-
-SGF-013A.2 concluded that the dependency structure was consistent with the existing Scientific Representation hierarchy.
+Current SGF-013 evidence supported this dependency structure.
 
 ---
 
@@ -331,23 +334,65 @@ SGF-013A.2 concluded that the dependency structure was consistent with the exist
 
 Scientific Behaviour Representation requires previously representable scientific information.
 
-The required information includes:
+Required information includes:
 
 * structural identity,
 * structural evolution,
 * temporal characterization.
 
-The broader derivation also relates the capability to information represented by ordering, transition, trajectory and dynamics.
+Behaviour cannot be represented without these information classes already existing.
 
-SGF-013A.2 concluded that Scientific Behaviour Representation depends upon previously validated representation capabilities without replacing them.
+Assessment:
+
+Supported.
 
 ---
 
-# 12. Capability Existence Investigation
+# 12. Dependency Minimality and Consistency
 
-SGF-013B.1 investigated whether Scientific Behaviour Representation is a distinguishable scientific capability candidate.
+Each retained dependency was evaluated.
 
-The existing platform already represented:
+The following were identified as required:
+
+* Scientific State
+* Scientific Relationship
+* Scientific Ordering
+* Scientific Transition
+* Scientific Trajectory
+* Scientific Dynamics
+* Scientific Time Representation
+
+No additional prerequisite capability was supported by current evidence.
+
+The dependency structure was evaluated as acyclic.
+
+No circular dependency was identified.
+
+The derived dependency structure preserved:
+
+* capability independence,
+* responsibility separation,
+* scientific minimality,
+* validated roadmap consistency.
+
+Scientific decision:
+
+The current evidence supported a coherent dependency structure for Scientific Behaviour Representation.
+
+---
+
+# 13. Capability Existence Investigation
+
+SGF-013B.1 investigated whether Scientific Behaviour Representation exists as an independent scientific capability candidate.
+
+The investigation asked whether behavioural characteristics can be represented independently from:
+
+* Scientific Dynamics,
+* Scientific Time Representation,
+* Scientific Trajectory,
+* Scientific Transition.
+
+The current Scientific Representation Platform already provided representation of:
 
 * scientific entities,
 * scientific relationships,
@@ -357,64 +402,109 @@ The existing platform already represented:
 * dynamics,
 * temporal properties.
 
-The investigation evaluated whether behaviour could be reduced to existing capabilities.
+No validated capability explicitly represented behavioural characteristics.
 
-The Behaviour Representation candidate was assessed as representing behavioural characteristics that are not identical to:
+The alternative hypothesis evaluated in SGF-013B.1 was that Scientific Behaviour Representation is completely reducible to the combined representations of Scientific Dynamics and Scientific Time Representation.
 
-* structural identity,
-* structural ordering,
-* structural transition,
-* trajectory,
-* dynamics,
-* temporal characterization.
+Assessment:
+
+Current evidence did not demonstrate such reducibility.
+
+Dynamics characterizes scientific evolution.
+
+Time characterizes temporal properties.
+
+Neither capability had an explicitly validated responsibility for representing behavioural characteristics.
 
 Scientific decision:
 
-**Current evidence supported continued investigation of Scientific Behaviour Representation as a distinguishable scientific capability candidate.**
+Current evidence supported continued investigation of Scientific Behaviour Representation as a candidate independent scientific capability.
 
 ---
 
-# 13. Capability Necessity Investigation
+# 14. Capability Distinguishability
 
-SGF-013B.2 investigated whether Scientific Behaviour Representation was necessary.
+SGF-013B.1 distinguished the candidate scientific question of Behaviour Representation from previously validated capability questions.
 
-The necessity principle required that:
+Existing capability questions:
+
+* Scientific State: What exists?
+* Scientific Relationship: How are entities related?
+* Scientific Ordering: In which order are entities arranged?
+* Scientific Transition: How do structures change?
+* Scientific Trajectory: What structural evolution is observed?
+* Scientific Dynamics: How is structural evolution characterized?
+* Scientific Time Representation: Which temporal properties characterize scientific structures?
+
+Candidate Behaviour Representation question:
+
+**How does scientific evolution behave?**
+
+This distinction supported a potentially independent representational responsibility.
+
+---
+
+# 15. Capability Necessity Investigation
+
+SGF-013B.2 investigated whether Scientific Behaviour Representation was scientifically necessary.
+
+Scientific necessity was evaluated using the following conditions:
 
 * an unresolved scientific problem exists,
 * existing capabilities cannot solve the problem,
 * the candidate capability contributes new scientific representation,
 * the new representation cannot be reconstructed completely from existing capabilities.
 
-The investigation found that existing capabilities represent existence, relationships, ordering, change, trajectories, dynamics and temporal properties, but do not explicitly represent behavioural characteristics associated with scientific evolution.
+The investigation concluded that current evidence supported:
 
-Scientific Behaviour Representation was therefore assessed as contributing scientific information beyond:
+* unresolved scientific problem,
+* existing capabilities insufficient according to current evidence,
+* independent scientific contribution,
+* additional scientific information.
 
-* structural information,
-* temporal information,
-* dynamic information.
+The candidate responsibility was:
+
+**Representation of behavioural characteristics of scientific evolution.**
 
 Scientific decision:
 
-**Current evidence supported continued investigation of Scientific Behaviour Representation as a scientifically necessary capability candidate.**
+Current evidence supported continued investigation of Scientific Behaviour Representation as a scientifically necessary capability candidate.
 
 ---
 
-# 14. Capability Boundary Investigation
+# 16. Capability Boundary Investigation
 
-SGF-013B.3 evaluated the boundary of Scientific Behaviour Representation.
+SGF-013B.3 investigated the scientific boundary of Scientific Behaviour Representation.
 
-A valid capability boundary required:
+The lower boundary separated Scientific Behaviour Representation from previously validated capabilities:
 
-* a unique scientific responsibility,
-* clear separation from neighbouring capabilities,
-* no responsibility overlap,
-* no unnecessary responsibility expansion.
+* Scientific State represents existence.
+* Scientific Relationship represents relationships.
+* Scientific Ordering represents ordering.
+* Scientific Transition represents structural change.
+* Scientific Trajectory represents structural evolution.
+* Scientific Dynamics represents characteristics of structural evolution.
+* Scientific Time Representation represents temporal properties.
 
-The lower boundary separated Behaviour Representation from prior representation capabilities.
+None of these validated responsibilities explicitly represented behavioural characteristics.
 
-The upper boundary separated Behaviour Representation from later or different capabilities.
+The upper boundary separated Scientific Behaviour Representation from anticipated future capabilities:
 
-Scientific Behaviour Representation does not:
+* Forecast Representation is responsible for representing expected future evolution.
+* Scientific Causality Representation is responsible for representing causal relationships.
+* Decision-related capabilities are responsible for selecting actions or alternatives.
+
+Scientific Behaviour Representation shall not assume these responsibilities.
+
+---
+
+# 17. Responsibility Boundary
+
+The accepted candidate responsibility was:
+
+**Representation of behavioural characteristics of scientific evolution.**
+
+The capability shall not:
 
 * explain behaviour,
 * predict behaviour,
@@ -422,48 +512,47 @@ Scientific Behaviour Representation does not:
 * control behaviour,
 * evaluate behaviour.
 
-It represents behavioural characteristics associated with scientific evolution.
+Its responsibility is limited to scientific representation.
 
 Scientific decision:
 
-**Current evidence supported a coherent boundary for Scientific Behaviour Representation.**
+Current evidence supported a distinct scientific boundary for Scientific Behaviour Representation.
 
 ---
 
-# 15. Capability Independence Investigation
+# 18. Capability Independence Investigation
 
-SGF-013B.4 evaluated independence of the candidate capability.
+SGF-013B.4 investigated whether Scientific Behaviour Representation satisfies the Scientific Capability Independence Principle.
 
-A scientifically independent capability had to satisfy the following criteria:
+Scientific capability independence required:
 
-* it possesses its own scientific responsibility,
+* the capability possesses its own scientific responsibility,
 * the represented scientific information is not completely derivable from existing capabilities,
-* removal of the capability decreases the representational capability of the platform,
+* removal of the capability decreases the representational capability of the Scientific Representation Platform,
 * existing capability responsibilities remain unchanged.
 
-The investigation concluded that Scientific Behaviour Representation is not reducible to existing representations of:
+SGF-013B.4 concluded that current evidence supported:
 
-* existence,
-* relationships,
-* ordering,
-* transitions,
-* trajectories,
-* dynamics,
-* temporal properties.
-
-It depends upon earlier capabilities for required scientific information but does not duplicate their responsibilities.
+* independent scientific responsibility,
+* independent scientific representation,
+* removal reduces representational capability,
+* architectural independence.
 
 Scientific decision:
 
-**Current evidence supported Scientific Behaviour Representation as an independent scientific capability candidate.**
+Current evidence indicated that Scientific Behaviour Representation satisfied the current Scientific Capability Independence criteria.
 
 ---
 
-# 16. Observation Collection
+# 19. Observation Collection
 
-SGF-013C collected observations relevant to Scientific Behaviour Representation.
+SGF-013C collected scientific observations relevant to Scientific Behaviour Representation.
 
-The observation collection principles required observations to be:
+The observation collection phase collected observations only.
+
+No interpretation, classification or property derivation was performed during SGF-013C.
+
+Collected observations had to be:
 
 * observable,
 * implementation independent,
@@ -471,161 +560,164 @@ The observation collection principles required observations to be:
 * reproducible,
 * scientifically distinguishable.
 
-The collection phase produced ten observations.
-
 ---
 
-# 17. Observations
+# 20. Collected Observations
 
 ## O-001
 
-Scientific evolution may exhibit different behavioural characteristics while preserving identical structural representation.
+A Scientific Trajectory may be represented as a sequence of transitions while its behavioural character remains unspecified.
 
-Observation:
+Implication:
 
-Structural representation alone does not completely describe behavioural characteristics.
+Trajectory representation alone does not describe behavioural character.
 
 ## O-002
 
-Scientific evolution may exhibit identical temporal properties while differing in behavioural characteristics.
+Two trajectories may contain structurally comparable transitions but differ in how those transitions unfold.
 
-Observation:
+Implication:
 
-Temporal representation alone does not uniquely determine behaviour.
+Structural transition representation does not exhaust behavioural representation.
 
 ## O-003
 
-Scientific evolution may exhibit identical dynamic characteristics while differing in behavioural characteristics.
+Scientific Dynamics may characterize change, but it does not by itself determine whether the evolution exhibits stable, unstable, repetitive, accelerating or discontinuous behaviour.
 
-Observation:
+Implication:
 
-Dynamic characterization alone does not completely represent behaviour.
+Dynamic characterization and behaviour characterization are distinguishable.
 
 ## O-004
 
-Behavioural characteristics are observed only in the context of scientific evolution.
+Temporal representation can describe before, after, duration or temporal ordering without representing behavioural form.
 
-Observation:
+Implication:
 
-Behaviour is associated with evolution rather than isolated scientific entities.
+Time Representation does not by itself represent Behaviour Representation.
 
 ## O-005
 
-Behavioural characteristics may remain observable across multiple consecutive scientific states.
+A scientific system may preserve the same temporal ordering while exhibiting different behavioural characteristics.
 
-Observation:
+Implication:
 
-Behaviour may extend beyond a single Scientific State.
+Temporal order and behaviour are not identical.
 
 ## O-006
 
-Behavioural characteristics may remain recognizable despite variation in temporal duration.
+Behavioural characteristics appear to depend on patterns across scientific evolution rather than on isolated states.
 
-Observation:
+Implication:
 
-Behaviour and temporal duration are distinguishable scientific concepts.
+Behaviour Representation requires evolutionary context.
 
 ## O-007
 
-Behavioural characteristics may remain recognizable despite variation in trajectory length.
+Behavioural characteristics may persist across multiple states, transitions or trajectory segments.
 
-Observation:
+Implication:
 
-Behaviour and trajectory length are distinguishable scientific concepts.
+Behaviour cannot always be reduced to a single transition or state.
 
 ## O-008
 
-Behavioural characteristics may remain recognizable under different structural realizations.
+A behavioural characteristic can be described without assigning a causal explanation.
 
-Observation:
+Implication:
 
-Behaviour is not restricted to one particular structural configuration.
+Behaviour Representation and Causality Representation are distinguishable.
 
 ## O-009
 
-Behavioural characteristics may describe persistent patterns of scientific evolution.
+A behavioural characteristic can be described without predicting future evolution.
 
-Observation:
+Implication:
 
-Behaviour appears to characterize evolution across multiple observations rather than isolated events.
+Behaviour Representation and Forecast Representation are distinguishable.
 
 ## O-010
 
-Previously validated capabilities provide prerequisite scientific information for Behaviour Representation.
+Behavioural characteristics can be represented at a scientific abstraction level without domain-specific interpretation.
 
-Observation:
+Implication:
 
-Behavioural representation appears to depend upon previously represented scientific information without replacing it.
-
----
-
-# 18. Observation Summary
-
-The observations indicate that behavioural characteristics are distinguishable from:
-
-* structural identity,
-* structural ordering,
-* transitions,
-* trajectories,
-* dynamics,
-* temporal representation.
-
-SGF-013C accepted the observations as the basis for quality review.
-
-The observations remained descriptive at that stage and did not yet establish Necessary Properties.
+Behaviour Representation can remain domain independent.
 
 ---
 
-# 19. Observation Quality Review
+# 21. Observation Summary
 
-SGF-013D reviewed the observations against:
+The collected observations indicated that behavioural characteristics form an observable scientific aspect of scientific evolution.
+
+The observations indicated that behavioural characteristics are distinguishable from:
+
+* structural representation,
+* transition representation,
+* trajectory representation,
+* dynamic characterization,
+* temporal representation,
+* causal explanation,
+* forecast representation,
+* domain-specific interpretation.
+
+SGF-013C concluded that the collected observations provided sufficient basis for observation quality review.
+
+---
+
+# 22. Observation Quality Review
+
+SGF-013D evaluated the collected observations using the following review criteria:
 
 * scientific observability,
-* implementation independence,
-* domain independence,
-* reproducibility,
-* distinguishability,
-* internal consistency.
+* capability relevance,
+* independence from implementation,
+* independence from domain semantics,
+* non-duplication,
+* traceability to the candidate problem.
 
-Each of the ten observations was accepted.
+Each observation O-001 through O-010 was accepted as scientifically usable.
 
-The cross-observation consistency review found no internal contradiction in the observation set.
+The cross-observation consistency review concluded:
 
-The observation coverage review found coverage of:
+* no contradiction among the observations was identified,
+* the observations collectively supported a distinguishable behavioural representation problem,
+* no observation required domain-specific assumptions,
+* no observation required implementation-specific assumptions.
 
-* structural relationship,
-* temporal relationship,
-* dynamic relationship,
-* behavioural persistence,
-* behavioural distinguishability,
-* dependency on existing representations.
+The observation coverage review concluded that the observations provided coverage for:
+
+* relationship to trajectory,
+* relationship to transition,
+* relationship to dynamics,
+* relationship to time,
+* persistence across evolution,
+* separation from causality,
+* separation from forecast,
+* domain independence.
 
 Scientific assessment:
 
-| Criterion | Result |
-| --------- | ------ |
-| Observation quality | PASS |
-| Observation consistency | PASS |
-| Observation distinguishability | PASS |
-| Observation reproducibility | PASS |
-| Observation coverage | PASS |
-| Overall assessment | PASS |
+* Observation scientific validity: PASS
+* Observation independence: PASS
+* Observation relevance: PASS
+* Observation consistency: PASS
+* Observation coverage: PASS
+* Readiness for characteristic derivation: PASS
 
 Scientific decision:
 
-**The observation set was accepted as the observational basis for deriving capability characteristics.**
+The collected observations were accepted as the basis for deriving capability characteristics.
 
 ---
 
-# 20. Capability Characteristics
+# 23. Derived Capability Characteristics
 
-SGF-013E derived capability characteristics from the accepted observation set.
+SGF-013E derived capability characteristics from the accepted observations.
 
-The characteristic set did not yet represent Necessary Properties. It established the basis for subsequent Necessary Property derivation.
+The characteristics describe the candidate capability.
 
----
-
-# 21. Derived Capability Characteristics
+They do not yet represent Necessary Properties.
 
 ## C-001 - Behaviour Representation
 
@@ -691,51 +783,44 @@ Derived from:
 
 ---
 
-# 22. Characteristic Coverage
+# 24. Characteristic Relationships
 
-The accepted characteristics cover:
+The derived characteristics formed a coherent description of the candidate capability.
 
-* behavioural representation,
-* dependency on scientific evolution,
-* distinction from structural representation,
-* distinction from temporal representation,
-* distinction from dynamic characterization,
-* persistence of behavioural characteristics,
-* integration into the existing Scientific Representation Platform.
+Relationship summary:
 
-Scientific assessment:
+Behaviour Representation
 
-| Criterion | Result |
-| --------- | ------ |
-| Characteristic derivation | PASS |
-| Characteristic consistency | PASS |
-| Characteristic coverage | PASS |
-| Responsibility alignment | PASS |
-| Readiness for Necessary Property derivation | PASS |
+-> depends upon
+
+Scientific Evolution
+
+-> which is represented through
+
+* Structure
+* Trajectory
+* Dynamics
+* Time
+
+The characteristics describe Behaviour Representation as an additional representational layer rather than an alternative representation.
 
 Scientific decision:
 
-**The characteristic set was accepted as the basis for deriving Necessary Properties.**
+The derived capability characteristics provided a scientifically traceable description of the candidate capability and were accepted as the basis for deriving Necessary Properties.
 
 ---
 
-# 23. Necessary Property Derivation
+# 25. Derived Necessary Properties
 
-SGF-013F derived Necessary Properties from the validated capability characteristics.
+SGF-013F derived the Necessary Properties of Scientific Behaviour Representation from the validated capability characteristics.
 
-Necessary Properties had to be:
+A property was accepted as a candidate Necessary Property only if it was:
 
-* directly derived from validated capability characteristics,
-* scientifically necessary,
-* capability-specific,
-* independent from implementation,
-* independent from application domain.
-
-Only properties satisfying all conditions were accepted.
-
----
-
-# 24. Derived Necessary Properties
+* required for fulfilling the candidate scientific responsibility,
+* traceable to validated characteristics,
+* not reducible to a platform-wide invariant,
+* specific to Behaviour Representation,
+* necessary for capability completeness.
 
 ## NP-001 - Behaviour Representation
 
@@ -809,7 +894,7 @@ This preserves architectural consistency and responsibility separation.
 
 ---
 
-# 25. Candidate Properties Not Accepted as Necessary Properties
+# 26. Candidate Properties Not Accepted as Necessary Properties
 
 SGF-013F evaluated additional candidate properties.
 
@@ -847,53 +932,21 @@ Not accepted as a Necessary Property.
 
 ---
 
-# 26. Necessary Property Summary
-
-The derived Necessary Properties describe Behaviour Representation as a capability that:
-
-* explicitly represents behavioural characteristics,
-* is associated with scientific evolution,
-* remains distinguishable from structural representation,
-* remains distinguishable from temporal representation,
-* remains distinguishable from dynamic characterization,
-* supports behavioural persistence,
-* integrates hierarchically with previously validated capabilities.
-
-Scientific assessment:
-
-| Criterion | Result |
-| --------- | ------ |
-| Property derivation | PASS |
-| Scientific necessity | PASS |
-| Capability specificity | PASS |
-| Internal consistency | PASS |
-| Readiness for validation | PASS |
-
-Scientific decision:
-
-**The derived property set was accepted for validation.**
-
----
-
 # 27. Necessary Property Validation
 
-SGF-013G validated the derived Necessary Properties.
+SGF-013G validated the candidate Necessary Properties.
 
-Each candidate property was evaluated for:
+Each property was evaluated for:
 
 * necessity,
-* capability specificity,
-* scientific traceability,
-* independence from other properties,
-* internal consistency.
+* sufficiency contribution,
+* traceability,
+* non-redundancy,
+* consistency.
 
-All seven candidate Necessary Properties were accepted.
+All seven candidate Necessary Properties were validated.
 
----
-
-# 28. Validated Necessary Properties
-
-The validated Necessary Properties of Scientific Behaviour Representation are:
+Validated Necessary Properties:
 
 * NP-001 - Behaviour Representation
 * NP-002 - Evolution Association
@@ -903,67 +956,111 @@ The validated Necessary Properties of Scientific Behaviour Representation are:
 * NP-006 - Behaviour Persistence
 * NP-007 - Hierarchical Integration
 
+Cross-property consistency review concluded that:
+
+* no property contradicted another property,
+* no property duplicated another property,
+* each property contributed to the candidate responsibility,
+* the property set remained consistent with previously validated capabilities.
+
+Completeness review concluded that the property set covered:
+
+* explicit behavioural representation,
+* association with scientific evolution,
+* structural distinction,
+* temporal distinction,
+* dynamic distinction,
+* persistence across scientific evolution,
+* integration into the Scientific Representation Platform.
+
+Scientific decision:
+
+The candidate Necessary Properties satisfied the current validation criteria of the Scientific Derivation Methodology.
+
 The validated property set was accepted for Property Configuration derivation.
 
 ---
 
-# 29. Cross-Property Consistency
-
-SGF-013G evaluated the validated Necessary Properties as a complete set.
-
-The review found that the property set:
-
-* preserves the scientific responsibility of Behaviour Representation,
-* separates Behaviour Representation from structural representation,
-* separates Behaviour Representation from temporal representation,
-* separates Behaviour Representation from dynamic characterization,
-* preserves hierarchical integration,
-* contains no identified contradiction under the current evidence.
-
----
-
-# 30. Completeness Review
-
-The completeness review found that the validated property set covers:
-
-* explicit behavioural representation,
-* association with scientific evolution,
-* distinction from structural representation,
-* distinction from temporal representation,
-* distinction from dynamic characterization,
-* behavioural persistence,
-* hierarchical integration.
-
-Scientific assessment:
-
-| Criterion | Result |
-| --------- | ------ |
-| Individual validation | PASS |
-| Cross-property consistency | PASS |
-| Completeness | PASS |
-| Scientific traceability | PASS |
-| Readiness for Property Configuration | PASS |
-
-Scientific decision:
-
-**The validated property set was accepted for Property Configuration derivation.**
-
----
-
-# 31. Property Configuration
+# 28. Property Configuration
 
 SGF-013H derived the Property Configuration of Scientific Behaviour Representation.
 
-A valid Property Configuration had to:
+A Property Configuration represents the complete configuration of validated Necessary Properties required to define the scientific capability.
 
-* contain only validated Necessary Properties,
-* completely represent the scientific responsibility,
-* remain internally consistent,
-* contain no redundant properties,
-* preserve responsibility separation,
-* remain implementation independent.
+The Property Configuration was derived only after every Necessary Property had been individually validated.
 
-The Property Configuration is defined by the following integrated property set:
+Validated Necessary Properties included:
+
+* Behaviour Representation
+* Evolution Association
+* Structural Independence
+* Temporal Independence
+* Dynamic Independence
+* Behaviour Persistence
+* Hierarchical Integration
+
+The Property Configuration of Scientific Behaviour Representation is defined by this integrated property set.
+
+The configuration represents the complete currently validated scientific definition of the capability.
+
+---
+
+# 29. Property Configuration Review
+
+The Property Configuration was evaluated for internal consistency.
+
+Assessment:
+
+* Every property contributes a distinct aspect of the capability.
+* No contradictory properties were identified.
+* No property duplicates another property.
+* The configuration is internally consistent according to the currently available evidence.
+
+The Property Configuration was evaluated for completeness.
+
+The configuration represents:
+
+* the scientific responsibility,
+* the representational scope,
+* the dependency on scientific evolution,
+* separation from neighbouring capabilities,
+* integration into the Scientific Representation Platform.
+
+Current evidence indicates that no validated Necessary Property remains outside the configuration.
+
+The Property Configuration was evaluated against the Scientific Minimality Principle.
+
+Each property contributes information required for the current scientific responsibility.
+
+Removal of any validated Necessary Property would reduce the completeness of the capability definition.
+
+Current evidence supports the minimality of the configuration.
+
+Scientific assessment:
+
+* Configuration completeness: PASS
+* Configuration consistency: PASS
+* Configuration minimality: PASS
+* Scientific traceability: PASS
+* Capability responsibility coverage: PASS
+
+Scientific decision:
+
+The validated Necessary Properties were successfully integrated into a coherent Property Configuration.
+
+The Property Configuration represents the current scientific definition of Scientific Behaviour Representation.
+
+---
+
+# 30. Scientific State Recognition
+
+SGF-013I determined whether the validated Property Configuration constitutes a recognizable Scientific State.
+
+Scientific State Recognition was performed only after the complete Property Configuration had been derived.
+
+A Scientific State is recognized when a complete validated Property Configuration defines a scientifically distinguishable configuration.
+
+The Property Configuration under evaluation consisted of:
 
 * Behaviour Representation
 * Evolution Association
@@ -977,71 +1074,17 @@ The configuration represents the complete currently validated scientific definit
 
 ---
 
-# 32. Configuration Review
+# 31. Scientific Behaviour Representation State
 
-SGF-013H evaluated the Property Configuration for consistency, completeness, minimality and traceability.
+The complete validated Property Configuration was evaluated for scientific distinguishability.
 
-The configuration was found to cover:
+Assessment:
 
-* the scientific responsibility,
-* the representational scope,
-* the dependency on scientific evolution,
-* separation from neighbouring capabilities,
-* integration into the Scientific Representation Platform.
+The complete configuration represents a scientific configuration that is distinguishable from previously validated capability configurations.
 
-The configuration traceability chain was:
+The distinction arises from the complete combination of validated Necessary Properties rather than from any individual property.
 
-Validated Observations
-
-↓
-
-Capability Characteristics
-
-↓
-
-Validated Necessary Properties
-
-↓
-
-Property Configuration
-
-Scientific assessment:
-
-| Criterion | Result |
-| --------- | ------ |
-| Configuration consistency | PASS |
-| Configuration completeness | PASS |
-| Configuration minimality | PASS |
-| Configuration traceability | PASS |
-| Readiness for Scientific State Recognition | PASS |
-
-Scientific decision:
-
-**The validated Necessary Properties were integrated into a coherent Property Configuration.**
-
-**The Property Configuration represents the current scientific definition of Scientific Behaviour Representation.**
-
----
-
-# 33. Scientific State Recognition
-
-SGF-013I evaluated whether the validated Property Configuration constitutes a recognizable Scientific State.
-
-Scientific State Recognition was performed only after the complete Property Configuration had been derived.
-
-The evaluated configuration consisted of:
-
-* Behaviour Representation
-* Evolution Association
-* Structural Independence
-* Temporal Independence
-* Dynamic Independence
-* Behaviour Persistence
-* Hierarchical Integration
-
----
-
-# 34. Scientific Behaviour Representation State
+Current evidence supports scientific distinguishability.
 
 The recognized configuration represents one coherent scientific identity.
 
@@ -1053,7 +1096,9 @@ The configuration is:
 * traceable to validated observations,
 * independent of implementation.
 
-Current evidence supported recognition as a Scientific State.
+Scientific decision:
+
+The validated Property Configuration was recognized as a Scientific State according to the current Scientific Derivation Methodology.
 
 Recognized Scientific State:
 
@@ -1061,7 +1106,7 @@ Recognized Scientific State:
 
 ---
 
-# 35. Relationship Between Property Configuration and Scientific State
+# 32. Relationship Between Property Configuration and Scientific State
 
 SGF-013I remained consistent with the methodological interpretation established during previous capability derivations.
 
@@ -1073,17 +1118,17 @@ Scientific State answers the question:
 
 > Which scientifically recognizable configuration is established by the complete validated Property Configuration?
 
-Current evidence continued to support treating these as different scientific concepts.
+Current evidence continues to support treating these as different scientific concepts.
 
 No evidence requiring modification of SF-001 was identified.
 
 ---
 
-# 36. Relationship to Previous Scientific States
+# 33. Relationship to Previous Scientific States
 
-The recognized Scientific Behaviour Representation State was evaluated relative to previously recognized capability states.
+The recognized Scientific Behaviour Representation State extends the Scientific Representation Platform.
 
-It does not replace or merge with:
+It does not replace or modify the recognized states of:
 
 * Scientific State,
 * Scientific Relationship,
@@ -1093,40 +1138,26 @@ It does not replace or merge with:
 * Scientific Dynamics,
 * Scientific Time Representation.
 
-The recognized state is distinct because it represents the complete validated configuration of Behaviour Representation.
-
----
-
-# 37. Scientific State Assessment
+The recognized state is additive rather than substitutive.
 
 Scientific assessment:
 
-| Criterion | Result |
-| --------- | ------ |
-| Scientific distinguishability | PASS |
-| Scientific identity | PASS |
-| Property Configuration recognition | PASS |
-| Consistency with previous Scientific States | PASS |
-| Traceability | PASS |
-| Readiness for Final Scientific Review | PASS |
-
-Scientific decision:
-
-**The validated Property Configuration of Scientific Behaviour Representation is recognized as a Scientific State.**
-
-Recognized Scientific State:
-
-**Scientific Behaviour Representation State**
+* Scientific distinguishability: PASS
+* Scientific identity: PASS
+* Property Configuration recognition: PASS
+* Architectural consistency: PASS
+* Scientific traceability: PASS
+* Overall assessment: PASS
 
 ---
 
-# 38. Final Scientific Review
+# 34. Final Scientific Review
 
-SGF-013J reviewed the complete SGF-013 derivation.
+SGF-013J evaluated the complete derivation of Scientific Behaviour Representation.
 
 The review determined whether the complete derivation satisfied the current Scientific Derivation Methodology and whether the candidate capability could be accepted as a validated scientific capability.
 
-The final review confirmed completion of:
+The following derivation phases were completed:
 
 * Capability Readiness Review
 * Scientific Problem Analysis
@@ -1143,78 +1174,54 @@ The final review confirmed completion of:
 * Property Configuration Derivation
 * Scientific State Recognition
 
-No required phase was identified as missing in SGF-013J.
+SGF-013J concluded that the complete Scientific Derivation Methodology had been executed.
 
 ---
 
-# 39. Scientific Responsibility Review
+# 35. Scientific Responsibility Review
 
-SGF-013J reviewed the scientific responsibility of Scientific Behaviour Representation.
+Candidate scientific responsibility:
 
-The responsibility was found to be:
+**Representation of behavioural characteristics of scientific evolution.**
+
+Assessment:
+
+The responsibility remains:
 
 * capability-specific,
 * implementation independent,
 * domain independent,
 * distinguishable from neighbouring capabilities.
 
-Validated responsibility:
-
-**Representation of behavioural characteristics associated with scientific evolution.**
+Current evidence supports the scientific responsibility.
 
 ---
 
-# 40. Scientific Traceability Review
+# 36. Scientific Traceability Review
 
-SGF-013J reviewed traceability from the scientific problem through final state recognition.
+The complete derivation remains traceable:
 
-The traceability chain was preserved as:
+Scientific observations
 
-Scientific Problem
+-> Capability characteristics
 
-↓
+-> Necessary Properties
 
-Scientific Dependency Analysis
+-> Validated Property Configuration
 
-↓
+-> Scientific State Recognition
 
-Capability Investigations
+Each derivation step is supported by the previous phase.
 
-↓
-
-Observation Collection
-
-↓
-
-Observation Quality Review
-
-↓
-
-Capability Characteristics
-
-↓
-
-Necessary Properties
-
-↓
-
-Property Configuration
-
-↓
-
-Scientific State Recognition
-
-↓
-
-Final Scientific Review
-
-SGF-013J did not identify a traceability gap requiring correction.
+No traceability gap was identified.
 
 ---
 
-# 41. Capability Consistency Review
+# 37. Capability Consistency Review
 
-SGF-013J reviewed consistency with previously validated capabilities:
+Scientific Behaviour Representation was evaluated against the validated Scientific Representation Platform.
+
+No conflict was identified with:
 
 * Scientific State,
 * Scientific Relationship,
@@ -1224,65 +1231,69 @@ SGF-013J reviewed consistency with previously validated capabilities:
 * Scientific Dynamics,
 * Scientific Time Representation.
 
-The review found no required modification to the responsibilities of prior capabilities.
+The capability extends the representation hierarchy without modifying existing capability responsibilities.
 
 ---
 
-# 42. Capability Quality Review
+# 38. Capability Quality Review
 
-SGF-013J evaluated quality criteria for the completed capability derivation.
+Final quality assessment:
 
-Scientific assessment:
-
-| Criterion | Result |
-| --------- | ------ |
-| Scientific problem definition | PASS |
-| Dependency analysis | PASS |
-| Capability existence investigation | PASS |
-| Capability necessity investigation | PASS |
-| Boundary investigation | PASS |
-| Independence investigation | PASS |
-| Observation quality | PASS |
-| Property validation | PASS |
-| Scientific State Recognition | PASS |
-
-The capability quality review supported acceptance of Scientific Behaviour Representation.
+* Scientific responsibility: PASS
+* Capability independence: PASS
+* Scientific necessity: PASS
+* Boundary definition: PASS
+* Property validation: PASS
+* Scientific State Recognition: PASS
+* Traceability: PASS
+* Architectural consistency: PASS
+* Overall assessment: PASS
 
 ---
 
-# 43. Architectural Integration
+# 39. Architectural Integration
 
-SGF-013J reviewed whether Scientific Behaviour Representation integrates into the Scientific Representation Platform.
+Scientific Behaviour Representation integrates into the validated Scientific Representation hierarchy as follows:
 
-The capability integrates after Scientific Time Representation in the validated roadmap.
+Scientific State
 
-It adds explicit Behaviour Representation without modifying earlier capability responsibilities.
+-> Scientific Relationship
 
-Architectural integration is based on:
+-> Scientific Ordering
 
-* dependency on previously validated scientific representations,
-* responsibility separation,
-* scientific minimality,
-* traceability,
-* compatibility with the existing Scientific Representation hierarchy.
+-> Scientific Transition
 
-No immediate architecture change was required by SGF-013J beyond accepting Scientific Behaviour Representation as the next validated component.
+-> Scientific Trajectory
 
----
+-> Scientific Dynamics
 
-# 44. Scientific Findings Review
+-> Scientific Time Representation
 
-SGF-013J did not identify a new Scientific Finding requiring creation of a separate finding document.
+-> Scientific Behaviour Representation
 
-The derivation remained consistent with the existing distinction between Scientific State and Scientific Object recorded in SF-001.
-
-No evidence requiring modification of SF-001 was identified.
+The hierarchy remains acyclic and responsibility separation is preserved.
 
 ---
 
-# 45. Open Scientific Questions
+# 40. Scientific Findings Review
 
-SGF-013J left the following questions open.
+SGF-013J evaluated the derivation for reusable Scientific Findings.
+
+Assessment:
+
+No additional cross-capability Scientific Finding was sufficiently supported by the current evidence.
+
+The derivation remains consistent with:
+
+**SF-001 - Scientific State and Scientific Object Distinction.**
+
+No update to existing Scientific Findings was justified.
+
+---
+
+# 41. Open Scientific Questions
+
+SGF-013J retained the following open scientific questions.
 
 ## OSQ-001
 
@@ -1304,9 +1315,9 @@ Current evidence is insufficient to answer these questions.
 
 ---
 
-# 46. Research Outcomes
+# 42. Research Outcomes
 
-## Validated Scientific Results
+Validated scientific results:
 
 The derivation supports Scientific Behaviour Representation as an independent scientific capability.
 
@@ -1317,33 +1328,29 @@ The capability possesses:
 * a recognized Scientific State,
 * compatibility with the existing Scientific Representation Platform.
 
-## Methodological Observations
+Methodological observations:
 
 The current Scientific Derivation Methodology remained applicable throughout the complete derivation.
 
 No methodological inconsistency requiring immediate modification was identified.
 
-## Candidate Scientific Findings
+Candidate Scientific Findings:
 
 None identified.
 
-## Candidate Methodological Working Hypotheses
+Candidate Methodological Working Hypotheses:
 
 None identified.
 
-## Recommended Future Investigations
+Recommended future investigations:
 
 Continue with the derivation of Scientific Forecast Representation according to the validated Scientific Roadmap.
 
 ---
 
-# 47. Scientific Decision
+# 43. Scientific Decision
 
 Current evidence supports acceptance of Scientific Behaviour Representation as a validated scientific capability within the Scientific Representation Platform.
-
----
-
-# 48. Scientific Conclusion
 
 Scientific Behaviour Representation satisfies the current requirements of the Scientific Derivation Methodology.
 
@@ -1353,50 +1360,152 @@ The capability is accepted as the next validated component of the Scientific Rep
 
 ---
 
-# 49. Consolidated Status
+# 44. Consolidated Capability Specification
 
-| Attribute | Status |
-| --------- | ------ |
-| Scientific Responsibility | Validated |
-| Capability Readiness | PASS |
-| Scientific Problem Analysis | PASS |
-| Scientific Dependency Analysis | PASS |
-| Capability Existence Investigation | PASS |
-| Capability Necessity Investigation | PASS |
-| Capability Boundary Investigation | PASS |
-| Capability Independence Investigation | PASS |
-| Observation Collection | Complete |
-| Observation Quality Review | PASS |
-| Capability Characteristics | Accepted |
-| Necessary Properties | Validated |
-| Property Configuration | Validated |
-| Scientific State Recognition | PASS |
-| Final Scientific Review | PASS |
-| Scientific Finding Required | No |
-| Methodology Change Required | No immediate change identified |
-| Next Roadmap Capability | Scientific Forecast Representation |
+Scientific Behaviour Representation is defined by the following consolidated scientific elements.
+
+Scientific responsibility:
+
+**Representation of behavioural characteristics of scientific evolution.**
+
+Validated Necessary Properties:
+
+* NP-001 - Behaviour Representation
+* NP-002 - Evolution Association
+* NP-003 - Structural Independence
+* NP-004 - Temporal Independence
+* NP-005 - Dynamic Independence
+* NP-006 - Behaviour Persistence
+* NP-007 - Hierarchical Integration
+
+Property Configuration:
+
+* Behaviour Representation
+* Evolution Association
+* Structural Independence
+* Temporal Independence
+* Dynamic Independence
+* Behaviour Persistence
+* Hierarchical Integration
+
+Recognized Scientific State:
+
+**Scientific Behaviour Representation State**
+
+Capability status:
+
+**Validated Scientific Capability**
 
 ---
 
-# 50. Final Consolidated Statement
+# 45. Scope
 
-Scientific Behaviour Representation is accepted as a validated scientific capability of the Scientific Representation Platform.
+Scientific Behaviour Representation represents behavioural characteristics of scientific evolution.
 
-Its scientific responsibility is the representation of behavioural characteristics associated with scientific evolution.
+It is associated with scientific evolution rather than isolated scientific entities.
 
-Its validated Property Configuration consists of:
+It is distinguishable from:
 
-* Behaviour Representation,
-* Evolution Association,
-* Structural Independence,
-* Temporal Independence,
-* Dynamic Independence,
-* Behaviour Persistence,
-* Hierarchical Integration.
+* structural representation,
+* transition representation,
+* trajectory representation,
+* dynamic characterization,
+* temporal representation,
+* forecast representation,
+* causality representation,
+* decision-related capabilities,
+* domain-specific behaviour.
 
-The complete validated configuration is recognized as the Scientific Behaviour Representation State.
+---
 
-The capability preserves the responsibilities of previously validated capabilities and becomes the validated basis for the next roadmap step: Scientific Forecast Representation.
+# 46. Non-Responsibilities
+
+Scientific Behaviour Representation does not:
+
+* explain behaviour,
+* predict behaviour,
+* optimize behaviour,
+* control behaviour,
+* evaluate behaviour,
+* represent expected future evolution,
+* represent causal relationships,
+* select actions or alternatives,
+* modify previous capability responsibilities,
+* introduce domain-specific interpretation.
+
+---
+
+# 47. Integration with the Scientific Representation Platform
+
+Scientific Behaviour Representation builds upon previously validated scientific representations without replacing them.
+
+It consumes or depends upon previously represented scientific information.
+
+It does not redefine:
+
+* structural information,
+* temporal information,
+* trajectory information,
+* dynamics information.
+
+It represents an additional information class describing behavioural characteristics.
+
+Future capabilities may subsequently consume Behaviour Representation.
+
+The resulting interaction is hierarchical rather than overlapping.
+
+---
+
+# 48. Traceability Matrix
+
+| Consolidated element | Primary derivation source |
+| --- | --- |
+| Candidate gap | SGF-013A.1 Scientific Problem Analysis |
+| Dependency structure | SGF-013A.2 Scientific Dependency Analysis |
+| Capability existence support | SGF-013B.1 Capability Existence Investigation |
+| Capability necessity support | SGF-013B.2 Capability Necessity Investigation |
+| Capability boundary | SGF-013B.3 Capability Boundary Investigation |
+| Capability independence | SGF-013B.4 Capability Independence Investigation |
+| Observations O-001 to O-010 | SGF-013C Capability Observation Collection |
+| Observation validation | SGF-013D Capability Observation Quality Review |
+| Capability characteristics C-001 to C-007 | SGF-013E Capability Characteristics Analysis |
+| Necessary Properties NP-001 to NP-007 | SGF-013F Necessary Property Derivation |
+| Necessary Property validation | SGF-013G Necessary Property Validation |
+| Property Configuration | SGF-013H Property Configuration Derivation |
+| Scientific Behaviour Representation State | SGF-013I Scientific State Recognition |
+| Validated capability decision | SGF-013J Final Scientific Review |
+
+---
+
+# 49. Final Scientific Conclusion
+
+Scientific Behaviour Representation has been derived as an independent scientific capability within the Scientific Representation Platform.
+
+The capability has a distinct scientific responsibility:
+
+**Representation of behavioural characteristics of scientific evolution.**
+
+The complete derivation validates:
+
+* capability readiness,
+* scientific problem existence,
+* dependency structure,
+* capability existence support,
+* capability necessity support,
+* capability boundary,
+* capability independence,
+* observation quality,
+* capability characteristics,
+* Necessary Properties,
+* Property Configuration,
+* Scientific State Recognition,
+* final scientific acceptance.
+
+The capability integrates into the validated Scientific Representation hierarchy after Scientific Time Representation.
+
+It preserves responsibility separation and does not modify previously validated capabilities.
+
+Scientific Behaviour Representation is accepted as a Validated Scientific Capability and becomes the scientific basis for subsequent investigation of Scientific Forecast Representation.
 
 ---
 
@@ -1406,4 +1515,5 @@ The capability preserves the responsibilities of previously validated capabiliti
 
 Version 1.0
 
-Status: Validated Scientific Capability
+Status: VALIDATED SCIENTIFIC CAPABILITY
+
