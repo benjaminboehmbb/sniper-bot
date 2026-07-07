@@ -1,47 +1,79 @@
-class PositionEngine:
+# run_engine/core/position.py
 
+from typing import Any, Dict, Optional
+
+
+class PositionEngine:
     def __init__(self):
         self.position = "FLAT"
+        self.side = None
         self.entry_price = 0.0
+        self.quantity = 0.0
+        self.last_price = 0.0
 
-    def update_pre_trade(self, state):
+    def project(
+        self,
+        lifecycle_position: Optional[Dict[str, Any]],
+        state: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        price = self._extract_price(state)
 
-        price = state.get("price", 0.0)
-        if price is None:
-            price = 0.0
+        if lifecycle_position is None:
+            return self._set_flat(price)
 
+        position = lifecycle_position.get("position", "FLAT")
+        side = lifecycle_position.get("side")
+        entry_price = self._safe_float(lifecycle_position.get("entry_price", 0.0))
+        quantity = self._safe_float(lifecycle_position.get("quantity", 0.0))
+
+        if position not in {"LONG", "SHORT"}:
+            return self._set_flat(price)
+
+        self.position = position
+        self.side = side or position
+        self.entry_price = entry_price
+        self.quantity = quantity
+        self.last_price = price
+
+        return self.snapshot()
+
+    def update_pre_trade(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        self.last_price = self._extract_price(state)
+        return self.snapshot()
+
+    def update_post_trade(
+        self,
+        execution: Dict[str, Any],
+        state: Dict[str, Any],
+        lifecycle_position: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        return self.project(lifecycle_position, state)
+
+    def snapshot(self) -> Dict[str, Any]:
         return {
             "position": self.position,
+            "side": self.side,
             "entry_price": self.entry_price,
-            "last_price": price
+            "quantity": self.quantity,
+            "last_price": self.last_price,
         }
 
-    def update_post_trade(self, execution, state):
+    def _set_flat(self, price: float) -> Dict[str, Any]:
+        self.position = "FLAT"
+        self.side = None
+        self.entry_price = 0.0
+        self.quantity = 0.0
+        self.last_price = price
+        return self.snapshot()
 
-        action = execution.get("action", "HOLD")
-        price = state.get("price", 0.0)
+    @staticmethod
+    def _extract_price(state: Optional[Dict[str, Any]]) -> float:
+        if not isinstance(state, dict):
+            return 0.0
+        return PositionEngine._safe_float(state.get("price", 0.0))
 
-        if price is None:
-            price = 0.0
-
-        if action == "BUY" and self.position == "FLAT":
-            self.position = "LONG"
-            self.entry_price = float(price)
-
-        elif action == "SELL" and self.position == "FLAT":
-            self.position = "SHORT"
-            self.entry_price = float(price)
-
-        elif action == "SELL" and self.position == "LONG":
-            self.position = "FLAT"
-            self.entry_price = 0.0
-
-        elif action == "BUY" and self.position == "SHORT":
-            self.position = "FLAT"
-            self.entry_price = 0.0
-
-        return {
-            "position": self.position,
-            "entry_price": self.entry_price,
-            "last_price": price
-        }
+    @staticmethod
+    def _safe_float(value: Any) -> float:
+        if value is None:
+            return 0.0
+        return float(value)
