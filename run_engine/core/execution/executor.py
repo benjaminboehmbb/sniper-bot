@@ -11,20 +11,6 @@ class Executor:
         if position:
             current_pos = position.get("position", "FLAT")
 
-        if current_pos == "LONG" and action == "BUY":
-            return {
-                "action": "HOLD",
-                "status": "NOOP",
-                "quantity": 0.0,
-            }
-
-        if current_pos == "SHORT" and action == "SELL":
-            return {
-                "action": "HOLD",
-                "status": "NOOP",
-                "quantity": 0.0,
-            }
-
         if action == "BUY":
             return {
                 "action": action,

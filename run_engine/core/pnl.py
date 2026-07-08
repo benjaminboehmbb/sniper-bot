@@ -24,7 +24,9 @@ class PnLEngine:
             return 0.0
 
         side = getattr(trade_event, "side", None)
-        entry_price = float(getattr(trade_event, "entry_price", 0.0))
+        entry_price = float(
+            execution.get("entry_price", getattr(trade_event, "entry_price", 0.0))
+        )
         exit_price = float(getattr(trade_event, "price", 0.0))
         quantity = float(getattr(trade_event, "closed_quantity", 0.0))
 

@@ -11,11 +11,7 @@ class PositionEngine:
         self.quantity = 0.0
         self.last_price = 0.0
 
-    def project(
-        self,
-        lifecycle_position: Optional[Dict[str, Any]],
-        state: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    def project(self, lifecycle_position: Optional[Dict[str, Any]], state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         price = self._extract_price(state)
 
         if lifecycle_position is None:
@@ -34,7 +30,6 @@ class PositionEngine:
         self.entry_price = entry_price
         self.quantity = quantity
         self.last_price = price
-
         return self.snapshot()
 
     def update_pre_trade(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -50,40 +45,33 @@ class PositionEngine:
         price = self._extract_price(state)
 
         if lifecycle_position is None:
+            execution["entry_price"] = self.entry_price
             return self._set_flat(price)
 
         projected_position = lifecycle_position.get("position", "FLAT")
         projected_quantity = self._safe_float(lifecycle_position.get("quantity", 0.0))
 
-        if (
-            self.position == projected_position
-            and projected_position in {"LONG", "SHORT"}
-            and projected_quantity > self.quantity
-        ):
-            execution_quantity = self._safe_float(execution.get("quantity", projected_quantity - self.quantity))
-            entry_price = self._weighted_average_entry_price(
-                current_entry_price=self.entry_price,
-                current_quantity=self.quantity,
-                execution_price=price,
-                execution_quantity=execution_quantity,
-            )
+        if projected_position == "FLAT":
+            execution["entry_price"] = self.entry_price
+            return self._set_flat(price)
+
+        if self.position == projected_position and projected_position in {"LONG", "SHORT"}:
+            if projected_quantity > self.quantity:
+                execution_quantity = self._safe_float(
+                    execution.get("quantity", projected_quantity - self.quantity)
+                )
+                self.entry_price = self._weighted_average_entry_price(
+                    current_entry_price=self.entry_price,
+                    current_quantity=self.quantity,
+                    execution_price=price,
+                    execution_quantity=execution_quantity,
+                )
+
+            if projected_quantity < self.quantity:
+                execution["entry_price"] = self.entry_price
 
             self.position = projected_position
             self.side = lifecycle_position.get("side") or projected_position
-            self.entry_price = entry_price
-            self.quantity = projected_quantity
-            self.last_price = price
-
-            return self.snapshot()
-
-        projected_position = lifecycle_position.get("position", "FLAT")
-        projected_quantity = self._safe_float(lifecycle_position.get("quantity", 0.0))
-
-        if (
-            self.position == projected_position
-            and projected_position in {"LONG", "SHORT"}
-            and projected_quantity < self.quantity
-        ):
             self.quantity = projected_quantity
             self.last_price = price
             return self.snapshot()
@@ -107,23 +95,12 @@ class PositionEngine:
         self.last_price = price
         return self.snapshot()
 
-
     @staticmethod
-    def _weighted_average_entry_price(
-        current_entry_price: float,
-        current_quantity: float,
-        execution_price: float,
-        execution_quantity: float,
-    ) -> float:
+    def _weighted_average_entry_price(current_entry_price: float, current_quantity: float, execution_price: float, execution_quantity: float) -> float:
         total_quantity = current_quantity + execution_quantity
-
         if total_quantity <= 0.0:
             return 0.0
-
-        return (
-            (current_entry_price * current_quantity)
-            + (execution_price * execution_quantity)
-        ) / total_quantity
+        return ((current_entry_price * current_quantity) + (execution_price * execution_quantity)) / total_quantity
 
     @staticmethod
     def _extract_price(state: Optional[Dict[str, Any]]) -> float:
