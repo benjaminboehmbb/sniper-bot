@@ -40,7 +40,7 @@ class RunLoop:
         regime = self.regime_classifier.classify(state)
         self.cstate.update_regime(regime)
 
-        position_pre = self.position_engine.update_pre_trade(state)
+        position_pre = self.position_engine.snapshot()
 
         weights = self.strategy_selector.select(state, regime, position_pre)
 
