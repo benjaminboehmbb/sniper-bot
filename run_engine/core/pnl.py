@@ -18,13 +18,15 @@ class PnLEngine:
         if trade_event is None:
             return 0.0
 
-        if getattr(trade_event, "event_type", None) != "TRADE_CLOSED":
+        event_type = getattr(trade_event, "event_type", None)
+
+        if event_type not in {"TRADE_CLOSED", "PARTIAL_CLOSE"}:
             return 0.0
 
         side = getattr(trade_event, "side", None)
         entry_price = float(getattr(trade_event, "entry_price", 0.0))
         exit_price = float(getattr(trade_event, "price", 0.0))
-        quantity = float(getattr(trade_event, "quantity", 1.0))
+        quantity = float(getattr(trade_event, "closed_quantity", 0.0))
 
         if side == "LONG":
             pnl = (exit_price - entry_price) * quantity
