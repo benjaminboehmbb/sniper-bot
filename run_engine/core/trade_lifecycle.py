@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+QUANTITY_EPSILON = 1e-9
+
 
 @dataclass(frozen=True)
 class LifecycleEvent:
@@ -10,7 +12,12 @@ class LifecycleEvent:
     price: float
     tick: int
     entry_price: float = 0.0
-    quantity: float = 1.0
+    prior_quantity: float = 0.0
+    execution_quantity: float = 0.0
+    resulting_quantity: float = 0.0
+    quantity_delta: float = 0.0
+    closed_quantity: float = 0.0
+    remaining_quantity: float = 0.0
     reason: str = ""
 
 
@@ -127,7 +134,12 @@ class TradeLifecycleEngine:
             price=price,
             tick=tick,
             entry_price=price,
-            quantity=trade.quantity,
+            prior_quantity=0.0,
+            execution_quantity=trade.quantity,
+            resulting_quantity=trade.quantity,
+            quantity_delta=trade.quantity,
+            closed_quantity=0.0,
+            remaining_quantity=trade.quantity,
         )
 
         trade.events.append(event)
@@ -158,7 +170,12 @@ class TradeLifecycleEngine:
             price=price,
             tick=tick,
             entry_price=trade.entry_price,
-            quantity=trade.quantity,
+            prior_quantity=trade.quantity,
+            execution_quantity=trade.quantity,
+            resulting_quantity=0.0,
+            quantity_delta=-trade.quantity,
+            closed_quantity=trade.quantity,
+            remaining_quantity=0.0,
         )
 
         trade.events.append(event)
@@ -167,6 +184,8 @@ class TradeLifecycleEngine:
         return event
 
     def _failure_event(self, action: str, price: float, tick: int, reason: str) -> LifecycleEvent:
+        active_quantity = self.active_trade.quantity if self.active_trade else 0.0
+
         event = LifecycleEvent(
             event_type="RUNTIME_FAILURE_EVENT",
             trade_id=self.active_trade.trade_id if self.active_trade else None,
@@ -174,7 +193,12 @@ class TradeLifecycleEngine:
             price=price,
             tick=tick,
             entry_price=self.active_trade.entry_price if self.active_trade else 0.0,
-            quantity=self.active_trade.quantity if self.active_trade else 0.0,
+            prior_quantity=active_quantity,
+            execution_quantity=0.0,
+            resulting_quantity=active_quantity,
+            quantity_delta=0.0,
+            closed_quantity=0.0,
+            remaining_quantity=active_quantity,
             reason=f"{reason}:{action}",
         )
 
@@ -184,6 +208,9 @@ class TradeLifecycleEngine:
             self.active_trade.events.append(event)
 
         return event
+
+    def _validate_execution_quantity(self, quantity: float) -> bool:
+        return quantity > QUANTITY_EPSILON
 
     @staticmethod
     def _safe_float(value: Any) -> float:
