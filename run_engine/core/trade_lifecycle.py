@@ -47,15 +47,24 @@ class TradeLifecycleEngine:
         action = execution.get("action", "HOLD")
         price = self._safe_float(state.get("price", 0.0))
         tick = self._safe_int(state.get("tick", 0))
+        quantity = self._safe_float(execution.get("quantity", 0.0))
+
+        if action != "HOLD" and not self._validate_execution_quantity(quantity):
+            return self._failure_event(
+                action=action,
+                price=price,
+                tick=tick,
+                reason="INVALID_EXECUTION_QUANTITY",
+            )
 
         if action == "HOLD":
             return None
 
         if action == "BUY":
-            return self._handle_buy(price, tick)
+            return self._handle_buy(price, tick, quantity)
 
         if action == "SELL":
-            return self._handle_sell(price, tick)
+            return self._handle_sell(price, tick, quantity)
 
         return self._failure_event(
             action=action,
@@ -89,12 +98,12 @@ class TradeLifecycleEngine:
             "quantity": self.active_trade.quantity,
         }
 
-    def _handle_buy(self, price: float, tick: int) -> LifecycleEvent:
+    def _handle_buy(self, price: float, tick: int, quantity: float) -> LifecycleEvent:
         if self.active_trade is None:
-            return self._open_trade(side="LONG", price=price, tick=tick)
+            return self._open_trade(side="LONG", price=price, tick=tick, quantity=quantity)
 
         if self.active_trade.side == "SHORT":
-            return self._close_trade(price=price, tick=tick)
+            return self._close_trade(price=price, tick=tick, quantity=quantity)
 
         return self._failure_event(
             action="BUY",
@@ -103,12 +112,12 @@ class TradeLifecycleEngine:
             reason="BUY_WHILE_LONG_OPEN",
         )
 
-    def _handle_sell(self, price: float, tick: int) -> LifecycleEvent:
+    def _handle_sell(self, price: float, tick: int, quantity: float) -> LifecycleEvent:
         if self.active_trade is None:
-            return self._open_trade(side="SHORT", price=price, tick=tick)
+            return self._open_trade(side="SHORT", price=price, tick=tick, quantity=quantity)
 
         if self.active_trade.side == "LONG":
-            return self._close_trade(price=price, tick=tick)
+            return self._close_trade(price=price, tick=tick, quantity=quantity)
 
         return self._failure_event(
             action="SELL",
@@ -117,7 +126,7 @@ class TradeLifecycleEngine:
             reason="SELL_WHILE_SHORT_OPEN",
         )
 
-    def _open_trade(self, side: str, price: float, tick: int) -> LifecycleEvent:
+    def _open_trade(self, side: str, price: float, tick: int, quantity: float) -> LifecycleEvent:
         self._id += 1
 
         trade = Trade(
@@ -125,6 +134,7 @@ class TradeLifecycleEngine:
             side=side,
             entry_price=price,
             entry_tick=tick,
+            quantity=quantity,
         )
 
         event = LifecycleEvent(
@@ -148,7 +158,7 @@ class TradeLifecycleEngine:
 
         return event
 
-    def _close_trade(self, price: float, tick: int) -> LifecycleEvent:
+    def _close_trade(self, price: float, tick: int, quantity: float) -> LifecycleEvent:
         if self.active_trade is None:
             return self._failure_event(
                 action="CLOSE",
@@ -171,7 +181,7 @@ class TradeLifecycleEngine:
             tick=tick,
             entry_price=trade.entry_price,
             prior_quantity=trade.quantity,
-            execution_quantity=trade.quantity,
+            execution_quantity=quantity,
             resulting_quantity=0.0,
             quantity_delta=-trade.quantity,
             closed_quantity=trade.quantity,
