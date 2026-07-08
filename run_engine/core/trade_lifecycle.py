@@ -1,5 +1,3 @@
-# run_engine/core/trade_lifecycle.py
-
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -11,7 +9,8 @@ class LifecycleEvent:
     side: Optional[str]
     price: float
     tick: int
-    realized_pnl: float = 0.0
+    entry_price: float = 0.0
+    quantity: float = 1.0
     reason: str = ""
 
 
@@ -27,7 +26,6 @@ class Trade:
     exit_tick: Optional[int] = None
 
     status: str = "OPEN"
-    realized_pnl: float = 0.0
     events: List[LifecycleEvent] = field(default_factory=list)
 
 
@@ -67,9 +65,6 @@ class TradeLifecycleEngine:
 
     def get_failure_events(self) -> List[LifecycleEvent]:
         return list(self.failure_events)
-
-    def realized_pnl(self) -> float:
-        return sum(t.realized_pnl for t in self.trades if t.status == "CLOSED")
 
     def current_position(self) -> Dict[str, Any]:
         if self.active_trade is None:
@@ -131,6 +126,8 @@ class TradeLifecycleEngine:
             side=side,
             price=price,
             tick=tick,
+            entry_price=price,
+            quantity=trade.quantity,
         )
 
         trade.events.append(event)
@@ -154,20 +151,14 @@ class TradeLifecycleEngine:
         trade.exit_tick = tick
         trade.status = "CLOSED"
 
-        if trade.side == "LONG":
-            trade.realized_pnl = price - trade.entry_price
-        elif trade.side == "SHORT":
-            trade.realized_pnl = trade.entry_price - price
-        else:
-            trade.realized_pnl = 0.0
-
         event = LifecycleEvent(
             event_type="TRADE_CLOSED",
             trade_id=trade.trade_id,
             side=trade.side,
             price=price,
             tick=tick,
-            realized_pnl=trade.realized_pnl,
+            entry_price=trade.entry_price,
+            quantity=trade.quantity,
         )
 
         trade.events.append(event)
@@ -182,7 +173,8 @@ class TradeLifecycleEngine:
             side=self.active_trade.side if self.active_trade else None,
             price=price,
             tick=tick,
-            realized_pnl=0.0,
+            entry_price=self.active_trade.entry_price if self.active_trade else 0.0,
+            quantity=self.active_trade.quantity if self.active_trade else 0.0,
             reason=f"{reason}:{action}",
         )
 
