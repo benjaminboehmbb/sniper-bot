@@ -105,12 +105,7 @@ class TradeLifecycleEngine:
         if self.active_trade.side == "SHORT":
             return self._close_trade(price=price, tick=tick, quantity=quantity)
 
-        return self._failure_event(
-            action="BUY",
-            price=price,
-            tick=tick,
-            reason="BUY_WHILE_LONG_OPEN",
-        )
+        return self._scale_in(action="BUY", price=price, tick=tick, quantity=quantity)
 
     def _handle_sell(self, price: float, tick: int, quantity: float) -> LifecycleEvent:
         if self.active_trade is None:
@@ -119,12 +114,7 @@ class TradeLifecycleEngine:
         if self.active_trade.side == "LONG":
             return self._close_trade(price=price, tick=tick, quantity=quantity)
 
-        return self._failure_event(
-            action="SELL",
-            price=price,
-            tick=tick,
-            reason="SELL_WHILE_SHORT_OPEN",
-        )
+        return self._scale_in(action="SELL", price=price, tick=tick, quantity=quantity)
 
     def _open_trade(self, side: str, price: float, tick: int, quantity: float) -> LifecycleEvent:
         self._id += 1
@@ -158,10 +148,100 @@ class TradeLifecycleEngine:
 
         return event
 
+    def _scale_in(self, action: str, price: float, tick: int, quantity: float) -> LifecycleEvent:
+        if self.active_trade is None:
+            return self._failure_event(
+                action=action,
+                price=price,
+                tick=tick,
+                reason="NO_ACTIVE_TRADE",
+            )
+
+        trade = self.active_trade
+        prior_quantity = trade.quantity
+        resulting_quantity = prior_quantity + quantity
+        trade.quantity = resulting_quantity
+
+        event = LifecycleEvent(
+            event_type="SCALE_IN",
+            trade_id=trade.trade_id,
+            side=trade.side,
+            price=price,
+            tick=tick,
+            entry_price=trade.entry_price,
+            prior_quantity=prior_quantity,
+            execution_quantity=quantity,
+            resulting_quantity=resulting_quantity,
+            quantity_delta=quantity,
+            closed_quantity=0.0,
+            remaining_quantity=resulting_quantity,
+        )
+
+        trade.events.append(event)
+
+        return event
+
     def _close_trade(self, price: float, tick: int, quantity: float) -> LifecycleEvent:
         if self.active_trade is None:
             return self._failure_event(
                 action="CLOSE",
+                price=price,
+                tick=tick,
+                reason="NO_ACTIVE_TRADE",
+            )
+
+        trade = self.active_trade
+
+        if trade.quantity + QUANTITY_EPSILON < quantity:
+            return self._failure_event(
+                action="CLOSE",
+                price=price,
+                tick=tick,
+                reason="OVER_CLOSE_QUANTITY",
+            )
+
+        if abs(trade.quantity - quantity) > QUANTITY_EPSILON:
+            return self._partial_close(price=price, tick=tick, quantity=quantity)
+
+        return self._full_close(price=price, tick=tick, quantity=quantity)
+
+    def _partial_close(self, price: float, tick: int, quantity: float) -> LifecycleEvent:
+        if self.active_trade is None:
+            return self._failure_event(
+                action="PARTIAL_CLOSE",
+                price=price,
+                tick=tick,
+                reason="NO_ACTIVE_TRADE",
+            )
+
+        trade = self.active_trade
+        prior_quantity = trade.quantity
+        remaining_quantity = prior_quantity - quantity
+        trade.quantity = remaining_quantity
+
+        event = LifecycleEvent(
+            event_type="PARTIAL_CLOSE",
+            trade_id=trade.trade_id,
+            side=trade.side,
+            price=price,
+            tick=tick,
+            entry_price=trade.entry_price,
+            prior_quantity=prior_quantity,
+            execution_quantity=quantity,
+            resulting_quantity=remaining_quantity,
+            quantity_delta=-quantity,
+            closed_quantity=quantity,
+            remaining_quantity=remaining_quantity,
+        )
+
+        trade.events.append(event)
+
+        return event
+
+    def _full_close(self, price: float, tick: int, quantity: float) -> LifecycleEvent:
+        if self.active_trade is None:
+            return self._failure_event(
+                action="FULL_CLOSE",
                 price=price,
                 tick=tick,
                 reason="NO_ACTIVE_TRADE",
@@ -183,8 +263,8 @@ class TradeLifecycleEngine:
             prior_quantity=trade.quantity,
             execution_quantity=quantity,
             resulting_quantity=0.0,
-            quantity_delta=-trade.quantity,
-            closed_quantity=trade.quantity,
+            quantity_delta=-quantity,
+            closed_quantity=quantity,
             remaining_quantity=0.0,
         )
 
