@@ -43,8 +43,10 @@ class RunLoop:
         position_pre = self.position_engine.snapshot()
 
         weights = self.strategy_selector.select(state, regime, position_pre)
+        self.enforcer.apply_strategy_selection(weights)
 
         decision = self.strategy_selector.decide(state, regime, weights)
+        self.enforcer.apply_execution_decision(decision)
 
         execution = self.execution_engine.execute(decision, position_pre)
 
@@ -71,6 +73,7 @@ class RunLoop:
         self.enforcer.apply_risk(risk if isinstance(risk, dict) else {})
 
         performance = self.performance_engine.update(decision, pnl, regime, trade_event)
+        self.enforcer.apply_performance_metrics(performance)
 
         return {
             "tick": runtime_tick,

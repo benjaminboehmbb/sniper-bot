@@ -25,7 +25,13 @@ class CanonicalState:
 
             "exposure": 1.0,
 
-            "regime": "UNKNOWN"
+            "regime": "UNKNOWN",
+
+            "strategy_selection": None,
+
+            "execution_decision": None,
+
+            "performance_metrics": None
         }
 
     def update_tick(self, tick, price):
@@ -57,6 +63,18 @@ class CanonicalState:
     def update_regime(self, regime):
 
         self.state["regime"] = regime
+
+    def update_strategy_selection(self, weights):
+
+        self.state["strategy_selection"] = weights
+
+    def update_execution_decision(self, decision):
+
+        self.state["execution_decision"] = decision
+
+    def update_performance_metrics(self, performance_metrics):
+
+        self.state["performance_metrics"] = performance_metrics
 
     def get(self):
 

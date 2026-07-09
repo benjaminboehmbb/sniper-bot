@@ -35,3 +35,27 @@ class CanonicalEnforcer:
 
         self.cs.update_risk(risk)
         return self.cs.get()
+
+    def apply_strategy_selection(self, weights):
+
+        if weights is None:
+            return self.cs.get()["strategy_selection"]
+
+        self.cs.update_strategy_selection(weights)
+        return self.cs.get()["strategy_selection"]
+
+    def apply_execution_decision(self, decision):
+
+        if decision is None:
+            return self.cs.get()["execution_decision"]
+
+        self.cs.update_execution_decision(decision)
+        return self.cs.get()["execution_decision"]
+
+    def apply_performance_metrics(self, performance_metrics):
+
+        if performance_metrics is None:
+            return self.cs.get()["performance_metrics"]
+
+        self.cs.update_performance_metrics(performance_metrics)
+        return self.cs.get()["performance_metrics"]
