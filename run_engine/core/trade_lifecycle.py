@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -11,6 +12,9 @@ class LifecycleEvent:
     side: Optional[str]
     price: float
     tick: int
+    # Original open entry price of the trade, not the weighted average
+    # entry basis after Scale-In. PnLEngine's entry_basis is the
+    # Computational Authority for post-Scale-In cost basis.
     entry_price: float = 0.0
     prior_quantity: float = 0.0
     execution_quantity: float = 0.0
@@ -300,13 +304,18 @@ class TradeLifecycleEngine:
         return event
 
     def _validate_execution_quantity(self, quantity: float) -> bool:
+        if not math.isfinite(quantity):
+            return False
         return quantity > QUANTITY_EPSILON
 
     @staticmethod
     def _safe_float(value: Any) -> float:
         if value is None:
             return 0.0
-        return float(value)
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return float("nan")
 
     @staticmethod
     def _safe_int(value: Any) -> int:

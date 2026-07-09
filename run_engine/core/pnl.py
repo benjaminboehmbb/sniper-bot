@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 
 class PnLEngine:
@@ -9,7 +9,7 @@ class PnLEngine:
     def update(
         self,
         trade_event: Optional[Any],
-        execution: Dict[str, Any],
+        entry_basis: float,
     ) -> float:
         """
         Computes realized PnL exclusively from lifecycle facts.
@@ -24,9 +24,7 @@ class PnLEngine:
             return 0.0
 
         side = getattr(trade_event, "side", None)
-        entry_price = float(
-            execution.get("entry_price", getattr(trade_event, "entry_price", 0.0))
-        )
+        entry_price = float(entry_basis)
         exit_price = float(getattr(trade_event, "price", 0.0))
         quantity = float(getattr(trade_event, "closed_quantity", 0.0))
 

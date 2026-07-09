@@ -32,10 +32,6 @@ class PositionEngine:
         self.last_price = price
         return self.snapshot()
 
-    def update_pre_trade(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        self.last_price = self._extract_price(state)
-        return self.snapshot()
-
     def update_post_trade(
         self,
         execution: Dict[str, Any],
@@ -45,14 +41,12 @@ class PositionEngine:
         price = self._extract_price(state)
 
         if lifecycle_position is None:
-            execution["entry_price"] = self.entry_price
             return self._set_flat(price)
 
         projected_position = lifecycle_position.get("position", "FLAT")
         projected_quantity = self._safe_float(lifecycle_position.get("quantity", 0.0))
 
         if projected_position == "FLAT":
-            execution["entry_price"] = self.entry_price
             return self._set_flat(price)
 
         if self.position == projected_position and projected_position in {"LONG", "SHORT"}:
@@ -66,9 +60,6 @@ class PositionEngine:
                     execution_price=price,
                     execution_quantity=execution_quantity,
                 )
-
-            if projected_quantity < self.quantity:
-                execution["entry_price"] = self.entry_price
 
             self.position = projected_position
             self.side = lifecycle_position.get("side") or projected_position

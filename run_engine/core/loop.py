@@ -59,7 +59,7 @@ class RunLoop:
         )
         self.enforcer.apply_position(position)
 
-        pnl = self.pnl_engine.update(trade_event, execution)
+        pnl = self.pnl_engine.update(trade_event, position_pre["entry_price"])
         self.enforcer.apply_pnl(pnl)
 
         equity = self.cstate.get()["equity"] + pnl
