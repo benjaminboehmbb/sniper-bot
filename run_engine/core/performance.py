@@ -3,7 +3,10 @@ class PerformanceEngine:
     def __init__(self):
         self.stats = {}
 
-    def update(self, decision, pnl, regime):
+    def update(self, decision, pnl, regime, trade_event):
+
+        if getattr(trade_event, "event_type", None) == "RUNTIME_FAILURE_EVENT":
+            return self.stats
 
         action = decision.get('action', 'HOLD')
 

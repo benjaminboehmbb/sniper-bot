@@ -70,7 +70,7 @@ class RunLoop:
         risk = self.risk_engine.check(canonical_state, position, regime)
         self.enforcer.apply_risk(risk if isinstance(risk, dict) else {})
 
-        performance = self.performance_engine.update(decision, pnl, regime)
+        performance = self.performance_engine.update(decision, pnl, regime, trade_event)
 
         return {
             "tick": runtime_tick,
