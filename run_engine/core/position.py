@@ -10,6 +10,7 @@ class PositionEngine:
         self.entry_price = 0.0
         self.quantity = 0.0
         self.last_price = 0.0
+        self.exposure = 0.0
 
     def project(self, lifecycle_position: Optional[Dict[str, Any]], state: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         price = self._extract_price(state)
@@ -30,6 +31,7 @@ class PositionEngine:
         self.entry_price = entry_price
         self.quantity = quantity
         self.last_price = price
+        self.exposure = self._compute_exposure(self.side, self.quantity, self.last_price)
         return self.snapshot()
 
     def update_post_trade(
@@ -65,6 +67,7 @@ class PositionEngine:
             self.side = lifecycle_position.get("side") or projected_position
             self.quantity = projected_quantity
             self.last_price = price
+            self.exposure = self._compute_exposure(self.side, self.quantity, self.last_price)
             return self.snapshot()
 
         return self.project(lifecycle_position, state)
@@ -76,6 +79,7 @@ class PositionEngine:
             "entry_price": self.entry_price,
             "quantity": self.quantity,
             "last_price": self.last_price,
+            "exposure": self.exposure,
         }
 
     def _set_flat(self, price: float) -> Dict[str, Any]:
@@ -84,7 +88,15 @@ class PositionEngine:
         self.entry_price = 0.0
         self.quantity = 0.0
         self.last_price = price
+        self.exposure = self._compute_exposure(self.side, self.quantity, self.last_price)
         return self.snapshot()
+
+    @staticmethod
+    def _compute_exposure(side: Optional[str], quantity: float, last_price: float) -> float:
+        if quantity == 0.0:
+            return 0.0
+        side_factor = 1.0 if side == "LONG" else -1.0
+        return side_factor * quantity * last_price
 
     @staticmethod
     def _weighted_average_entry_price(current_entry_price: float, current_quantity: float, execution_price: float, execution_quantity: float) -> float:
