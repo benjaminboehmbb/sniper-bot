@@ -44,7 +44,7 @@ class RunLoop:
         regime = self.regime_classifier.classify(state)
         self.cstate.update_regime(regime)
 
-        position_pre = self.position_engine.snapshot()
+        position_pre = self.cstate.get()["position"]
 
         weights = self.strategy_selector.select(state, regime, position_pre)
         self.enforcer.apply_strategy_selection(weights)
