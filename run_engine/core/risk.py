@@ -10,6 +10,7 @@ class RiskEngine:
         self.peak_equity = 100.0
 
     def check(self, state, position, regime):
+        position_exposure = position.get("exposure", 0.0)
 
         equity = state.get("equity", self.last_equity)
 
