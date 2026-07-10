@@ -18,8 +18,11 @@ class CanonicalState:
 
             "position": {
                 "position": "FLAT",
-                "entry_price": None,
-                "last_price": None
+                "side": None,
+                "entry_price": 0.0,
+                "quantity": 0.0,
+                "last_price": 0.0,
+                "exposure": 0.0
             },
 
             "equity": 100.0,
@@ -32,7 +35,7 @@ class CanonicalState:
 
             "drawdown_ratio": 0.0,
 
-            "exposure": 1.0,
+            "risk_allocation_factor": 1.0,
 
             "regime": "UNKNOWN",
 
@@ -69,7 +72,7 @@ class CanonicalState:
 
         self.state["drawdown"] = risk_dict.get("drawdown", 0.0)
         self.state["drawdown_ratio"] = risk_dict.get("drawdown_ratio", 0.0)
-        self.state["exposure"] = risk_dict.get("exposure", 1.0)
+        self.state["risk_allocation_factor"] = risk_dict.get("exposure", 1.0)
 
     def update_regime(self, regime):
 
