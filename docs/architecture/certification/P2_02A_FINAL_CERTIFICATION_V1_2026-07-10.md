@@ -87,7 +87,7 @@ The full combined diff was re-inspected line by line and confirmed to contain ex
 
 Validation was performed manually and interactively, consistent with the methodology already established and certified sufficient for P1-03, P1-03.1, P1-04, P2-01, and P2-02 (TD-005 remains open, project-wide, unaffected by this unit). Two complementary techniques were used throughout:
 
-1. **Direct-comparison regression**: the exact pre-P2-02A runtime (`position.py`, `canonical_state.py`, `risk.py`, `loop.py` as committed at `b88eae5`) was loaded in isolation via `importlib`, wired into a `RunLoop` alongside the unchanged supporting modules (`strategy.py`, `execution/executor.py`, `pnl.py`, `trade_lifecycle.py`, `performance.py`, `canonical_enforcer.py`, `state.py`, `regime.py`), and driven through identical, deterministic, scripted tick/decision sequences alongside the current (`HEAD`) `RunLoop`. Every consumer-facing output field was compared for byte-for-byte identity.
+1. **Direct-comparison regression**: the exact pre-P2-02A runtime (`position.py`, `canonical_state.py`, `risk.py`, `loop.py` as committed at `b88eae5`) was loaded in isolation via `importlib`, wired into a `RunLoop` alongside the unchanged supporting modules (`strategy.py`, `execution/executor.py`, `pnl.py`, `trade_lifecycle.py`, `performance.py`, `canonical_enforcer.py`, `state.py`, `regime.py`), and driven through identical, deterministic, scripted tick/decision sequences alongside the current (`HEAD`) `RunLoop`. Every consumer-facing output field was compared for functional identity (exact equality in value and type).
 2. **Direct unit-level testing**: `PositionEngine`, `CanonicalState`, and `RiskEngine` were instantiated and exercised directly for schema, exposure-semantics, determinism, and edge-case validation.
 
 Roughly 95 individual assertions were executed across six test batteries; all passed. Representative evidence is cited per requirement below; full console output was reviewed in full during this session.
@@ -127,7 +127,7 @@ No non-conformance was found. All sixteen static checks classified **conformant*
 |---|---|
 | `PositionEngine().snapshot()` returns exactly six keys (`position`, `side`, `entry_price`, `quantity`, `last_price`, `exposure`) | PASS |
 | `CanonicalState().get()["position"]` returns exactly the same six keys | PASS |
-| FLAT defaults identical between both sources: `position == "FLAT"`, `side is None`, `entry_price == 0.0`, `quantity == 0.0`, `last_price == 0.0`, `exposure == 0.0` | PASS (dict-level equality confirmed) |
+| FLAT defaults functionally identical between both sources: `position == "FLAT"`, `side is None`, `entry_price == 0.0`, `quantity == 0.0`, `last_price == 0.0`, `exposure == 0.0` | PASS (dict-level equality confirmed) |
 | Top-level `risk_allocation_factor == 1.0`; no top-level `"exposure"` key | PASS |
 | `reset()` restores the complete six-key default Position and `risk_allocation_factor == 1.0`, after prior mutation of both, with no alias field introduced | PASS |
 | `update_position()` accepts and stores the full six-key dict without field loss, no second write path | PASS |
@@ -146,7 +146,7 @@ No non-conformance was found. All sixteen static checks classified **conformant*
 | Partial Close | PASS | exposure recomputed from reduced quantity and current `last_price`; `entry_price` correctly left unchanged (no scale-in branch triggered) |
 | Full Close | PASS | position `FLAT`, `quantity == 0.0`, `entry_price == 0.0`, `exposure == 0.0` |
 | Rejected transition / RuntimeFailureEvent | PASS | `side`/`quantity`/`entry_price` unchanged; `last_price` updates unconditionally; `exposure` recomputed from the unchanged position and the new `last_price` |
-| Determinism | PASS | identical Position inputs (side/quantity/last_price) produce identical exposure across independently constructed `PositionEngine` instances |
+| Determinism | PASS | identical Position inputs (side/quantity/last_price) produce functionally identical exposure across independently constructed `PositionEngine` instances |
 | Invalid values | PASS | no NaN, no +Inf, no -Inf observed at FLAT or at extreme finite inputs (`quantity=1e-9`, `last_price=1e9`) |
 
 26 individual assertions executed in this section; all passed. No new validation logic was implemented; only existing, already-specified behavior was exercised.
@@ -163,7 +163,7 @@ A twelve-tick, fully scripted scenario was constructed and executed identically 
 
 Observed event sequence: `TRADE_OPENED, None, SCALE_IN, PARTIAL_CLOSE, TRADE_CLOSED, TRADE_OPENED, None, SCALE_IN, PARTIAL_CLOSE, RUNTIME_FAILURE_EVENT, RUNTIME_FAILURE_EVENT, TRADE_CLOSED` - every required lifecycle and failure event type occurred at least once.
 
-For every one of the twelve ticks, `strategy_weights`, `decision`, `execution`, `pnl`, `equity`, and `performance` were confirmed byte-identical between the baseline and current implementations; every Position field other than the newly added `exposure` was confirmed byte-identical; `exposure` was confirmed present at every tick (absent, by construction, from the baseline's five-key dict); the RiskEngine `risk` return dict was confirmed byte-identical at every tick. The final Position after the full run is `FLAT` with `exposure == 0.0`. `CanonicalState` was confirmed to publish `risk_allocation_factor` and no top-level `exposure`, with a six-key Position at the end of the run.
+For every one of the twelve ticks, `strategy_weights`, `decision`, `execution`, `pnl`, `equity`, and `performance` were confirmed functionally identical between the baseline and current implementations; every Position field other than the newly added `exposure` was confirmed functionally identical; `exposure` was confirmed present at every tick (absent, by construction, from the baseline's five-key dict); the RiskEngine `risk` return dict was confirmed functionally identical at every tick. The final Position after the full run is `FLAT` with `exposure == 0.0`. `CanonicalState` was confirmed to publish `risk_allocation_factor` and no top-level `exposure`, with a six-key Position at the end of the run.
 
 11 assertions executed; all passed. Zero mismatches found across the full 12-tick comparison.
 
@@ -171,19 +171,19 @@ For every one of the twelve ticks, `strategy_weights`, `decision`, `execution`, 
 
 | Scenario | Result |
 |---|---|
-| LONG Close (Open 1@100 -> Close 1@150) | PASS - realized PnL = 50.0; identical baseline vs. current |
-| SHORT Close (Open 1@100 -> Close 1@60) | PASS - realized PnL = 40.0; identical baseline vs. current |
-| Scale-In then Close (Open 1@100 -> Scale-In 1@200 -> Close 2@250) | PASS - weighted-average entry_price = 150.0; realized PnL = (250-150)x2 = 200.0; identical baseline vs. current |
-| Partial Close (Open 2@100 -> Partial Close 1@180) | PASS - realized PnL = 80.0; `entry_price` remains 100.0; identical baseline vs. current |
+| LONG Close (Open 1@100 -> Close 1@150) | PASS - realized PnL = 50.0; functionally identical to baseline |
+| SHORT Close (Open 1@100 -> Close 1@60) | PASS - realized PnL = 40.0; functionally identical to baseline |
+| Scale-In then Close (Open 1@100 -> Scale-In 1@200 -> Close 2@250) | PASS - weighted-average entry_price = 150.0; realized PnL = (250-150)x2 = 200.0; functionally identical to baseline |
+| Partial Close (Open 2@100 -> Partial Close 1@180) | PASS - realized PnL = 80.0; `entry_price` remains 100.0; functionally identical to baseline |
 | Full Close | PASS - position `FLAT` immediately after full close, in both the LONG and SHORT scenarios above |
-| Rejected transition | PASS - over-close rejection produces `pnl == 0.0`, `trade_event.event_type == "RUNTIME_FAILURE_EVENT"`, and `PerformanceEngine.stats` byte-identical before/after (non-mutation confirmed) |
+| Rejected transition | PASS - over-close rejection produces `pnl == 0.0`, `trade_event.event_type == "RUNTIME_FAILURE_EVENT"`, and `PerformanceEngine.stats` functionally identical before/after (non-mutation confirmed) |
 | No `execution["entry_price"]` dependency | PASS - confirmed absent from `pnl.py`'s source text |
 
-17 assertions executed; all passed. Every scenario's realized PnL is byte-identical between the `b88eae5` baseline and the current `HEAD` implementation for identical inputs.
+17 assertions executed; all passed. Every scenario's realized PnL is functionally identical between the `b88eae5` baseline and the current `HEAD` implementation for identical inputs.
 
 ## 14. RiskEngine Regression Results
 
-`RiskEngine.check()` reads `position.get("exposure", 0.0)` into the local `position_exposure` read-only, without raising, for FLAT, LONG, and SHORT position dicts, and for a position dict missing the `"exposure"` key entirely (falls back to `0.0`, no `KeyError`). Passing a deliberately different `exposure` value (`999999.0` and `-999999.0`) produced byte-identical `RiskEngine` output relative to the certified value, confirming no functional use of `position_exposure` in the risk policy, per AD-008.2. `RiskEngine`'s own returned dict remains exactly `{"equity", "peak_equity", "drawdown", "drawdown_ratio", "exposure"}` in every case - no new key, no renamed key. The `position` dict passed in was confirmed byte-identical before and after every `check()` call (no mutation). Across the full 12-tick lifecycle scenario (Section 12) and a separate 5-step varied-regime sequence, `equity`, `peak_equity`, `drawdown`, `drawdown_ratio`, and `exposure` (the allocation factor) were confirmed byte-identical between the `b88eae5` baseline `RiskEngine` and the current `RiskEngine`, and `CanonicalState.state["risk_allocation_factor"]` was confirmed to receive this same value under its renamed key.
+`RiskEngine.check()` reads `position.get("exposure", 0.0)` into the local `position_exposure` read-only, without raising, for FLAT, LONG, and SHORT position dicts, and for a position dict missing the `"exposure"` key entirely (falls back to `0.0`, no `KeyError`). Passing a deliberately different `exposure` value (`999999.0` and `-999999.0`) produced functionally identical `RiskEngine` output relative to the certified value, confirming no functional use of `position_exposure` in the risk policy, per AD-008.2. `RiskEngine`'s own returned dict remains exactly `{"equity", "peak_equity", "drawdown", "drawdown_ratio", "exposure"}` in every case - no new key, no renamed key. The `position` dict passed in was confirmed functionally identical before and after every `check()` call (no mutation). Across the full 12-tick lifecycle scenario (Section 12) and a separate 5-step varied-regime sequence, `equity`, `peak_equity`, `drawdown`, `drawdown_ratio`, and `exposure` (the allocation factor) were confirmed functionally identical between the `b88eae5` baseline `RiskEngine` and the current `RiskEngine`, and `CanonicalState.state["risk_allocation_factor"]` was confirmed to receive this same value under its renamed key.
 
 TD-006-relevant lines (`self.peak_equity`, `self.last_equity`, drawdown computation, regime-dampening computation, min/max clamping) are confirmed byte-identical to `b88eae5` (Section 8, check 15).
 
@@ -193,7 +193,7 @@ Across the full 12-tick lifecycle scenario (Section 12) and the 10-tick determin
 
 ## 16. Determinism and Replay Results
 
-A ten-tick deterministic sequence was run twice through two independently constructed `RunLoop` instances. `strategy_weights`, `decision`, `execution`, `trade_event` (by `event_type`), `position`, `pnl`, `equity`, `risk`, `performance`, and the complete `CanonicalState` value (`state` key) were compared tick-by-tick between the two runs: all identical, in identical order, with identical event types. No hidden mutation, no new cache dependency, and no new timing dependency was observed. Additionally, for every Position snapshot recorded across the first run, `exposure` was independently recomputed from the stored `side`, `quantity`, and `last_price` values and confirmed to equal the stored `exposure` value exactly, at every tick.
+A ten-tick deterministic sequence was run twice through two independently constructed `RunLoop` instances. `strategy_weights`, `decision`, `execution`, `trade_event` (by `event_type`), `position`, `pnl`, `equity`, `risk`, `performance`, and the complete `CanonicalState` value (`state` key) were compared tick-by-tick between the two runs: all functionally identical, in the same order, with functionally identical event types. No hidden mutation, no new cache dependency, and no new timing dependency was observed. Additionally, for every Position snapshot recorded across the first run, `exposure` was independently recomputed from the stored `side`, `quantity`, and `last_price` values and confirmed to equal the stored `exposure` value exactly, at every tick.
 
 ## 17. FRA Requirement Certification
 
@@ -212,12 +212,12 @@ A ten-tick deterministic sequence was run twice through two independently constr
 | P2-02A-FR-011 | PASS | no `self.position_exposure`/cache; position dict not mutated; read-only confirmed (Section 8 check 7-8, Section 14) |
 | P2-02A-FR-012 | PASS | StrategySelector/Executor/PnLEngine read `position_pre` from `CanonicalState`; RiskEngine reads the post-trade `position` local var, both single-sourced (Section 11, Section 15) |
 | P2-02A-FR-013 | PASS | Position carries no historical execution facts (non-regression, unchanged fields) |
-| P2-02A-FR-014 | PASS | full FLAT/Open/Scale-In/Partial-Close/Full-Close regression byte-identical vs. baseline (Section 12) |
-| P2-02A-FR-015 | PASS | `_compute_exposure` is a pure static function; determinism test confirms identical output for identical input (Section 10) |
+| P2-02A-FR-014 | PASS | full FLAT/Open/Scale-In/Partial-Close/Full-Close regression functionally identical vs. baseline (Section 12) |
+| P2-02A-FR-015 | PASS | `_compute_exposure` is a pure static function; determinism test confirms functionally identical output for identical input (Section 10) |
 | P2-02A-FR-016 | PASS | determinism test across full `RunLoop` run shows no new ordering dependency (Section 16) |
 | P2-02A-FR-017 | PASS | rejected-transition scenario confirms Side/Quantity/Average-Entry-Price frozen (Section 10, Section 12) |
 | P2-02A-FR-018 | PASS | explicit `quantity == 0.0` guard in `_compute_exposure`; no NaN/exception at FLAT or extreme values (Section 10) |
-| P2-02A-FR-019 | PASS | `position_pre["entry_price"]` passed as `entry_basis` before Position Update stage; PnL regression byte-identical incl. Scale-In basis (Section 13) |
+| P2-02A-FR-019 | PASS | `position_pre["entry_price"]` passed as `entry_basis` before Position Update stage; PnL regression functionally identical incl. Scale-In basis (Section 13) |
 | P2-02A-FR-020 | PASS | `canonical_enforcer.py` confirmed byte-identical to `b88eae5`; `apply_position()` remains sole Writer-on-Behalf-Of (Section 8 check 4) |
 
 All twenty FRA requirements: **PASS**, each with individual evidence, no collective pass without justification.
@@ -233,8 +233,8 @@ All twenty FRA requirements: **PASS**, each with individual evidence, no collect
 | P2-02A-AD-005 (Pre-Trade Derived View) | PASS | `loop.py:47` sources exclusively from `CanonicalState`; mutation-risk trace confirms no in-tick mutation (Section 11) |
 | P2-02A-AD-006 (Canonical Read Path) | PASS | StrategySelector/Executor/PnLEngine-entry_basis on pre-trade view; RiskEngine on post-trade value, both confirmed by call-site inspection (Section 11, Section 14) |
 | P2-02A-AD-007 (Exposure Naming Separation) | PASS | `risk_allocation_factor` rename confirmed; RiskEngine's own return key `"exposure"` deliberately and correctly left unchanged (Section 9, Section 14) |
-| P2-02A-AD-008 (RiskEngine Consumption Boundary) | PASS | existing `position` parameter reused; read-only; no functional use (differing exposure values produce identical output); TD-006 lines untouched (Section 14) |
-| P2-02A-AD-009 (Compatibility and Migration Policy) | PASS | no alias fields found anywhere; full P1-03/P1-03.1/P1-04/P2-01 regression byte-identical (Sections 12, 13, 14, 15) |
+| P2-02A-AD-008 (RiskEngine Consumption Boundary) | PASS | existing `position` parameter reused; read-only; no functional use (differing exposure values produce functionally identical output); TD-006 lines untouched (Section 14) |
+| P2-02A-AD-009 (Compatibility and Migration Policy) | PASS | no alias fields found anywhere; full P1-03/P1-03.1/P1-04/P2-01 regression functionally identical (Sections 12, 13, 14, 15) |
 
 All nine Architecture Decisions: **PASS**.
 
@@ -249,12 +249,12 @@ All nine Architecture Decisions: **PASS**.
 | P2-02A-AI-005 (pre-trade view is not a second ownership path) | PASS | `"snapshot"` absent from `loop.py` source text; mutation-risk trace (Section 11) |
 | P2-02A-AI-006 (post-trade Position becomes next pre-trade state) | PASS | temporal chain test (Section 11) |
 | P2-02A-AI-007 (Exposure not an independent entity) | PASS | no top-level `"exposure"` key exists; nested only (Section 9) |
-| P2-02A-AI-008 (Exposure deterministic pure function) | PASS | determinism test, identical inputs produce identical outputs (Section 10) |
+| P2-02A-AI-008 (Exposure deterministic pure function) | PASS | determinism test, identical inputs produce functionally identical outputs (Section 10) |
 | P2-02A-AI-009 (Exposure exactly 0.0 at FLAT) | PASS | explicit guard confirmed at every FLAT-reaching code path (Section 10) |
 | P2-02A-AI-010 (risk_allocation_factor semantically/nominally distinct) | PASS | rename confirmed; no shared key anywhere in schema (Section 9) |
-| P2-02A-AI-011 (RiskEngine read-only, no ownership) | PASS | no `self.position_exposure`; output byte-identical; no new return key (Section 14) |
+| P2-02A-AI-011 (RiskEngine read-only, no ownership) | PASS | no `self.position_exposure`; output functionally identical; no new return key (Section 14) |
 | P2-02A-AI-012 (TradeLifecycleEngine no operative Position/Exposure) | PASS | file confirmed unchanged, zero `exposure` occurrences (Section 8 check 13) |
-| P2-02A-AI-013 (P1-03/P1-03.1/P1-04/P2-01 contracts unchanged) | PASS | full regression, byte-identical (Sections 12-15) |
+| P2-02A-AI-013 (P1-03/P1-03.1/P1-04/P2-01 contracts unchanged) | PASS | full regression, functionally identical (Sections 12-15) |
 | P2-02A-AI-014 (no hidden mutation) | PASS | mutation-risk trace; position dict confirmed unmutated by RiskEngine; zero unexplained divergence across 12-tick and 10-tick regressions |
 | P2-02A-AI-015 (no NaN/infinite Exposure) | PASS | verified at FLAT and at extreme finite inputs (Section 10) |
 | P2-02A-AI-016 (identical default/published shape) | PASS | six keys confirmed both pre- and post-tick (Section 9, Section 12) |
@@ -268,11 +268,11 @@ All sixteen Architecture Invariants: **PASS**, each backed by direct code, searc
 | P2-02A-AC-001 | PASS | six keys confirmed for FLAT, LONG, SHORT, Scale-In, Partial Close, Full Close, and rejected-transition states (Sections 9, 10, 12) |
 | P2-02A-AC-002 | PASS | exposure exactly 0.0 at every quantity-0.0 path, no exception, no NaN (Section 10) |
 | P2-02A-AC-003 | PASS | side-factor x quantity x last_price confirmed for LONG and SHORT (Section 10) |
-| P2-02A-AC-004 | PASS | default and published Position dicts have identical key sets and types (Section 9) |
+| P2-02A-AC-004 | PASS | default and published Position dicts have functionally identical key sets and types (Section 9) |
 | P2-02A-AC-005 | PASS | no top-level `"exposure"`; `risk_allocation_factor` present with correct value (Section 9) |
 | P2-02A-AC-006 | PASS | `position_pre` sourced exclusively from `CanonicalState.get()["position"]`; zero external `PositionEngine` instance reads (Section 11) |
 | P2-02A-AC-007 | PASS | `RiskEngine.check()` reads `position.get("exposure", 0.0)` without raising; own return dict unchanged (Section 14) |
-| P2-02A-AC-008 | PASS | every already-certified scenario reproduced byte-identical (Sections 12-15) |
+| P2-02A-AC-008 | PASS | every already-certified scenario reproduced with functionally identical results (Sections 12-15) |
 | P2-02A-AC-009 | PASS | `python -m compileall run_engine` - PASS, no errors (Section 7) |
 | P2-02A-AC-010 | PASS | exactly four runtime files modified since `b88eae5`, matching the Specification's inventory exactly (Section 5); this certification document itself is a governance artifact, explicitly excluded from this restriction per the criterion's own text |
 
@@ -329,7 +329,7 @@ No unresolved non-conformance was found.
 
 **CERTIFIED.**
 
-P2-02A (Position Ownership) is certified complete. TD-001 is resolved. Exposure is now a correctly-derived, correctly-scoped, correctly-named Position property, with RiskEngine established as its strictly read-only consumer, and with every already-certified P1-03/P1-03.1/P1-04/P2-01 contract preserved byte-for-byte.
+P2-02A (Position Ownership) is certified complete. TD-001 is resolved. Exposure is now a correctly-derived, correctly-scoped, correctly-named Position property, with RiskEngine established as its strictly read-only consumer, and with every already-certified P1-03/P1-03.1/P1-04/P2-01 contract preserved with functional identity.
 
 ## 26. Internal Consistency Review
 
