@@ -1,5 +1,14 @@
 class CanonicalState:
 
+    VALID_RUNTIME_STATUS_VALUES = (
+        "INITIALIZING",
+        "RUNNING",
+        "PAUSED",
+        "STOPPING",
+        "STOPPED",
+        "ERROR",
+    )
+
     def __init__(self):
 
         self.state = {
@@ -31,7 +40,9 @@ class CanonicalState:
 
             "execution_decision": None,
 
-            "performance_metrics": None
+            "performance_metrics": None,
+
+            "runtime_status": None
         }
 
     def update_tick(self, tick, price):
@@ -75,6 +86,13 @@ class CanonicalState:
     def update_performance_metrics(self, performance_metrics):
 
         self.state["performance_metrics"] = performance_metrics
+
+    def update_runtime_status(self, runtime_status):
+
+        if runtime_status not in self.VALID_RUNTIME_STATUS_VALUES:
+            raise ValueError(f"Invalid runtime_status: {runtime_status!r}")
+
+        self.state["runtime_status"] = runtime_status
 
     def get(self):
 

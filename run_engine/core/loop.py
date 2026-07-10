@@ -28,7 +28,11 @@ class RunLoop:
         self.cstate = CanonicalState()
         self.enforcer = CanonicalEnforcer(self.cstate)
 
+        self.enforcer.apply_runtime_status("INITIALIZING")
+
     def step(self, tick):
+
+        self.enforcer.apply_runtime_status("RUNNING")
 
         state = self.state_engine.update(tick)
 

@@ -59,3 +59,11 @@ class CanonicalEnforcer:
 
         self.cs.update_performance_metrics(performance_metrics)
         return self.cs.get()["performance_metrics"]
+
+    def apply_runtime_status(self, runtime_status):
+
+        if runtime_status is None:
+            return self.cs.get()["runtime_status"]
+
+        self.cs.update_runtime_status(runtime_status)
+        return self.cs.get()["runtime_status"]
