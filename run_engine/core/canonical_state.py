@@ -31,6 +31,8 @@ class CanonicalState:
 
             "pnl": 0.0,
 
+            "realized_pnl_cumulative": 0.0,
+
             "drawdown": 0.0,
 
             "drawdown_ratio": 0.0,
@@ -61,12 +63,17 @@ class CanonicalState:
 
         self.state["equity"] = equity
 
-        if equity > self.state["peak_equity"]:
-            self.state["peak_equity"] = equity
+    def update_peak_equity(self, peak_equity):
+
+        self.state["peak_equity"] = peak_equity
 
     def update_pnl(self, pnl):
 
         self.state["pnl"] = pnl
+
+    def update_realized_pnl_cumulative(self, realized_pnl_cumulative):
+
+        self.state["realized_pnl_cumulative"] = realized_pnl_cumulative
 
     def update_risk(self, risk_dict):
 
