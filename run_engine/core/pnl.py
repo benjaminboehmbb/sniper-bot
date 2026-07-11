@@ -39,5 +39,37 @@ class PnLEngine:
 
         return pnl
 
+    def compute_equity(
+        self,
+        trade_event: Optional[Any],
+        event_pnl: float,
+        prior_cumulative_pnl: float,
+        prior_equity: float,
+        prior_peak_equity: float,
+    ) -> dict:
+        """
+        Computes Realized PnL (cumulative), Equity, and Peak Equity from
+        the prior canonical values and the current tick's event-PnL.
+        """
+
+        event_type = getattr(trade_event, "event_type", None)
+
+        if event_type == "RUNTIME_FAILURE_EVENT":
+            return {
+                "realized_pnl_cumulative": prior_cumulative_pnl,
+                "equity": prior_equity,
+                "peak_equity": prior_peak_equity,
+            }
+
+        new_cumulative_pnl = prior_cumulative_pnl + event_pnl
+        new_equity = prior_equity + event_pnl
+        new_peak_equity = max(prior_peak_equity, new_equity)
+
+        return {
+            "realized_pnl_cumulative": new_cumulative_pnl,
+            "equity": new_equity,
+            "peak_equity": new_peak_equity,
+        }
+
     def get_last_realized_pnl(self) -> float:
         return self.last_realized_pnl
