@@ -65,11 +65,27 @@ class RunLoop:
         )
         self.enforcer.apply_position(position)
 
+        prior_realized_pnl_cumulative = self.cstate.get()["realized_pnl_cumulative"]
+        prior_equity = self.cstate.get()["equity"]
+        prior_peak_equity = self.cstate.get()["peak_equity"]
+
         pnl = self.pnl_engine.update(trade_event, position_pre["entry_price"])
         self.enforcer.apply_pnl(pnl)
 
-        equity = self.cstate.get()["equity"] + pnl
+        equity_state = self.pnl_engine.compute_equity(
+            trade_event,
+            pnl,
+            prior_realized_pnl_cumulative,
+            prior_equity,
+            prior_peak_equity,
+        )
+        realized_pnl_cumulative = equity_state["realized_pnl_cumulative"]
+        equity = equity_state["equity"]
+        peak_equity = equity_state["peak_equity"]
+
+        self.enforcer.apply_realized_pnl_cumulative(realized_pnl_cumulative)
         self.enforcer.apply_equity(equity)
+        self.enforcer.apply_peak_equity(peak_equity)
 
         canonical_state = self.cstate.get()
 
