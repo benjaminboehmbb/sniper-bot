@@ -106,7 +106,7 @@ class CanonicalState:
 
     def get(self):
 
-        return self.state
+        return self.state.copy()
 
     def reset(self):
 

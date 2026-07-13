@@ -6,7 +6,7 @@ class PerformanceEngine:
     def update(self, decision, pnl, regime, trade_event):
 
         if getattr(trade_event, "event_type", None) == "RUNTIME_FAILURE_EVENT":
-            return self.stats
+            return self._stats_snapshot()
 
         action = decision.get('action', 'HOLD')
 
@@ -31,4 +31,7 @@ class PerformanceEngine:
             / trades
         )
 
-        return self.stats
+        return self._stats_snapshot()
+
+    def _stats_snapshot(self):
+        return {action: dict(inner) for action, inner in self.stats.items()}

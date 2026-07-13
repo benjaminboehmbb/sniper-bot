@@ -47,10 +47,18 @@ class CanonicalEnforcer:
     def apply_risk(self, risk):
 
         if risk is None:
-            return self.cs.get()
+            return self._risk_metrics()
 
         self.cs.update_risk(risk)
-        return self.cs.get()
+        return self._risk_metrics()
+
+    def _risk_metrics(self):
+        state = self.cs.get()
+        return {
+            "drawdown": state["drawdown"],
+            "drawdown_ratio": state["drawdown_ratio"],
+            "risk_allocation_factor": state["risk_allocation_factor"],
+        }
 
     def apply_strategy_selection(self, weights):
 
