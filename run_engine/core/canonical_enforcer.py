@@ -83,3 +83,11 @@ class CanonicalEnforcer:
 
         self.cs.update_runtime_status(runtime_status)
         return self.cs.get()["runtime_status"]
+
+    def apply_regime(self, regime):
+
+        if regime is None:
+            return self.cs.get()["regime"]
+
+        self.cs.update_regime(regime)
+        return self.cs.get()["regime"]

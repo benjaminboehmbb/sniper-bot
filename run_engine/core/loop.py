@@ -42,7 +42,7 @@ class RunLoop:
         self.cstate.update_tick(runtime_tick, price)
 
         regime = self.regime_classifier.classify(state)
-        self.cstate.update_regime(regime)
+        self.enforcer.apply_regime(regime)
 
         position_pre = self.cstate.get()["position"]
 
