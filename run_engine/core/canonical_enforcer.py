@@ -20,6 +20,14 @@ class CanonicalEnforcer:
         self.cs.update_pnl(pnl)
         return self.cs.get()["pnl"]
 
+    def apply_realized_pnl_cumulative(self, realized_pnl_cumulative):
+
+        if realized_pnl_cumulative is None:
+            return self.cs.get()["realized_pnl_cumulative"]
+
+        self.cs.update_realized_pnl_cumulative(realized_pnl_cumulative)
+        return self.cs.get()["realized_pnl_cumulative"]
+
     def apply_equity(self, equity):
 
         if equity is None:
@@ -27,6 +35,14 @@ class CanonicalEnforcer:
 
         self.cs.update_equity(equity)
         return self.cs.get()["equity"]
+
+    def apply_peak_equity(self, peak_equity):
+
+        if peak_equity is None:
+            return self.cs.get()["peak_equity"]
+
+        self.cs.update_peak_equity(peak_equity)
+        return self.cs.get()["peak_equity"]
 
     def apply_risk(self, risk):
 
