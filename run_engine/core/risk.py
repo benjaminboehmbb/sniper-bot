@@ -6,28 +6,26 @@ class RiskEngine:
         self.max_exposure = 1.0
         self.min_exposure = 0.1
 
-        self.last_equity = 100.0
-        self.peak_equity = 100.0
-
     def check(self, state, position, regime):
         position_exposure = position.get("exposure", 0.0)
 
-        equity = state.get("equity", self.last_equity)
+        equity = state.get("equity", 0.0)
 
         if equity is None:
-            equity = self.last_equity
+            equity = 0.0
 
-        # update peak
-        if equity > self.peak_equity:
-            self.peak_equity = equity
+        peak_equity = state.get("peak_equity", 0.0)
+
+        if peak_equity is None:
+            peak_equity = 0.0
 
         # drawdown calculation
-        drawdown = self.peak_equity - equity
+        drawdown = peak_equity - equity
 
         # normalize drawdown ratio
         drawdown_ratio = 0.0
-        if self.peak_equity > 0:
-            drawdown_ratio = drawdown / self.peak_equity
+        if peak_equity > 0:
+            drawdown_ratio = drawdown / peak_equity
 
         # exposure control
         exposure = self.max_exposure
@@ -48,11 +46,9 @@ class RiskEngine:
         # clamp
         exposure = max(self.min_exposure, min(self.max_exposure, exposure))
 
-        self.last_equity = equity
-
         return {
             "equity": equity,
-            "peak_equity": self.peak_equity,
+            "peak_equity": peak_equity,
             "drawdown": drawdown,
             "drawdown_ratio": drawdown_ratio,
             "exposure": exposure
