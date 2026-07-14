@@ -50,21 +50,38 @@ __pycache__/
 
 live_l1_alert.flag
 
-live_logs/*.log
-live_logs/*.jsonl
-live_logs/*.csv
-
 live_state/*.json
 live_state/*.jsonl
 
 tmp/
-
-# Local archived runtime/run artifacts
-live_logs/archive/
 
 # Local artwork and visualizations
 artwork/
 
 
 live_state/archive/
-live_logs/archive/
+
+# Repository Consolidation - generated/local/scratch categories (RC-SPEC-008)
+# Logs (supersedes the prior live_logs/*.log, *.jsonl, *.csv, live_logs/archive/ rules)
+/live_logs/
+# Outputs
+/outputs/
+# Runtime Runs
+/runtime_runs/
+# Backups
+/backups/
+# Scratch Workspaces
+/_chat_handover/
+/claude_p1031_patch/
+# Review Packages
+/claude_final_p1031_review/
+/claude_p1_03b_review/
+/codex_p1_03_review/
+/review_packages/
+# Local Context Bundles
+/_sgf017_context/
+/_ssi_context/
+# Generated State (guard against re-creation of a tracked runtime-state artifact at this path)
+/run_engine/runtime/memory.json
+# Untracked external alternative outside the active run_engine/engine namespace (RC-AD-011)
+/engine/regime_classifier.py
