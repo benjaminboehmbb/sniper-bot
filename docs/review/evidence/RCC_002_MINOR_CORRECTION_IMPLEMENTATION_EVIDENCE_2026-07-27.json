@@ -1,0 +1,73 @@
+{
+  "cycle_id": "RCC-002-MINOR-CORRECTION-CYCLE-2026-07-27",
+  "date": "2026-07-27",
+  "implementation_plan_path": "docs/review/RCC_002_MINOR_CORRECTION_IMPLEMENTATION_PLAN_2026-07-27.md",
+  "implementation_plan_sha256": "1751494fa0f7ef2fcf039f7bc4fd1f022f4250d56265395b8db74ebf4162085c",
+  "changed_specifications": [
+    "docs/specifications/RCC_002_DATA_VALIDATION_2026-07-23.md",
+    "docs/specifications/RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md",
+    "docs/specifications/RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md",
+    "docs/specifications/RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md",
+    "docs/specifications/RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md",
+    "docs/specifications/RCC_002_REPRODUCIBILITY_AND_MANIFEST_2026-07-23.md"
+  ],
+  "unchanged_specifications": [
+    "docs/specifications/RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md"
+  ],
+  "old_versions": {
+    "RCC_002_DATA_PIPELINE_SPECIFICATION": "0.7.1",
+    "RCC-002-DV": "0.4.1",
+    "RCC-002-IS": "0.4.1",
+    "RCC-002-ST": "0.4.0",
+    "RCC-002-RG": "0.5.0",
+    "RCC-002-LF": "0.4.0",
+    "RCC-002-RM": "0.6.0"
+  },
+  "new_versions": {
+    "RCC_002_DATA_PIPELINE_SPECIFICATION": "0.7.1",
+    "RCC-002-DV": "0.4.2",
+    "RCC-002-IS": "0.4.2",
+    "RCC-002-ST": "0.4.1",
+    "RCC-002-RG": "0.5.1",
+    "RCC-002-LF": "0.4.1",
+    "RCC-002-RM": "0.7.0"
+  },
+  "planned_change_count": 18,
+  "implemented_change_count": 18,
+  "deviations": [
+    {
+      "type": "additional_citation_correction",
+      "description": "Two additional live (non-historical) Data Pipeline version citations found and corrected beyond the plan's literal enumeration: Label and Forward Return section 26.1, and Reproducibility and Manifest's S8 field-ownership registry description. Both corrected 0.7.0 to 0.7.1, consistent with the already-approved SCR7-MAJ-03 finding and the plan's own instruction to update all version references consistently.",
+      "scope_change": false
+    },
+    {
+      "type": "execution_method_change",
+      "description": "RM-4 and part of RM-5 were implemented by appending a new dated paragraph to Reproducibility section 29 rather than editing the existing 'Version 0.6.0 bewahrt...' paragraph in place, to avoid retroactively misstating a historical, version-specific narrative. Approved intent of RM-4/RM-5 fully satisfied; no scope change.",
+      "scope_change": false
+    }
+  ],
+  "bundle_path": "docs/review/RCC_002_MINOR_CORRECTED_FULL_SPEC_BUNDLE_2026-07-27.md",
+  "bundle_sha256": "8bd00fd09055e0055b09642edbdddf105c25ea1f36b720c1892f07d360aca75f",
+  "bundle_lines": 13926,
+  "bundle_bytes": 493231,
+  "manifest_path": "docs/review/RCC_002_MINOR_CORRECTED_BUNDLE_MANIFEST_2026-07-27.md",
+  "manifest_sha256": "7edd5c28d20db328be64394b615c3cadec81ecbaaac8ccca05577586c251c030",
+  "deterministic_rebuild_match": true,
+  "data_pipeline_unchanged": true,
+  "data_pipeline_sha256": "529f83a27c0464af0954213ffc0e81b26819bf846a1b7a6085a6b323bddf87a2",
+  "dependency_matrix_pass": true,
+  "version_matrix_pass": true,
+  "git_diff_check_pass": true,
+  "previous_bundle_path": "docs/review/RCC_002_C1_CORRECTED_FULL_SPEC_BUNDLE_2026-07-25.md",
+  "previous_bundle_sha256_unchanged": "18faca1d09411eb7c5b440833c8cc7fcac2a6f1870669f961653412163435198",
+  "previous_manifest_path": "docs/review/RCC_002_C1_CORRECTED_BUNDLE_MANIFEST_2026-07-25.md",
+  "previous_manifest_sha256_unchanged": "3d37c7cb0f87ef93900c6456d8c5c38bbad6f895d9381c2da6eddb9029de64e0",
+  "generator_modified": false,
+  "generator_path": "scripts/build_rcc002_spec_bundle.py",
+  "compileall_pass": true,
+  "py_compile_pass": true,
+  "commit_created": false,
+  "implementation_record_path": "docs/review/RCC_002_MINOR_CORRECTION_IMPLEMENTATION_RECORD_2026-07-27.md",
+  "implementation_record_sha256": "47d67eccd7586df2f5570d98a578532b910016bba1a482020a6899e4689e65e7",
+  "status": "PASS WITH DEVIATIONS"
+}

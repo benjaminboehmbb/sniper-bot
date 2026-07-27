@@ -1,0 +1,60 @@
+{
+  "finding_id": "AIR4-MIN-01",
+  "source_air_report": "docs/review/RCC_002_AIR_004_FULL_SCOPE_REPLACEMENT_ARCHITECTURE_INTEGRITY_REVIEW_2026-07-27.md",
+  "source_air_report_sha256": "1dd0c03880fb7978b93b758b9ec3b1ec9c887a625c19ddc9ece1e8209d9ed1bc",
+  "changed_specifications": [
+    "docs/specifications/RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md",
+    "docs/specifications/RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md",
+    "docs/specifications/RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md",
+    "docs/specifications/RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md",
+    "docs/specifications/RCC_002_REPRODUCIBILITY_AND_MANIFEST_2026-07-23.md"
+  ],
+  "unchanged_specifications": [
+    "docs/specifications/RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md",
+    "docs/specifications/RCC_002_DATA_VALIDATION_2026-07-23.md"
+  ],
+  "old_versions": {
+    "RCC_002_DATA_PIPELINE_SPECIFICATION": "0.7.1",
+    "RCC-002-DV": "0.4.2",
+    "RCC-002-IS": "0.4.2",
+    "RCC-002-ST": "0.4.1",
+    "RCC-002-RG": "0.5.1",
+    "RCC-002-LF": "0.4.1",
+    "RCC-002-RM": "0.7.0"
+  },
+  "new_versions": {
+    "RCC_002_DATA_PIPELINE_SPECIFICATION": "0.7.1",
+    "RCC-002-DV": "0.4.2",
+    "RCC-002-IS": "0.4.3",
+    "RCC-002-ST": "0.4.2",
+    "RCC-002-RG": "0.5.1",
+    "RCC-002-LF": "0.4.1",
+    "RCC-002-RM": "0.7.1"
+  },
+  "normative_scope": "Clarified that the PASS_WITH_APPROVED_EXCEPTIONS carve-out lists in Indicator section 30 and Signal Transformation section 32 are exhaustive; no unlisted condition may be approved without a normative specification change, version increment, review, and renewed certification assessment. No other normative content changed.",
+  "additional_exception_types_added": false,
+  "automatic_approval_added": false,
+  "dependency_matrix_pass": true,
+  "version_matrix_pass": true,
+  "bundle_path": "docs/review/RCC_002_AIR4_MIN01_CORRECTED_FULL_SPEC_BUNDLE_2026-07-27.md",
+  "bundle_sha256": "39314fd6b6c186c3bc27932c701a36d1456f8f0a6009518617e6af592cea139a",
+  "bundle_lines": 13980,
+  "bundle_bytes": 495922,
+  "manifest_path": "docs/review/RCC_002_AIR4_MIN01_CORRECTED_BUNDLE_MANIFEST_2026-07-27.md",
+  "manifest_sha256": "5d7792cb12306708aedc5dfd051d6a7eba20c6640fbe4e04566af18724969682",
+  "deterministic_rebuild_match": true,
+  "previous_bundle_path": "docs/review/RCC_002_MINOR_CORRECTED_FULL_SPEC_BUNDLE_2026-07-27.md",
+  "previous_bundle_sha256_unchanged": "8bd00fd09055e0055b09642edbdddf105c25ea1f36b720c1892f07d360aca75f",
+  "previous_manifest_path": "docs/review/RCC_002_MINOR_CORRECTED_BUNDLE_MANIFEST_2026-07-27.md",
+  "previous_manifest_sha256_unchanged": "7edd5c28d20db328be64394b615c3cadec81ecbaaac8ccca05577586c251c030",
+  "data_pipeline_sha256_unchanged": "529f83a27c0464af0954213ffc0e81b26819bf846a1b7a6085a6b323bddf87a2",
+  "data_validation_sha256_unchanged": "9bb70245d2001ee2676f63a9e89b396c9b71dc575e72da6084dd617ce41b258d",
+  "generator_modified": false,
+  "compileall_pass": true,
+  "py_compile_pass": true,
+  "git_diff_check_pass": true,
+  "implementation_record_path": "docs/review/RCC_002_AIR4_MIN01_IMPLEMENTATION_RECORD_2026-07-27.md",
+  "implementation_record_sha256": "c9c64720130a9c40be8ebae253207233820fb8e8f134c9bbdf6922f94dd5ef0f",
+  "commit_created": false,
+  "status": "PASS"
+}

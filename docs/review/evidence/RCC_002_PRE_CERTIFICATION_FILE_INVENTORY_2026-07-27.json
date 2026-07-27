@@ -1,0 +1,588 @@
+{
+  "project": "RCC-002",
+  "status": "PRE-CERTIFICATION REVIEW INPUT SNAPSHOT",
+  "date": "2026-07-27",
+  "file_count": 116,
+  "files": [
+    {
+      "path": "docs/review/LIVE_L1_ARCHITECTURE_INVENTORY_2026-06-06.md",
+      "bytes": 7717,
+      "sha256": "532076d83ea3a72d834054b3bdd8f8eab0b26139ff909e7cdd99cfc286d3ce9e"
+    },
+    {
+      "path": "docs/review/MR_011_SGF_015_ARCHITECTURE_REVIEW_2026-06-28.md",
+      "bytes": 5184,
+      "sha256": "51c7ad3bcc713e734554a5d9a530f7a64342953597fb1192284631c89bc2cd8a"
+    },
+    {
+      "path": "docs/review/MR_011_SGF_015_META_REVIEW_2026-06-28.md",
+      "bytes": 5458,
+      "sha256": "d9c7a6d339af8a20efab9cc820d4c9f759e2e9487b0f98e4786d0c8dc9117d97"
+    },
+    {
+      "path": "docs/review/P15_PRODUCTION_READINESS_REVIEW_2026-06-05.md",
+      "bytes": 6241,
+      "sha256": "86208007cd9427e0a37bbd92ef5e99efaea8cd39bc992b71b7c7066f40d5671c"
+    },
+    {
+      "path": "docs/review/P15_READINESS_EVIDENCE_2026-06-05.md",
+      "bytes": 151,
+      "sha256": "f64c099d125c00542a345d70e4de7075d748f8594d4fbbd5106e0f29fdba8754"
+    },
+    {
+      "path": "docs/review/P16_FULL_OPERATIONAL_DRILL_COMPLETED_2026-06-05.md",
+      "bytes": 1205,
+      "sha256": "fe0a4a4e0e859d9ef3b69a9ad221cfdf52410d456be0b957950ab70dee7457ef"
+    },
+    {
+      "path": "docs/review/P22_LIVE_L1_FINAL_INFRASTRUCTURE_REVIEW_2026-06-06.md",
+      "bytes": 3797,
+      "sha256": "cbcfd9be8328dd9787327ef12ac2780f425c2ac032ce0e415ee79c5a5f6242cf"
+    },
+    {
+      "path": "docs/review/P26_LIVE_L1_ARCHITECTURE_DEPENDENCY_REVIEW_2026-06-06.md",
+      "bytes": 6659,
+      "sha256": "51ee6b8fa9691aadb1db81a863debcda22a13407e1c9f8ae06d5eb101ad5b74f"
+    },
+    {
+      "path": "docs/review/P27_LIVE_L1_STRATEGIC_STATUS_REVIEW_2026-06-06.md",
+      "bytes": 4526,
+      "sha256": "6d9e674d3977f1ced43ecfec8d745de1a4454521e5db0f048e853c2f959cfce9"
+    },
+    {
+      "path": "docs/review/P28B_SHORT_OPERATIONAL_RUN_COMPLETED_2026-06-06.md",
+      "bytes": 1424,
+      "sha256": "40e8e56a04c96e4640f40ba8e2d0a6d45f036871f5160e6f3b8929ae9b5f22f5"
+    },
+    {
+      "path": "docs/review/P28D_SIGNAL_QUALITY_REVIEW_2026-06-06.md",
+      "bytes": 1577,
+      "sha256": "11829c972c137ef9c511e7c48c097712f29b8c3995915ff998ac867896a9336c"
+    },
+    {
+      "path": "docs/review/P28E_EXECUTION_OUTCOME_REVIEW_2026-06-06.md",
+      "bytes": 224,
+      "sha256": "98bf58559f5d0f356594b4f2b52d1840dec0f936592aa6dd07259c5c020fa8d9"
+    },
+    {
+      "path": "docs/review/P28F_PAPER_PERFORMANCE_BASELINE_2026-06-06.md",
+      "bytes": 1453,
+      "sha256": "25db3a7438ab9ac19c565c2c0e3cdb837ea0cbcda1d93c17090fd74f9224e6d5"
+    },
+    {
+      "path": "docs/review/P28G_BAD_CLOSE_RECONSTRUCTION_AUDIT_2026-06-06.md",
+      "bytes": 17223,
+      "sha256": "3acfef5fd8dafdb7941c28da037a4849de978548d00a648837fc0ebb5fc45d46"
+    },
+    {
+      "path": "docs/review/P28H_TIME_STOP_EXECUTION_AUDIT_2026-06-06.md",
+      "bytes": 36563,
+      "sha256": "1fee78ab449e9eb24d3f7b655628d1b6bd231eaaa9a6105ecdf09b01e8f9f68d"
+    },
+    {
+      "path": "docs/review/P28I_TIME_STOP_SOURCE_CODE_AUDIT_2026-06-06.md",
+      "bytes": 31155,
+      "sha256": "b34a08eb73e8db172c7606a3e6899b8c647a9d3e41859643ac6f711509552856"
+    },
+    {
+      "path": "docs/review/P28J_TIME_STOP_FIX_DESIGN_REVIEW_2026-06-06.md",
+      "bytes": 3513,
+      "sha256": "46f51a39aa44d0d2c68f7a9434e0c38555fb1a972327ca80b9e2077aa6432124"
+    },
+    {
+      "path": "docs/review/P28K_TIME_STOP_FIX_IMPLEMENTED_2026-06-06.md",
+      "bytes": 1177,
+      "sha256": "81e24a686a0c2f61c50650c1a9955f252e8796a8d41117f65db84b966dc2b5ab"
+    },
+    {
+      "path": "docs/review/P28L_TIME_STOP_REGRESSION_VALIDATION_2026-06-06.md",
+      "bytes": 1504,
+      "sha256": "4e919a2313f997f04309f674eaf9bdef765fcf918cea4cce98ed2191f3b55723"
+    },
+    {
+      "path": "docs/review/P28_LIVE_L1_OPERATIONAL_VALIDATION_PLAN_2026-06-06.md",
+      "bytes": 3114,
+      "sha256": "f6fd92daa811fb42712f485a857f584c73c09d8e255d891fae5350f4624068c8"
+    },
+    {
+      "path": "docs/review/P29_LIVE_L1_TRADING_BEHAVIOR_ASSESSMENT_2026-06-06.md",
+      "bytes": 800,
+      "sha256": "44e99a979b98a4c699c48bdf52ee0d49348371addfb16ec4f6d86b0078915899"
+    },
+    {
+      "path": "docs/review/P30_5M_TIMING_LAYER_BIAS_AUDIT_2026-06-06.md",
+      "bytes": 4882,
+      "sha256": "c527f89be15690e12830aece0330f0a636f9a68742355e812aeb272c097857c2"
+    },
+    {
+      "path": "docs/review/P31_5M_TIMING_DIRECTION_MODEL_DESIGN_2026-06-06.md",
+      "bytes": 3967,
+      "sha256": "5815a8592754796c2408af30486ba5ae82081850e199eab9f8f7217d29097b6d"
+    },
+    {
+      "path": "docs/review/P32_5M_TIMING_SEED_V2_CREATION_2026-06-06.md",
+      "bytes": 660,
+      "sha256": "206739efe6db7e74759ff556ef307a4d1963c076de5c0593a4ad7ad7edef21a2"
+    },
+    {
+      "path": "docs/review/P33_STRICT_TIMING_DIRECTION_HANDLING_2026-06-06.md",
+      "bytes": 1671,
+      "sha256": "44a18fb02f33dce97a1b6f4d6501bce68bc60a4e7c61a4c17785778fd182e957"
+    },
+    {
+      "path": "docs/review/P34B_STRICT_TIMING_DIRECTION_FIX_COMPLETED_2026-06-06.md",
+      "bytes": 940,
+      "sha256": "3fe0fe636b12a90c0a3bd87e45daaef4e5331d69d41ed6c51a0e3296be2ce945"
+    },
+    {
+      "path": "docs/review/P34_STRICT_TIMING_DIRECTION_IMPLEMENTED_2026-06-06.md",
+      "bytes": 799,
+      "sha256": "09cb036b8c38c4910fb44204f36c9d6608d2147dc1707df6be4624d63e262162"
+    },
+    {
+      "path": "docs/review/P35_TIMING_BIAS_REGRESSION_AUDIT_2026-06-06.md",
+      "bytes": 682,
+      "sha256": "6b7bc4d6fe2db26a8f13ba6d47235c5608e1abfd927c63f7f27fa0ff94f60040"
+    },
+    {
+      "path": "docs/review/P36_LIVE_L1_TIMING_V2_MIGRATION_REVIEW_2026-06-06.md",
+      "bytes": 8382,
+      "sha256": "28794fe6d5040bda1e66e70d87a7c632cf3b07c424eff2a70203e6be98ef01fa"
+    },
+    {
+      "path": "docs/review/P37_RUNTIME_MIGRATION_TO_TIMING_SEED_V2_2026-06-06.md",
+      "bytes": 1090,
+      "sha256": "902f8887dbb1dfb039f7eb80882443e33f1c86e9384c3ffcb6079da3d7894d92"
+    },
+    {
+      "path": "docs/review/P38_TIMING_V2_MINI_RUNTIME_VALIDATION_2026-06-06.md",
+      "bytes": 917,
+      "sha256": "eb145cdd9a78ed70f4e6f314f48abcc324694a3284d895dce5054232859655fd"
+    },
+    {
+      "path": "docs/review/P39_TIMING_SHORT_SEED_DESIGN_2026-06-06.md",
+      "bytes": 2618,
+      "sha256": "4f300eac960cf2c49e003644fb9e073b747b764e2e6878af2476a1c1514a5fac"
+    },
+    {
+      "path": "docs/review/P40_CREATE_TIMING_V2_SHORT_SEEDS_2026-06-06.md",
+      "bytes": 576,
+      "sha256": "f2ed7b22dcf1dddc5746b85d6aca7c991a4d4eadbbc58473d47c5e835ee65adf"
+    },
+    {
+      "path": "docs/review/P41_ISOLATED_TIMING_SHORT_SEED_TEST_2026-06-06.md",
+      "bytes": 551,
+      "sha256": "3a3d96766a7523cd5d400bb92ff8d125c5f6d4ecf75cf90bda94c8cf431bdba4"
+    },
+    {
+      "path": "docs/review/P42_TIMING_SEED_SELECTION_LOGIC_AUDIT_2026-06-06.md",
+      "bytes": 15465,
+      "sha256": "e93eaad04d1f4d5d0292c499d6151708845bc06775d40d33c58dc060e9e738a6"
+    },
+    {
+      "path": "docs/review/P43_POLARITY_AWARE_TIMING_MODEL_DESIGN_2026-06-06.md",
+      "bytes": 3688,
+      "sha256": "b11d654dd10fc6d336f930cac49694eac7458e940fe391f9b304cb560c9538e6"
+    },
+    {
+      "path": "docs/review/P44_POLARITY_AWARE_TIMING_SCORING_IMPLEMENTED_2026-06-06.md",
+      "bytes": 939,
+      "sha256": "76bc94eb68ef7d12d76e3953d0dab275b91c73eb5706ea503d9b447efb4ca9c3"
+    },
+    {
+      "path": "docs/review/P45_POLARITY_TIMING_MINI_RUNTIME_VALIDATION_2026-06-06.md",
+      "bytes": 1110,
+      "sha256": "bb5f7ad63cea0c058e007edd52d6c6fb346fec7923fab7e8ac1606ae1ffbfd2a"
+    },
+    {
+      "path": "docs/review/P46_RUNTIME_TIMING_SIGNAL_WIRING_AUDIT_2026-06-06.md",
+      "bytes": 22067,
+      "sha256": "96e5bce241228cff8692dae48906ab062c452be4bec4cb5f9b83de7f3be09e76"
+    },
+    {
+      "path": "docs/review/P47_RUNTIME_TIMING_SIGNAL_WIRING_FIX_DESIGN_2026-06-06.md",
+      "bytes": 3750,
+      "sha256": "fbe797bc61ee1db5a667fa16930b8bb1578afbc0e1c1e1aa944fb778a24204ac"
+    },
+    {
+      "path": "docs/review/P48_RUNTIME_TIMING_SIGNAL_WIRING_IMPLEMENTED_2026-06-06.md",
+      "bytes": 1166,
+      "sha256": "0b27a6b01bd3f45d8adaea16cd2c6dbe5940dc4c2618e2f3d2af5eb845634169"
+    },
+    {
+      "path": "docs/review/P49_MINI_RUNTIME_AFTER_TIMING_SIGNAL_WIRING_2026-06-06.md",
+      "bytes": 1353,
+      "sha256": "5ff3386021d15d961d80b0cc46ea146747b173e0eb4f485aa92737b9d9a1b3f8"
+    },
+    {
+      "path": "docs/review/P50_TRADING_BEHAVIOR_REASSESSMENT_2026-06-06.md",
+      "bytes": 902,
+      "sha256": "f4a6e332d709662f211f481f00c4f28169732336eceb2234ce14eb3e9b8932eb"
+    },
+    {
+      "path": "docs/review/P51_SEGMENT_BASED_TRADING_BEHAVIOR_AUDIT_2026-06-06.md",
+      "bytes": 936,
+      "sha256": "e3f019390641faec7912160924f66c34e4293cc50b0e1b63461d5fa0518ae473"
+    },
+    {
+      "path": "docs/review/P52_INTENT_FUSION_AUDIT_2026-06-06.md",
+      "bytes": 211716,
+      "sha256": "c5fad99db083721dee512d754ae6973e6b92394f2b3b26d59a6725f3290406e7"
+    },
+    {
+      "path": "docs/review/P53_RAW_1M_INTENT_GENERATION_AUDIT_2026-06-06.md",
+      "bytes": 308607,
+      "sha256": "766e208f26cd09f4261fe98d47d2ba9841ce3231cde538d7caeb04f5a7524c47"
+    },
+    {
+      "path": "docs/review/P54_RAW_1M_INTENT_SCORE_DISTRIBUTION_AUDIT_2026-06-06.md",
+      "bytes": 880,
+      "sha256": "2497b2632a43f72c374f899683f2764d079ff4e20f4a4fe9810e8cfbf0e5c057"
+    },
+    {
+      "path": "docs/review/P55_RAW_INTENT_DECISION_LOGIC_AUDIT_2026-06-06.md",
+      "bytes": 91927,
+      "sha256": "5b3f1c1dceee6a064d47edf3e1cf2ab07b20db01ea83308ab38f0f17dc81a1b4"
+    },
+    {
+      "path": "docs/review/P56_RAW_INTENT_RECENT_SCORE_SEQUENCE_AUDIT_2026-06-06.md",
+      "bytes": 2172,
+      "sha256": "6ddd5f1a7587096f998b8387f6f87a88d997b73c9d7dfa7ff455d627caee6be3"
+    },
+    {
+      "path": "docs/review/P57_EXACT_RAW_INTENT_RULE_EXTRACTION_2026-06-06.md",
+      "bytes": 2096,
+      "sha256": "5c985ef9cf1b24fc8e6d0fae357eab0b0c0443df5ec18938168c395bbc6712f9"
+    },
+    {
+      "path": "docs/review/P58_ENTRY_GATE_CONDITION_ALIGNMENT_AUDIT_2026-06-06.md",
+      "bytes": 3850,
+      "sha256": "6e65f93d105361f28de014091d5a95037818e3f867051cbc447462df8e57635e"
+    },
+    {
+      "path": "docs/review/P59_EXTENDED_SEGMENT_VALIDATION_2026-06-06.md",
+      "bytes": 1395,
+      "sha256": "41a54a6f7488f5022dd69e5f20a697e3cbbb94b7a8a744de27e674fe9d08f77b"
+    },
+    {
+      "path": "docs/review/P60_EXTENDED_RUNTIME_TRADE_QUALITY_REVIEW_2026-06-06.md",
+      "bytes": 956,
+      "sha256": "67302f58ad70f23be4b6c9eeed6b7f43e65d4d7775e39e8264cc4d0462d517d2"
+    },
+    {
+      "path": "docs/review/P61_EXTENDED_SEGMENT_ACCEPTANCE_REVIEW_2026-06-06.md",
+      "bytes": 3337,
+      "sha256": "52d6b7bb837edc597d734e06ef556393e7f9a0c272d77dbc3c779b5424b8140a"
+    },
+    {
+      "path": "docs/review/P62_MEDIUM_RUNTIME_VALIDATION_25000_2026-06-06.md",
+      "bytes": 610,
+      "sha256": "8ce8644897cf9512b8ac8506fda9290968b71eeca7e9d059254f81a61eac9657"
+    },
+    {
+      "path": "docs/review/P63_LARGE_RUNTIME_VALIDATION_100000_2026-06-08.md",
+      "bytes": 1144,
+      "sha256": "836a49d0e010da706a97aa674c2060c204f31ae5aecefcd8345cfb87d98d7622"
+    },
+    {
+      "path": "docs/review/P64_LARGE_RUNTIME_VALIDATION_500000_2026-06-08.md",
+      "bytes": 890,
+      "sha256": "3946953033a5e4f218e3aeede74b1c6cf2c3ebf6a5a85d59183b488c10bf1ddf"
+    },
+    {
+      "path": "docs/review/P65_LARGE_RUNTIME_VALIDATION_1000000_2026-06-08.md",
+      "bytes": 913,
+      "sha256": "bccee171bc247031dce8d3edc4ddf03596583338be834de7bcd6f0e1f3b38415"
+    },
+    {
+      "path": "docs/review/P66_FULL_RUNTIME_VALIDATION_4300000_2026-06-09.md",
+      "bytes": 1383,
+      "sha256": "4679333e546baffcfc5fc518711e756b43b846700f75bd560554fc346a8bd1c9"
+    },
+    {
+      "path": "docs/review/P67_RECOVERY_STRESS_TEST_2026-06-09.md",
+      "bytes": 2077,
+      "sha256": "56163f2a9fdc8a33f4a2c5ef30e075d2db98dcbb3ecffafd0c8660229e030ab1"
+    },
+    {
+      "path": "docs/review/P68_RESTART_RESUME_TEST_2026-06-09.md",
+      "bytes": 1493,
+      "sha256": "cf46fa4037736d012296a2f18fa015d4f7c2e8254c59cf5f68b818be518384cb"
+    },
+    {
+      "path": "docs/review/P69_KILL_SWITCH_TEST_2026-06-09.md",
+      "bytes": 1515,
+      "sha256": "8f1ea5d53c4a5ee5b1df265153818a0ddb1775681f429a2af650b6f21306f227"
+    },
+    {
+      "path": "docs/review/P70_OPERATIONAL_READINESS_REVIEW_2026-06-09.md",
+      "bytes": 2163,
+      "sha256": "93e537f8d1cd9dfe6d4c855e01c232984c28676819573671b1c7b8911a2506ec"
+    },
+    {
+      "path": "docs/review/P71_PAPER_TRADING_PLAN_2026-06-09.md",
+      "bytes": 2350,
+      "sha256": "7ee0fefdc8ce5e817be8f18f731136468111feb7b60ce4c6c46df6cd8f9a2bb8"
+    },
+    {
+      "path": "docs/review/P72_EXTENDED_PAPER_OBSERVATION_2026-06-09.md",
+      "bytes": 5753,
+      "sha256": "efa7c883fc2870c0a0283100a726e20e3cdfe7a9b7729a413509d95451959299"
+    },
+    {
+      "path": "docs/review/P73_OPERATIONAL_METRICS_REVIEW_2026-06-10.md",
+      "bytes": 3417,
+      "sha256": "4b79e1ed6150dcc57f720c7a5d38136a93528f61c3d146c29a02c57086504e57"
+    },
+    {
+      "path": "docs/review/P74_PAPER_TRADING_ACCEPTANCE_2026-06-10.md",
+      "bytes": 2712,
+      "sha256": "e7837025800ce86645b19589f6b1bf955d60673bdd779637ddcbbfb0d770a860"
+    },
+    {
+      "path": "docs/review/P75_PRODUCTION_READINESS_GAP_ANALYSIS_2026-06-10.md",
+      "bytes": 3698,
+      "sha256": "b00b6762ec896b35b7be6d72784c66bf1161df2c705c63da2de952ab74e46398"
+    },
+    {
+      "path": "docs/review/P76_PRODUCTION_RISK_REVIEW_2026-06-10.md",
+      "bytes": 4409,
+      "sha256": "3e7a71875183e1fc7d09df185ef194047e4f8390f9d766c4b9b84282674bd41c"
+    },
+    {
+      "path": "docs/review/P77_PRODUCTION_INCIDENT_RESPONSE_PLAN_2026-06-10.md",
+      "bytes": 4318,
+      "sha256": "9837df4ac72d016589a9fcf09c0a69f5864fb6e43aa74bd628304c29ef7237ba"
+    },
+    {
+      "path": "docs/review/P78_PRODUCTION_MONITORING_PROCEDURES_2026-06-10.md",
+      "bytes": 3396,
+      "sha256": "d1a1b1329697565d9736e85068d345ae4a0942585f99dac3c14fa38bb2c87ebb"
+    },
+    {
+      "path": "docs/review/P79A_FINAL_ASSESSMENT_2026-06-11.md",
+      "bytes": 2735,
+      "sha256": "50f32696a2b6a22c11031c2cd3138cf304a0933d944867b074ba0536ab970aae"
+    },
+    {
+      "path": "docs/review/P79A_INITIAL_OBSERVATION_REVIEW_2026-06-10.md",
+      "bytes": 6236,
+      "sha256": "28bd7990477a79bd29ee974f20a0e43606cad467fde65323103f7f3218a0a270"
+    },
+    {
+      "path": "docs/review/P79_EXTENDED_REAL_TIME_PAPER_OPERATIONS_PLAN_2026-06-10.md",
+      "bytes": 3250,
+      "sha256": "f0218bdd1829f8f1f097639f423e2b8706199f01a4e13125bb964a84e91435fc"
+    },
+    {
+      "path": "docs/review/P80_PRODUCTION_ACCEPTANCE_REVIEW_2026-06-10.md",
+      "bytes": 3461,
+      "sha256": "0e1a307e6de895cf53fe7d8db3fce0c4a934ceffbdd9ed0222bb8b7c95593309"
+    },
+    {
+      "path": "docs/review/P81_LIVE_L1_SYSTEM_STATUS_REVIEW_2026-06-11.md",
+      "bytes": 4614,
+      "sha256": "85cb5ea79972a60e56cfef364ae7642f2b16a136f655aa78edad67d932025d41"
+    },
+    {
+      "path": "docs/review/PROJECT_KNOWLEDGE_FLUSH_2026-06-25.md",
+      "bytes": 6304,
+      "sha256": "a2c4a1ca6ddb964151c190ca8a857f89cdb58380d3e6861823ea120dc10fb18f"
+    },
+    {
+      "path": "docs/review/RCC_002_AIR_001_CORRECTED_FULL_SPEC_BUNDLE_2026-07-23.md",
+      "bytes": 388613,
+      "sha256": "601582783119534ad079a352903c3dd420f46396961fedc7bbf9fbfec52be40e"
+    },
+    {
+      "path": "docs/review/RCC_002_AIR_002_FINDINGS_2026-07-24.md",
+      "bytes": 9315,
+      "sha256": "442bdc561306868ad40c889eae536fa7b206946872e63404fad9156cef16d2dc"
+    },
+    {
+      "path": "docs/review/RCC_002_AIR_003_C1_ARCHITECTURE_REVIEW_2026-07-25.md",
+      "bytes": 14114,
+      "sha256": "a61e48d6ae89aee463137784182481f50897b0293f19bf966c144cac2a8e7cef"
+    },
+    {
+      "path": "docs/review/RCC_002_ARCHITECTURE_INTEGRITY_REVIEW_001_2026-07-23.md",
+      "bytes": 30937,
+      "sha256": "4fd631084359d0ceeb4084778b0f97126ffd6c3500fa8133371dfc1603b68fa1"
+    },
+    {
+      "path": "docs/review/RCC_002_C1_CORRECTED_BUNDLE_MANIFEST_2026-07-25.md",
+      "bytes": 10972,
+      "sha256": "3d37c7cb0f87ef93900c6456d8c5c38bbad6f895d9381c2da6eddb9029de64e0"
+    },
+    {
+      "path": "docs/review/RCC_002_C1_CORRECTED_FULL_SPEC_BUNDLE_2026-07-25.md",
+      "bytes": 489881,
+      "sha256": "18faca1d09411eb7c5b440833c8cc7fcac2a6f1870669f961653412163435198"
+    },
+    {
+      "path": "docs/review/RCC_002_C1_IMPACT_ANALYSIS_2026-07-25.md",
+      "bytes": 10920,
+      "sha256": "31157a32204b8b8c49c94433bbb2ae5cfe80ff506dec5a26c78c5c46dfdf69ef"
+    },
+    {
+      "path": "docs/review/RCC_002_C1_SCIENTIFIC_CONSISTENCY_REVIEW_2026-07-25.md",
+      "bytes": 15611,
+      "sha256": "4beffecd7b1b9d352c893d2970a06a4b4b6a8c74ecdfda74e37fc1dd766d7bd5"
+    },
+    {
+      "path": "docs/review/RCC_002_C1_VERIFICATION_RECORD_2026-07-25.md",
+      "bytes": 9951,
+      "sha256": "c36b8e7287315e0ed1a1b0adeeb1d72f83416c1aff64272e239acd1079425e98"
+    },
+    {
+      "path": "docs/review/RCC_002_C2_REVIEW_LINEAGE_INVESTIGATION_2026-07-25.md",
+      "bytes": 14436,
+      "sha256": "5452ca27db990c6928bf3849e9f5965bbac3a16cb2aa51f5cd9b81c839809ba1"
+    },
+    {
+      "path": "docs/review/RCC_002_GEMINI_MAJOR_001_VERIFICATION_2026-07-25.md",
+      "bytes": 1516,
+      "sha256": "674dedd60aed422c71af983d2a1d46224e47905ac3388fe8013745911f82081b"
+    },
+    {
+      "path": "docs/review/RCC_002_PRE_CERTIFICATION_STATUS_2026-07-27.md",
+      "bytes": 11490,
+      "sha256": "ec88d121b64b896558326b7ef46c3513f837bad3ee771c74e08c5ba14d4ae0aa"
+    },
+    {
+      "path": "docs/review/RCC_002_SCR_002_FINDINGS_2026-07-23.md",
+      "bytes": 20274,
+      "sha256": "8ad0bbb323746e497ec99ca7ddbc9f13cb25708d7c88a82dba8b454a5d2a33d7"
+    },
+    {
+      "path": "docs/review/RCC_002_SCR_002_FULL_SPEC_BUNDLE_2026-07-23.md",
+      "bytes": 225818,
+      "sha256": "d3635d0012e7d9b42f6708c78ee8e5185b52d729645bca93be1aa1562259c2f0"
+    },
+    {
+      "path": "docs/review/RCC_002_SCR_003_FINDINGS_2026-07-23.md",
+      "bytes": 11292,
+      "sha256": "336a5697c7c234ef393282e37c17ed9aae7f872c9e03143ad90126f2b3bcea77"
+    },
+    {
+      "path": "docs/review/RCC_002_SCR_004_FINDINGS_2026-07-23.md",
+      "bytes": 11654,
+      "sha256": "3a026fc31634efae754be1f2756f2a5a61d87ffa32963ea8586d3e3cc74f6aa1"
+    },
+    {
+      "path": "docs/review/RCC_002_SCR_004_FULL_SPEC_BUNDLE_2026-07-23.md",
+      "bytes": 236099,
+      "sha256": "e61b74ebf1775cf54b7a31c9d0759f0ce45763c58f1bace8e510499e82206b38"
+    },
+    {
+      "path": "docs/review/RCC_002_SCR_005_CORRECTED_FULL_SPEC_BUNDLE_2026-07-24.md",
+      "bytes": 485064,
+      "sha256": "5aae1bd7107ace3baf1de8178349169249b387756fe406598a8a7fad1ed190b2"
+    },
+    {
+      "path": "docs/review/RCC_002_SCR_005_FINDINGS_2026-07-23.md",
+      "bytes": 28691,
+      "sha256": "2e9a988e37ae6399651209d237aab6fd3d024d8680904303b6fd8f4060becc57"
+    },
+    {
+      "path": "docs/review/RCC_002_SCR_006_FINDINGS_2026-07-24.md",
+      "bytes": 10889,
+      "sha256": "5f35cdc6a597b8fbd83def462570c01588ffbd403ee1595cf74c3a389688cde4"
+    },
+    {
+      "path": "docs/review/RCC_002_SPECIFICATION_FAMILY_SCR_REPORT_2026-07-23.md",
+      "bytes": 18396,
+      "sha256": "ce42b140c8c2e86144834a40978e452f469efeff8afb6d9b68b78c03053f776e"
+    },
+    {
+      "path": "docs/review/RCC_002_SPECIFICATION_FAMILY_SCR_REREVIEW_REPORT_2026-07-23.md",
+      "bytes": 20237,
+      "sha256": "bb9d831179891535b34b0f7b972b8be6a02212090fc3e87a242f521681e5e948"
+    },
+    {
+      "path": "docs/review/SGF_007_CAPABILITY_PILOT_COMPLETED_2026-06-25.md",
+      "bytes": 2516,
+      "sha256": "c877079c3a442e488e01da6bb5b7894cd19dd21bf913634f1a1167bf7a0a8a14"
+    },
+    {
+      "path": "docs/review/SGF_011_KNOWLEDGE_CONSOLIDATION_REVIEW_2026-06-26.md",
+      "bytes": 4253,
+      "sha256": "5206362347f64b146152d0476ee82db1f1a9f2c24f4b10f4bf482cf63c5114b3"
+    },
+    {
+      "path": "docs/review/SGF_015_SCIENTIFIC_CAPABILITY_CERTIFICATION_GATE_2026-06-28.md",
+      "bytes": 6226,
+      "sha256": "58602d83e38eb943a78248027f1f52fbf07bd0a1375c8d8189f2801571da1c4b"
+    },
+    {
+      "path": "docs/review/SSI_DECISION_ENGINE_V1_LAYER_REVIEW_2026-06-23.md",
+      "bytes": 2476,
+      "sha256": "a5218c31bb7a681ca76fb3f6ea4db340a3cafcb57b67f140e3ef4d7fcb872fd3"
+    },
+    {
+      "path": "docs/review/SSI_DECISION_EVIDENCE_V1_LAYER_REVIEW_2026-06-23.md",
+      "bytes": 2193,
+      "sha256": "a9ab6cf219fe5a92090961a9b1eb6489c97318b3432c5cc1598c4505c0e9b2a5"
+    },
+    {
+      "path": "docs/review/SSI_EXECUTION_INTELLIGENCE_V1_LAYER_REVIEW_2026-06-23.md",
+      "bytes": 3439,
+      "sha256": "b7c7afe70a76609a99a43bc3a6d53b3d117dd92977faba57b5118093270bb341"
+    },
+    {
+      "path": "docs/review/SSI_SCIENTIFIC_CORE_CERTIFICATION_V1_2026-06-24.md",
+      "bytes": 62177,
+      "sha256": "e1651b476cff8df3079c1d6079265972116635fb48f957f947da2abc9f75e1a1"
+    },
+    {
+      "path": "docs/review/TRADE_INSPECTOR_ARCHITECTURE_2026-06-11.md",
+      "bytes": 3383,
+      "sha256": "e3322ed225e4aa0072a627af4ed1dd8b12bd722ba59b6438251b585f5842078b"
+    },
+    {
+      "path": "docs/review/TRADE_INSPECTOR_DESIGN_PHASE_2026-06-11.md",
+      "bytes": 4414,
+      "sha256": "0daf150f0e3ad7083ce676a0a4ba5a20616918e7e2e36e7f0d630901aaf82e08"
+    },
+    {
+      "path": "docs/specifications/RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md",
+      "bytes": 134284,
+      "sha256": "529f83a27c0464af0954213ffc0e81b26819bf846a1b7a6085a6b323bddf87a2"
+    },
+    {
+      "path": "docs/specifications/RCC_002_DATA_VALIDATION_2026-07-23.md",
+      "bytes": 46721,
+      "sha256": "5366fba100373e62e114faabca680800faf8d9528e40bf4666b4c675387526c2"
+    },
+    {
+      "path": "docs/specifications/RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md",
+      "bytes": 50753,
+      "sha256": "31dce315299ec485c20ca8c84714d3a97fa696f893447af542dd835a02dd433f"
+    },
+    {
+      "path": "docs/specifications/RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md",
+      "bytes": 59993,
+      "sha256": "91f87f1841cd47a01d3b848f626159d1f5adf0be88f9fdb571e25a2ad229152c"
+    },
+    {
+      "path": "docs/specifications/RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md",
+      "bytes": 68119,
+      "sha256": "134f6c1db3160dc3d84cc0fc005d183c4856e8af6b0cccbc2ed61e9ad8e1aaf9"
+    },
+    {
+      "path": "docs/specifications/RCC_002_REPRODUCIBILITY_AND_MANIFEST_2026-07-23.md",
+      "bytes": 74822,
+      "sha256": "9cf6de39c32be4d4bc2ea56e2eb0a5dddf1f29dee8adc965df1f930eef81dac6"
+    },
+    {
+      "path": "docs/specifications/RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md",
+      "bytes": 52988,
+      "sha256": "82e099fe89982f4544e7a89f184653066d1871815006eea7bc64b4efbbafa1c7"
+    },
+    {
+      "path": "scripts/build_rcc002_spec_bundle.py",
+      "bytes": 7361,
+      "sha256": "1f4c7ded6b4dc71a7777902b8b5db117dd5167d89deff13df1de99a0c91f8ae8"
+    }
+  ]
+}

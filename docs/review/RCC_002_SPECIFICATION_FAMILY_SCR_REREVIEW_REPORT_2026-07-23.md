@@ -1,0 +1,496 @@
+# RCC-002 Specification Family – Scientific Consistency Re-Review Report
+
+## Dokumentmetadaten
+
+| Feld | Wert |
+|---|---|
+| Dokumentklasse | Scientific Consistency Re-Review Report |
+| Dokument-ID | `RCC-002-SCR-002` |
+| Version | `1.0.0` |
+| Datum | `2026-07-23` |
+| Speicherort | `docs/review/` |
+| Dateiname | `RCC_002_SPECIFICATION_FAMILY_SCR_REREVIEW_REPORT_2026-07-23.md` |
+| Status | `NOT PASSED – CORRECTION REQUIRED` |
+| Vorgängerreview | `RCC_002_SPECIFICATION_FAMILY_SCR_REPORT_2026-07-23.md` |
+| Revieweingabe | `RCC_002_SPECIFICATION_FAMILY_SCR_INPUT_2026-07-23.md` |
+| SHA-256 der geprüften Revieweingabe | `a939f9bfac12e462aa5ec6dc3d82f2b27b585a99159b19821200ceda3e7cbc3c` |
+| Umfang der Revieweingabe | 223.723 Bytes; 7.946 Zeilen; sieben eingebettete Spezifikationen |
+| Ergebnis | Elf frühere Befunde geschlossen; zwei neue Blocker und ein redaktioneller Befund |
+
+---
+
+## 1. Reviewauftrag
+
+Dieser Re-Review prüft:
+
+1. ob die elf Befunde aus `RCC-002-SCR-001` vollständig und widerspruchsfrei korrigiert wurden;
+2. ob die Korrekturen neue normative Konflikte erzeugt haben;
+3. ob die sieben Spezifikationen gemeinsam wissenschaftlich konsistent und implementierungsfähig sind;
+4. ob eine Freigabe für Editorial Pass und Architecture Integrity Review zulässig ist.
+
+Der Re-Review bewertet ausschließlich den tatsächlich eingebetteten Dokumentstand. Frühere Aussagen, Absichten oder noch nicht gespeicherte Änderungen gelten nicht als Evidenz.
+
+---
+
+## 2. Geprüfte Dokumente
+
+| Nr. | Dokument | Version | Status in der Revieweingabe |
+|---:|---|---:|---|
+| 1 | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md` | `0.3.0` | SCR-Corrected Draft – Re-Review Pending |
+| 2 | `RCC_002_DATA_VALIDATION_2026-07-23.md` | `0.1.0` | Review-Ready Draft – Internal Review Completed |
+| 3 | `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md` | `0.1.0` | Review-Ready Draft – Internal Review Completed |
+| 4 | `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md` | `0.1.0` | Review-Ready Draft – Internal Review Completed |
+| 5 | `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md` | `0.2.0` | SCR-Corrected Draft – Re-Review Pending |
+| 6 | `RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md` | `0.1.0` | Review-Ready Draft – Internal Review Completed |
+| 7 | `RCC_002_REPRODUCIBILITY_AND_MANIFEST_2026-07-23.md` | `0.2.0` | SCR-Corrected Draft – Re-Review Pending |
+
+Die Eingabe enthält jedes Dokument genau einmal. Dokumentgrenzen, Dateinamen und Versionen waren maschinell auflösbar.
+
+---
+
+## 3. Bewertungsmaßstab
+
+| Klasse | Bedeutung | Freigabewirkung |
+|---|---|---|
+| `BLOCKER` | Normativer Widerspruch oder Identitätsfehler mit unmittelbarer Implementierungswirkung | Blockiert SCR-Freigabe |
+| `MAJOR` | Wesentliche methodische oder architektonische Unklarheit | Blockiert SCR-Freigabe |
+| `MODERATE` | Begrenzter Konsistenz- oder Vollständigkeitsfehler | Korrektur vor nachgelagerter Freigabe |
+| `MINOR` | Redaktioneller oder statusbezogener Fehler ohne fachliche Semantikänderung | Blockiert den fachlichen Re-Review allein nicht |
+| `CLOSED` | Frühere Beanstandung vollständig korrigiert | Keine weitere Maßnahme für diesen Befund |
+
+Ein einziger offener `BLOCKER` oder `MAJOR` verhindert den Status `PASSED`.
+
+---
+
+## 4. Ergebnisübersicht
+
+| Bereich | Ergebnis |
+|---|---|
+| Struktur und Vollständigkeit der Revieweingabe | Bestanden |
+| Frühere Befunde `SCR-B01` bis `SCR-B05` | Alle geschlossen |
+| Frühere Befunde `SCR-E01` und `SCR-E02` | Alle geschlossen |
+| Frühere Befunde `SCR-M01` bis `SCR-M04` | Alle geschlossen |
+| Neue normative Querprüfung | Nicht bestanden |
+| Neue Blocker | 2 |
+| Neue Major-Befunde | 0 |
+| Neue Moderate-Befunde | 0 |
+| Neue Minor-Befunde | 1 |
+| Gesamturteil | `NOT PASSED – CORRECTION REQUIRED` |
+
+---
+
+## 5. Re-Review der früheren Befunde
+
+### 5.1 `SCR-B01` – kanonische S2-Lückenpolitik
+
+**Status: CLOSED**
+
+Die übergeordnete Pipeline und die Data Validation Specification legen nun übereinstimmend fest:
+
+- Das kanonische beobachtete S2-Artefakt enthält ausschließlich beobachtete Kerzen.
+- Fehlende Beobachtungen werden nicht im selben Artefakt synthetisch ersetzt.
+- Eine synthetische Kontinuitätsansicht ist nur als getrenntes, nichtkanonisches und eindeutig markiertes Artefakt zulässig.
+- Kanonische Returns und Labels schließen synthetische Kerzen standardmäßig aus.
+
+Die frühere Mehrdeutigkeit zwischen Abbruch, Beibehaltung von Lücken und synthetischer Auffüllung ist beseitigt.
+
+### 5.2 `SCR-B02` – S6-Ausgabevertrag
+
+**Status: CLOSED**
+
+Data Pipeline Specification Version `0.3.0` und Regime and Gate Specification Version `0.2.0` definieren dieselbe Mindestausgabe:
+
+- `allow_long`;
+- `allow_short`;
+- `data_gate_pass`;
+- `gate_state`;
+- `gate_reason_codes_long`;
+- `gate_reason_codes_short`;
+- `gate_profile_id`;
+- `gate_profile_version`;
+- `gate_valid`;
+- `gate_evaluated_at`.
+
+Auch die Trennung von `model` für S5 und `profile` für S6 ist eindeutig.
+
+Dieser geschlossene Befund betrifft ausschließlich den Ausgabevertrag. Der neue semantische S6-Konflikt wird separat als `SCR-RR-B01` behandelt.
+
+### 5.3 `SCR-B03` – S7-Präfixvertrag
+
+**Status: CLOSED**
+
+Die Familie verwendet verbindlich:
+
+- `fwd_*` für Forward Returns und Forward Excursions;
+- `label_*` für Labels;
+- `barrier_*` für Barrier-Ergebnisse.
+
+`forward_*` ist ausdrücklich kein paralleles Synonym. Die Label Specification schützt diese Präfixe und beschränkt ihre reguläre Erzeugung auf S7.
+
+### 5.4 `SCR-B04` – unvollständiger Sortierschlüssel des semantischen Fingerprints
+
+**Status: CLOSED**
+
+Der semantische Fingerprint verwendet nun den vollständigen registrierten Primärschlüssel:
+
+```text
+(market_type, symbol, interval, open_time)
+```
+
+Bei noch nicht konsolidierten Multi-Provider-Daten wird `provider` ergänzt. Andere Tabellen müssen ihren vollständigen Primärschlüssel im Schema registrieren.
+
+### 5.5 `SCR-B05` – Vermischung von semantischem Inhalt und physischem Layout
+
+**Status: CLOSED**
+
+Die Reproducibility and Manifest Specification trennt nun:
+
+- `semantic_sha256` für logische Datentypen, Nullsemantik, Primärschlüssel, kanonische Werte, Schema und Zeilenzahl;
+- `physical_layout_sha256` für Dateigrenzen, Partitionen, Row Groups, Kompression, Writerprofil und Containerparameter;
+- `byte_sha256` für die tatsächlich gespeicherte Bytefolge.
+
+Physische Partitionierung ist ausdrücklich aus `semantic_sha256` ausgeschlossen.
+
+Die neu entdeckte Weitergabe physischer Identität in logisch bezeichnete Build- und Dataset-IDs ist ein anderer, durch die Korrektur sichtbar gewordener Ebenenkonflikt und wird als `SCR-RR-B02` behandelt.
+
+### 5.6 `SCR-E01` – beschädigtes Falsifikationskriterium
+
+**Status: CLOSED**
+
+Die Falsifikationskriterien der Regime and Gate Specification sind vollständig, grammatisch geschlossen und methodisch prüfbar. Sie decken Zeitfensterabhängigkeit, Tradezahl, Drawdown, extreme Gewinner, Richtungsabdeckung, blockierte Gewinner, Schwellenstabilität, Kosten, In-Sample-Selektion und betrieblich unbrauchbare Unknown-/Side-Anteile ab.
+
+### 5.7 `SCR-E02` – beschädigte Passage zur synthetischen Regimeansicht
+
+**Status: CLOSED**
+
+Regimeberechnung auf synthetischen Kontinuitätsdaten verlangt nun:
+
+- eine eigene Profil-ID;
+- einen eigenen Build;
+- eine separate Sensitivitätsanalyse;
+- strikte Trennung vom kanonischen beobachteten Regime.
+
+Die Passage ist vollständig und stimmt mit der S2-Lückenpolitik überein.
+
+### 5.8 `SCR-M01` – mehrdeutige JSON-Kanonisierung
+
+**Status: CLOSED**
+
+Version `0.2.0` bindet die Kanonisierung an:
+
+- RFC 8785/JCS;
+- UTF-8 ohne BOM;
+- Unicode-NFC-Vorverarbeitung;
+- Verbot nichtendlicher Zahlen;
+- kanonische Dezimalstrings für fachliche Dezimalparameter;
+- schemaabhängige oder erhaltene Array-Reihenfolge;
+- versionierte Golden Fixtures mit erwarteten Bytes und SHA-256-Digests.
+
+Das Profil `RCC_JSON_CANONICALIZATION_V1` ist eindeutig benannt.
+
+### 5.9 `SCR-M02` – mehrdeutige Vorabbildung des `source_snapshot_id`
+
+**Status: CLOSED**
+
+Provider-Revisionen und semantische Abrufparameter beeinflussen die Identität. Abrufzeitpunkt, lokaler Speicherpfad, Hostname, Benutzername, Transport-Retrys und Cache-Ort sind ausdrücklich nur Run- beziehungsweise Provenienzmetadaten und dürfen den `source_snapshot_id` nicht verändern.
+
+### 5.10 `SCR-M03` – zu weit gefasste E3-Anforderung
+
+**Status: CLOSED**
+
+Die Spezifikation unterscheidet jetzt:
+
+- E3-Verifikation eines bereits persistierten unveränderlichen Artefakts;
+- separat erzeugte Run Manifeste mit unterschiedlichen Run-IDs und Laufzeitstempeln;
+- E3 zwischen Erzeugungen nur bei identischer vollständiger kanonischer Vorabbildung.
+
+Damit wird Bytegleichheit nicht mehr pauschal für verschiedene Runs verlangt.
+
+### 5.11 `SCR-M04` – unbestimmte umgebungsabhängige Build-ID
+
+**Status: CLOSED**
+
+Das versionierte Allowlist-Profil `RCC_BUILD_ENV_IDENTITY_V1` enthält:
+
+- Python-Haupt- und Nebenversion;
+- Hash gesperrter Pakete und relevanter nativer Numerikbibliotheken;
+- UTC;
+- kanonisches Locale;
+- numerisches Präzisions- und Rundungsprofil;
+- Thread- und BLAS-Determinismusparameter;
+- Writer- und Serialisierungsprofil.
+
+Hostname, Benutzername, lokale Pfade, Run-Zeiten, CPU-Modell und Gerätename sind standardmäßig Run-Metadaten und beeinflussen die Build-ID nicht.
+
+---
+
+## 6. Neue Befunde
+
+### 6.1 `SCR-RR-B01` – widersprüchliche Liquiditätsverantwortung in S6
+
+**Klasse: BLOCKER**
+
+**Betroffene Dokumente:**
+
+- `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.3.0`;
+- `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md`, Version `0.2.0`.
+
+**Evidenz:**
+
+Die übergeordnete Pipeline verlangt normativ:
+
+> S6 MUST Regime, Marktdatenqualität, Liquidität und weitere freigegebene Zustandsbedingungen in getrennte Entscheidungsfelder überführen.
+
+Die vollständige Regime and Gate Specification definiert dagegen nur:
+
+- Datenqualitäts-Gate;
+- Research-Open-Profil;
+- Trend-Aligned-Profil;
+- Trend-Strength-Aligned-Profil;
+- Regime-, ADX- und ATR-Kontext.
+
+Sie definiert weder:
+
+- ein Liquiditätsfeld;
+- eine Liquiditätsmetrik;
+- einen Liquiditätsschwellenwert;
+- einen Liquiditäts-Reason-Code;
+- ein Liquiditätsprofil;
+- eine Regel, nach der Liquidität verpflichtend in `allow_long` oder `allow_short` eingeht.
+
+`GATE_RESEARCH_OPEN_V1` erlaubt beide Richtungen allein bei bestandenem `data_gate_pass`. Auch die trendgerichteten Profile enthalten keine Liquiditätsbedingung.
+
+**Widerspruch:**
+
+Die übergeordnete Spezifikation macht Liquidität durch `MUST` zu einem verpflichtenden Bestandteil jeder S6-Implementierung. Die autoritative S6-Fachspezifikation implementiert diese Pflicht nicht und bezeichnet die vorhandenen Profile dennoch als vollständig spezifiziert.
+
+Zwei regelkonforme Implementierer könnten deshalb inkompatible Ergebnisse erzeugen:
+
+1. Implementierung A blockiert bei niedriger Liquidität, um das übergeordnete `MUST` zu erfüllen.
+2. Implementierung B ignoriert Liquidität, um die vollständigen Wahrheitstabellen der S6-Fachspezifikation exakt umzusetzen.
+
+Beide können sich auf normative Texte berufen. Der S6-Vertrag ist daher noch nicht deterministisch.
+
+**Erforderliche Korrektur:**
+
+Eine der folgenden Varianten muss ausdrücklich gewählt werden:
+
+1. **Empfohlene Variante:** In der Data Pipeline Specification `Liquidität` aus der verpflichtenden Liste entfernen und als optionales, separat registriertes Gate-Profil formulieren:
+
+   ```text
+   S6 MUST Marktdatenqualität und das gewählte registrierte Gate-Profil in
+   getrennte Long-/Short-Entscheidungsfelder überführen. Regime-, Trendstärke-,
+   Volatilitäts-, Liquiditäts- oder weitere Zustandsbedingungen MAY nur durch
+   ein explizit registriertes und versioniertes Profil einfließen.
+   ```
+
+2. Alternativ muss die Regime and Gate Specification ein vollständiges kanonisches Liquiditäts-Gate mit Inputs, Berechnung, Schwellen, Warm-up, Validität, Reason Codes, Wahrheitstabellen und Tests ergänzen.
+
+Eine bloße Erwähnung von Liquidität ohne vollständige Semantik reicht nicht.
+
+### 6.2 `SCR-RR-B02` – physische Artefaktidentität kontaminiert logisch definierte Build- und Dataset-IDs
+
+**Klasse: BLOCKER**
+
+**Betroffenes Dokument:**
+
+- `RCC_002_REPRODUCIBILITY_AND_MANIFEST_2026-07-23.md`, Version `0.2.0`.
+
+**Evidenz:**
+
+Die Spezifikation definiert:
+
+- `build_id` als „logische Transformationsdefinition einschließlich Eingaben“;
+- `dataset_id` als „logischen veröffentlichten RCC-002-Datenstand“;
+- `artifact_id` als Identität eines konkret gespeicherten Artefakts aus semantischem Inhalt und physischem Layout.
+
+Die `artifact_id` enthält normativ:
+
+- `semantic_sha256`;
+- `physical_layout_sha256`;
+- Byte-Hash des gespeicherten Containers.
+
+Gleichzeitig enthält:
+
+- die Vorabbildung des `build_id` geordnete Parent-`artifact_id`s;
+- die Vorabbildung des `dataset_id` die geordnete Liste veröffentlichter `artifact_id`s und den `build_id`.
+
+**Widerspruch:**
+
+Zwei Datenstände mit identischem semantischem Inhalt, identischem Code, identischer Konfiguration und identischem Spezifikationsprofil können wegen anderer Parquet-Bytes, Row-Group-Grenzen, Kompression oder Partitionierung unterschiedliche `artifact_id`s erhalten. Diese physische Differenz propagiert anschließend in `build_id` und `dataset_id`.
+
+Damit sind `build_id` und `dataset_id` entgegen ihrer Definition nicht mehr logisch beziehungsweise E2-semantisch, sondern physisch layoutabhängig.
+
+Das widerspricht außerdem dem geräteübergreifenden Modell, nach dem gleiche Inhalte mindestens E2 erreichen dürfen, ohne dass E3 für Datencontainer generell erforderlich ist.
+
+**Auswirkung:**
+
+- Repackaging ohne Inhaltsänderung erzeugt einen neuen angeblich logischen Dataset-Stand.
+- Cross-Device-Builds können trotz E2-Gleichheit verschiedene Dataset-IDs erhalten.
+- Nachgelagerte Caches und Lineage können eine reine Layoutänderung fälschlich als fachlichen Datenwechsel behandeln.
+- Die Trennung aus `SCR-B05` wird auf Hash-Ebene korrekt durchgeführt, auf ID-Ebene aber wieder zusammengeführt.
+
+**Erforderliche Korrektur:**
+
+Die Spezifikation muss logische und physische Identität auch auf Build- und Dataset-Ebene trennen.
+
+Empfohlene Regel:
+
+- Logische Parent-Identität im `build_id` über `source_snapshot_id` beziehungsweise geordnete Parent-`semantic_sha256`-Werte plus Schema-ID bilden.
+- `dataset_id` aus geordneten logischen Dataset-Komponenten, insbesondere `semantic_sha256`, Schema, Dataset-Profil, Spezifikationsprofil und logischem `build_id`, bilden.
+- Konkrete `artifact_id`s, `physical_layout_sha256` und `byte_sha256` ausschließlich im Manifest, Artefaktinventar und physischen Lineage-Nachweis führen.
+- Falls eine physische Gesamtidentität benötigt wird, eine getrennte `dataset_artifact_set_id` oder gleichwertige eindeutig benannte ID einführen.
+
+Alternativ müssten `build_id` und `dataset_id` ausdrücklich als physische Identitäten umdefiniert und zusätzliche logische IDs eingeführt werden. Die gegenwärtige Mischform ist unzulässig.
+
+### 6.3 `SCR-RR-m01` – veraltete Liste der nächsten Schritte
+
+**Klasse: MINOR**
+
+**Betroffenes Dokument:**
+
+- `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.3.0`.
+
+**Evidenz:**
+
+Kapitel 21 führt als „nächste vorgeschriebene Schritte“ weiterhin auf:
+
+1. Korrektur der Regime and Gate Specification auf Version `0.2.0`;
+2. Korrektur der Reproducibility and Manifest Specification auf Version `0.2.0`;
+3. Erzeugung eines neuen gemeinsamen SCR-Inputs.
+
+Alle drei Schritte sind im geprüften Input bereits abgeschlossen.
+
+**Auswirkung:**
+
+Die fachliche Semantik wird dadurch nicht verändert. Der Status- und Arbeitsablaufnachweis ist jedoch veraltet und kann zu unnötiger Wiederholung führen.
+
+**Erforderliche Korrektur:**
+
+Kapitel 21 muss den aktuellen Stand abbilden:
+
+- beide abhängigen Spezifikationen korrigiert;
+- gemeinsamer SCR-Input erzeugt;
+- Re-Review `RCC-002-SCR-002` nicht bestanden;
+- Korrektur von `SCR-RR-B01` und `SCR-RR-B02` erforderlich;
+- danach erneuter fokussierter Re-Review.
+
+---
+
+## 7. Querprüfungen ohne neuen Befund
+
+Folgende Bereiche wurden dokumentübergreifend geprüft und ergaben keinen zusätzlichen offenen Befund:
+
+### 7.1 Stufenfolge und Kausalität
+
+S0 bis S8 sind konsistent geordnet. Nur S7 darf regulär zukünftige Marktwerte neu berechnen. S8 darf diese lediglich in dafür vorgesehene Views übernehmen.
+
+### 7.2 Zeilenerhaltung
+
+S3 bis S7 erhalten die kanonischen Schlüssel und Zeilen. Ungültige Warm-up-, Tail- oder Gap-Ergebnisse bleiben als markierte Zeilen erhalten und werden nicht still entfernt oder mit null aufgefüllt.
+
+### 7.3 Gap- und Segmentsemantik
+
+S2-Lückenpolitik, S3-Warm-up, S5-State-Reset und S7-Gap-Crossing sind konsistent. Zustände werden nicht über ungeklärte Lücken fortgeschrieben.
+
+### 7.4 Regime und Gate
+
+Regime beschreibt den Markt; Gates beschreiben Handelsfreigaben; Strategien entscheiden über konkrete Entries. `allow_long = true` erzeugt keinen Trade.
+
+Abgesehen von `SCR-RR-B01` sind Zustände, Fail-closed-Verhalten, Reason Codes und Long-/Short-Trennung konsistent.
+
+### 7.5 Labelverfügbarkeit und Leakage
+
+Horizont, Preisreferenz, Verfügbarkeitszeit und Tail-Invalidität sind explizit. S7-Felder sind aus Live-/Paper-Views entfernbar.
+
+### 7.6 Primärschlüssel
+
+Data Validation und Reproducibility verwenden übereinstimmend:
+
+```text
+(market_type, symbol, interval, open_time)
+```
+
+Bei unkonsolidierten Multi-Provider-Daten wird `provider` ergänzt.
+
+### 7.7 Historische Evidenz
+
+Die historischen Signal- und Regimeverifikationen werden als Evidenz und Legacy-Lineage behandelt, nicht als automatisch kanonische RCC-002-Datenquelle. Der Trunkierungsverdacht der historischen Regimedatei bleibt korrekt gekennzeichnet.
+
+---
+
+## 8. Freigabeentscheidung
+
+### 8.1 Gesamturteil
+
+```text
+NOT PASSED – CORRECTION REQUIRED
+```
+
+### 8.2 Begründung
+
+Die elf früheren Befunde wurden vollständig geschlossen. Die Korrekturen haben die Spezifikationsfamilie deutlich präzisiert.
+
+Eine Freigabe ist dennoch nicht möglich, weil:
+
+1. die verpflichtende S6-Liquiditätssemantik zwischen übergeordneter Pipeline und Gate-Spezifikation widersprüchlich ist;
+2. physische Artefaktidentitäten in logisch definierte Build- und Dataset-IDs propagieren.
+
+Beide Blocker können unterschiedliche regelkonforme Implementierungen und unterschiedliche Identitäten für semantisch gleiche Daten erzeugen.
+
+### 8.3 Nicht zulässige Statusänderungen
+
+Auf Grundlage dieses Berichts dürfen die Spezifikationen noch nicht auf folgende Status gesetzt werden:
+
+- `SCR Passed`;
+- `Approved for Implementation`;
+- `Certified`;
+- `Released`.
+
+Gemini- und Claude-Reviewstatus bleiben `pending`, solange diese Reviews nicht tatsächlich durchgeführt wurden.
+
+---
+
+## 9. Verbindliche Korrekturreihenfolge
+
+1. Data Pipeline Specification auf Version `0.4.0` korrigieren:
+   - `SCR-RR-B01` auflösen;
+   - Kapitel 21 aktualisieren.
+2. Reproducibility and Manifest Specification auf Version `0.3.0` korrigieren:
+   - `SCR-RR-B02` auflösen;
+   - Build-, Dataset- und physische Artefaktidentität eindeutig trennen.
+3. Abhängigkeitsversionen und Review Evidence in den betroffenen Dokumenten aktualisieren.
+4. Gemeinsamen SCR-Input erneut aus exakt sieben aktuellen Quelldokumenten erzeugen.
+5. Prüfsumme und Dokumentversionen des neuen Inputs protokollieren.
+6. Einen zweiten fokussierten Re-Review ausschließlich für:
+   - `SCR-RR-B01`;
+   - `SCR-RR-B02`;
+   - `SCR-RR-m01`;
+   - neu entstandene Querwidersprüche
+   durchführen.
+
+Erst nach bestandenem Re-Review folgen:
+
+1. Editorial Pass;
+2. Architecture Integrity Review;
+3. unabhängige Reviews durch Gemini und Claude;
+4. Certification;
+5. Implementierungsfreigabe.
+
+---
+
+## 10. Abschluss
+
+Der Re-Review bestätigt eine erfolgreiche Korrektur aller elf Befunde aus `RCC-002-SCR-001`.
+
+Der geprüfte Gesamtstand ist jedoch wegen zweier neuer normativer Blocker noch nicht wissenschaftlich konsistent freigegeben.
+
+Der verbindliche Abschlussstatus lautet:
+
+```text
+RCC-002-SCR-002
+NOT PASSED – CORRECTION REQUIRED
+2 BLOCKERS
+1 MINOR
+11 PREVIOUS FINDINGS CLOSED
+```
