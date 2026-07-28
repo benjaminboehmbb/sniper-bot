@@ -24,12 +24,15 @@ from rcc002.s4.compute import (
 )
 from rcc002.s4.constants import (
     FIELD_DEFINITIONS,
+    FORBIDDEN_S4_FIELDS,
+    FORBIDDEN_S4_PREFIXES,
     SIGNAL_BASE_FIELDS,
     SIGNAL_PROFILE_ID,
     SIGNAL_PROFILE_VERSION,
     SIGNAL_SCHEMA_ID,
     SIGNAL_SCHEMA_REF,
     SIGNAL_SCHEMA_VERSION,
+    is_forbidden_s4_field,
 )
 from rcc002.s4.formulas import SignalFormulaConflict
 from rcc002.s4.reason_codes import (
@@ -240,17 +243,23 @@ class TestRegistryAndSchemaContracts(unittest.TestCase):
 
     def test_output_has_no_s5_s6_or_s7_fields(self) -> None:
         names = {field.name for field in dataclasses.fields(S4Row)}
-        forbidden = {
-            "market_regime",
-            "regime_state",
-            "allow_long",
-            "allow_short",
-            "data_gate_pass",
-            "gate_state",
-            "label",
-            "forward_return",
-        }
-        self.assertTrue(forbidden.isdisjoint(names))
+        self.assertTrue(FORBIDDEN_S4_FIELDS.isdisjoint(names))
+
+        for name in names:
+            with self.subTest(field=name):
+                self.assertFalse(is_forbidden_s4_field(name))
+
+        for forbidden_name in FORBIDDEN_S4_FIELDS:
+            with self.subTest(forbidden=forbidden_name):
+                self.assertTrue(
+                    is_forbidden_s4_field(forbidden_name)
+                )
+
+        for prefix in FORBIDDEN_S4_PREFIXES:
+            with self.subTest(prefix=prefix):
+                self.assertTrue(
+                    is_forbidden_s4_field(f"{prefix}probe")
+                )
 
     def test_signal_field_rejects_invalid_value_pairings(self) -> None:
         with self.assertRaises(ValueError):
@@ -331,6 +340,16 @@ class TestStageWideInputRejection(unittest.TestCase):
             _make_row(
                 0,
                 indicator_overrides={"rsi_wilder_14": malformed},
+            )
+        )
+
+    def test_valid_out_of_range_indicator_is_rejected(self) -> None:
+        self.assert_rejected(
+            _make_row(
+                0,
+                indicator_overrides={
+                    "rsi_wilder_14": _valid_indicator(100.001)
+                },
             )
         )
 
@@ -990,6 +1009,20 @@ class TestDefinedAndConflictingZeroCases(unittest.TestCase):
             caught.exception.reason_code,
             "SIG_ATR_RATIO_ZERO_CONFLICT",
         )
+
+    def test_positive_current_atr_makes_rolling_mean_positive(self) -> None:
+        rows = _make_rows(
+            200,
+            row_factory=lambda index: _make_row(
+                index,
+                indicator_overrides={
+                    "atr_wilder_14": 1.0 if index == 199 else 0.0
+                },
+            ),
+        )
+        field = _signal(rows, "score_atr_relative_c")
+        self.assertTrue(field.valid)
+        self.assertEqual(field.value, 1.0)
 
 
 class TestFinalizationAndCausality(unittest.TestCase):
