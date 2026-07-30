@@ -1,0 +1,79 @@
+{
+  "fixture_id": "RCC002_BINANCE_SPOT_KLINE_TIMESTAMP_GOLDEN_V1",
+  "fixture_version": "1.0.0",
+  "profile_id": "BINANCE_SPOT_TIMESTAMP_UNITS_V1",
+  "cases": [
+    {
+      "case_id": "daily_last_pre_transition_first_record",
+      "archive_family": "DAILY",
+      "period_start_utc": "2024-12-31T00:00:00Z",
+      "period_end_utc": "2025-01-01T00:00:00Z",
+      "expected_raw_unit": "MILLISECOND",
+      "raw_open_time": 1735603200000,
+      "raw_close_time": 1735603259999,
+      "expected_open_time_ms": 1735603200000,
+      "expected_close_time_ms": 1735603259999,
+      "expected_result": "PASS"
+    },
+    {
+      "case_id": "daily_last_pre_transition_last_record",
+      "archive_family": "DAILY",
+      "period_start_utc": "2024-12-31T00:00:00Z",
+      "period_end_utc": "2025-01-01T00:00:00Z",
+      "expected_raw_unit": "MILLISECOND",
+      "raw_open_time": 1735689540000,
+      "raw_close_time": 1735689599999,
+      "expected_open_time_ms": 1735689540000,
+      "expected_close_time_ms": 1735689599999,
+      "expected_result": "PASS"
+    },
+    {
+      "case_id": "daily_first_post_transition_first_record",
+      "archive_family": "DAILY",
+      "period_start_utc": "2025-01-01T00:00:00Z",
+      "period_end_utc": "2025-01-02T00:00:00Z",
+      "expected_raw_unit": "MICROSECOND",
+      "raw_open_time": 1735689600000000,
+      "raw_close_time": 1735689659999999,
+      "expected_open_time_ms": 1735689600000,
+      "expected_close_time_ms": 1735689659999,
+      "expected_result": "PASS"
+    },
+    {
+      "case_id": "daily_first_post_transition_last_record",
+      "archive_family": "DAILY",
+      "period_start_utc": "2025-01-01T00:00:00Z",
+      "period_end_utc": "2025-01-02T00:00:00Z",
+      "expected_raw_unit": "MICROSECOND",
+      "raw_open_time": 1735775940000000,
+      "raw_close_time": 1735775999999999,
+      "expected_open_time_ms": 1735775940000,
+      "expected_close_time_ms": 1735775999999,
+      "expected_result": "PASS"
+    },
+    {
+      "case_id": "monthly_pre_transition_first_record",
+      "archive_family": "MONTHLY",
+      "period_start_utc": "2024-12-01T00:00:00Z",
+      "period_end_utc": "2025-01-01T00:00:00Z",
+      "expected_raw_unit": "MILLISECOND",
+      "raw_open_time": 1733011200000,
+      "raw_close_time": 1733011259999,
+      "expected_open_time_ms": 1733011200000,
+      "expected_close_time_ms": 1733011259999,
+      "expected_result": "PASS"
+    },
+    {
+      "case_id": "monthly_post_transition_last_record",
+      "archive_family": "MONTHLY",
+      "period_start_utc": "2025-01-01T00:00:00Z",
+      "period_end_utc": "2025-02-01T00:00:00Z",
+      "expected_raw_unit": "MICROSECOND",
+      "raw_open_time": 1738367940000000,
+      "raw_close_time": 1738367999999999,
+      "expected_open_time_ms": 1738367940000,
+      "expected_close_time_ms": 1738367999999,
+      "expected_result": "PASS"
+    }
+  ]
+}

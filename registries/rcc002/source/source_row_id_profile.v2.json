@@ -1,0 +1,35 @@
+{
+  "profile_id": "RCC002_S1_SOURCE_ROW_ID_V2",
+  "profile_version": "2.0.0",
+  "project": "RCC-002",
+  "status": "candidate_for_normative_review",
+  "applies_to": "ALL_NEW_RCC002_BUILDS",
+  "legacy_profile": {
+    "profile_id": "RCC002_S1_SOURCE_ROW_ID_V1",
+    "policy": "READ_ONLY_HISTORICAL_COMPATIBILITY"
+  },
+  "semantic_preimage_order": [
+    "source_snapshot_id",
+    "source_file_ordinal",
+    "original_record_index"
+  ],
+  "encoding": {
+    "type": "UTF-8_STRING",
+    "separator": ":",
+    "template": "RCC002_S1_SOURCE_ROW_ID_V2:<source_snapshot_id>:<source_file_ordinal_8d>:<original_record_index_20d>",
+    "source_file_ordinal_width_decimal": 8,
+    "original_record_index_width_decimal": 20,
+    "negative_values_allowed": false,
+    "overflow_action": "FAIL_COMPLETE_SOURCE_SNAPSHOT"
+  },
+  "source_file_ordinal_rule": "ZERO_BASED_POSITION_AFTER_SORT_BY_NORMALIZED_PROVIDER_RELATIVE_NAME",
+  "original_record_index_rule": "ZERO_BASED_DATA_RECORD_POSITION_AFTER_REGISTERED_HEADER_MODE_BEFORE_SORT_FILTER_OR_DEDUPLICATION",
+  "embedded_provider_relative_name": false,
+  "embedded_local_path": false,
+  "required_invariants": [
+    "unique within source_snapshot_id",
+    "one-to-one resolvable to source file ordinal and original record index",
+    "independent of local discovery order",
+    "stable under deterministic re-read of identical source snapshot"
+  ]
+}

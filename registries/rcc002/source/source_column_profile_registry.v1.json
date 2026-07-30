@@ -1,0 +1,89 @@
+{
+  "registry_id": "RCC002_SOURCE_COLUMN_PROFILE_REGISTRY_V1",
+  "registry_version": "1.0.0",
+  "project": "RCC-002",
+  "status": "candidate_verified_for_normative_review",
+  "profiles": [
+    {
+      "column_profile_id": "BINANCE_SPOT_KLINE_12_COLUMN_V1",
+      "column_profile_version": "1.0.0",
+      "provider": "BINANCE_VISION",
+      "market_type": "spot",
+      "dataset_kind": "klines",
+      "delimiter": ",",
+      "encoding": "UTF-8_NO_BOM",
+      "line_endings": "LF",
+      "header_mode": "ABSENT",
+      "exact_column_count": 12,
+      "ordered_columns": [
+        {
+          "index": 0,
+          "name": "open_time_raw"
+        },
+        {
+          "index": 1,
+          "name": "open"
+        },
+        {
+          "index": 2,
+          "name": "high"
+        },
+        {
+          "index": 3,
+          "name": "low"
+        },
+        {
+          "index": 4,
+          "name": "close"
+        },
+        {
+          "index": 5,
+          "name": "volume"
+        },
+        {
+          "index": 6,
+          "name": "close_time_raw"
+        },
+        {
+          "index": 7,
+          "name": "quote_asset_volume"
+        },
+        {
+          "index": 8,
+          "name": "number_of_trades"
+        },
+        {
+          "index": 9,
+          "name": "taker_buy_base_asset_volume"
+        },
+        {
+          "index": 10,
+          "name": "taker_buy_quote_asset_volume"
+        },
+        {
+          "index": 11,
+          "name": "ignore"
+        }
+      ],
+      "canonical_s1_fields": [
+        "open_time",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "close_time"
+      ],
+      "noncanonical_source_fields": [
+        "quote_asset_volume",
+        "number_of_trades",
+        "taker_buy_base_asset_volume",
+        "taker_buy_quote_asset_volume",
+        "ignore"
+      ],
+      "first_nonempty_record_action": "PARSE_AS_DATA",
+      "header_like_record_action": "FAIL_COMPLETE_SOURCE_SNAPSHOT",
+      "wrong_column_count_action": "FAIL_COMPLETE_SOURCE_SNAPSHOT"
+    }
+  ]
+}

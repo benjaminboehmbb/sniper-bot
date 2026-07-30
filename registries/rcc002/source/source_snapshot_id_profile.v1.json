@@ -1,0 +1,78 @@
+{
+  "profile_id": "RCC002_SOURCE_SNAPSHOT_ID_V1",
+  "profile_version": "1.0.0",
+  "project": "RCC-002",
+  "status": "candidate_for_normative_review",
+  "canonicalization_profile_ref": "RCC_JSON_CANONICALIZATION_V1/1.0.0",
+  "digest_algorithm": "SHA-256",
+  "output_template": "source:sha256:<lowercase_sha256>",
+  "preimage_object_keys": [
+    "identity_profile_id",
+    "source_retrieval_profile_id",
+    "source_retrieval_profile_version",
+    "provider",
+    "market_type",
+    "dataset_kind",
+    "symbol",
+    "interval",
+    "column_profile_id",
+    "timestamp_unit_profile_id",
+    "source_revision",
+    "source_files",
+    "actual_coverage"
+  ],
+  "source_files_order": [
+    "normalized_provider_relative_name",
+    "source_file_ordinal"
+  ],
+  "source_file_entry_keys": [
+    "provider_relative_name",
+    "byte_sha256",
+    "provider_checksum_sha256",
+    "size_bytes",
+    "csv_member_name",
+    "source_file_ordinal",
+    "archive_period",
+    "record_count",
+    "min_open_time_utc_ms",
+    "max_close_time_utc_ms",
+    "timestamp_unit"
+  ],
+  "archive_period_keys": [
+    "archive_family",
+    "period_token",
+    "period_start_utc",
+    "period_end_utc"
+  ],
+  "actual_coverage_keys": [
+    "min_open_time_utc_ms",
+    "max_close_time_utc_ms",
+    "record_count"
+  ],
+  "source_file_ordinal_rules": {
+    "zero_based": true,
+    "contiguous": true,
+    "unique": true,
+    "assigned_after_portable_name_sort": true
+  },
+  "candidate_rejection_rules": [
+    "duplicate provider_relative_name",
+    "duplicate logical period with different bytes",
+    "absolute or path-traversing portable path",
+    "missing provider checksum",
+    "unexplained normalized coverage overlap",
+    "coverage outside registered archive period"
+  ],
+  "excluded_inputs": [
+    "retrieved_at_utc",
+    "local_path",
+    "cache_path",
+    "hostname",
+    "username",
+    "transport_retry_count",
+    "temporary_extraction_path",
+    "expected_start",
+    "expected_end",
+    "build_timezone"
+  ]
+}

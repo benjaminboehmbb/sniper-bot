@@ -9,11 +9,11 @@
 | Titel | Label and Forward Return Specification |
 | Speicherort im Repository | `docs/specifications/RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md` |
 | Dateiname | `RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md` |
-| Version | 0.4.1 |
+| Version | 0.5.0 |
 | Datum | 2026-07-23 |
-| Status | SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending |
-| Übergeordnetes Dokument | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version 0.7.1 |
-| Direkte Abhängigkeiten | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version 0.5.0; `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md`, Version 0.4.3; `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md`, Version 0.4.2; `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md`, Version 0.5.1 |
+| Status | S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending |
+| Übergeordnetes Dokument | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version 0.8.0 |
+| Direkte Abhängigkeiten | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version 0.6.0; `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md`, Version 0.4.3; `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md`, Version 0.4.2; `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md`, Version 0.5.1 |
 | Geltungsbereich | S7_LABELS der RCC-002-Datenpipeline |
 | Referenziert durch | Strategieevaluation; ML-Datensätze; Counterfactual Gate Evaluation; Walk-Forward- und Robustheitsanalysen |
 | Autoritative Sprache | Englische Feldnamen, Profil-IDs, Horizonte und mathematische Regeln sind normativ; deutsche Erläuterungen präzisieren die Semantik |
@@ -34,6 +34,7 @@
 | Architecture Integrity Review | `RCC-002-AIR-001` nicht bestanden; Korrektur eingearbeitet | Version 0.3.0 korrigiert die diesem Dokument zugeordneten Teile von `AIR-001-B01`, `AIR-001-B02`, `AIR-001-M01` und `AIR-001-M03`; dokumentübergreifender Re-Review ausstehend |
 | Scientific Consistency Re-Review 005 | `RCC-002-SCR-005` nicht bestanden; Korrektur eingearbeitet | Version 0.4.0 korrigiert `SCR-005-M01` und materialisiert `AIR-005-H01`; SCR-006 ausstehend |
 | Minor Correction Cycle | `RCC-002-SCR-007-MinFV` umgesetzt | Version 0.4.1, 2026-07-27: Minor correction cycle: version, dependency, terminology, checklist and cross-reference consistency corrections. |
+| S8 Blocker Correction | `RCC-002-S8BCP-001` Revision 2 umgesetzt | Version 0.5.0 ersetzt Audit View V1 durch Audit View V2 mit exakt der Label-Research-Feldmenge; wissenschaftlicher und architektonischer Re-Review ausstehend. |
 | Editorial Pass | Ausstehend | Nach bestandenem Architecture Integrity Review |
 | Internal Certification | Ausstehend | Nach bestandenem Editorial Pass |
 | Claude Independent Architecture Review | Ausstehend | Erst nach Internal Certification |
@@ -1307,18 +1308,22 @@ Der übergeordnete S8-Vertrag reserviert:
 | `rcc002.view.paper` | `1.0.0` | `rcc002.view.paper/1.0.0` | Nein | `2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e` |
 | `rcc002.view.live` | `1.0.0` | `rcc002.view.live/1.0.0` | Nein | `2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e` |
 | `rcc002.view.label-research` | `1.0.0` | `rcc002.view.label-research/1.0.0` | Ja | `0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc` |
-| `rcc002.view.audit` | `1.0.0` | `rcc002.view.audit/1.0.0` | Ja | `3c29f3219e65ca87df199a52dc8d15b54a6ea28884a863d1479d27e8a2401b56` |
+| `rcc002.view.audit` | `2.0.0` | `rcc002.view.audit/2.0.0` | Ja | `0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc` |
 
 Die Data-Pipeline-Spezifikation ist Eigentümerin der positiven Feld-Allowlist
 jeder View. Die vorliegende Spezifikation ist Eigentümerin der
 S7-Feldprovenienz.
 
 Die sechs Allowlists sind in
-`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.7.1`,
+`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.8.0`,
 Abschnitt 7.9 vollständig expandiert. Die dortige Registry
 `RCC002_S8_FIELD_OWNERSHIP_V1`, Version `1.0.0`, ordnet jedem Feld genau eine
 Eigentümerstufe und Leakage-Klasse zu. Abweichende lokale Listen sind
 unzulässig.
+
+Audit View V1 ist zurückgezogen. Audit View V2 besitzt exakt dieselben 534
+geordneten Felder wie `label-research/1.0.0`; sie enthält weder S8-Felder noch
+Manifest- oder Release-Metadaten.
 
 ### 26.2 Label-Research-View
 
@@ -1998,7 +2003,7 @@ konsistent aktualisiert, neu paketiert und erneut geprüft sind.
 Der aktuelle Status lautet:
 
 ```text
-SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending
+S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending
 ```
 
 Nächste vorgeschriebene Schritte:

@@ -8,13 +8,13 @@
 | Speicherort | `docs/specifications/` |
 | Dateiname | `RCC_002_REPRODUCIBILITY_AND_MANIFEST_2026-07-23.md` |
 | Dokument-ID | `RCC-002-RM` |
-| Version | `0.7.2` |
+| Version | `0.8.0` |
 | Datum | `2026-07-23` |
-| Status | SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending; RCC-002-SCR-007 Full-Scope Replacement Scientific Consistency Review durchgeführt; Major- und Minor-Findings-Verifikation abgeschlossen; Minor Correction Cycle umgesetzt; SCR-008 und AIR-004 durchgeführt; AIR4-MIN-01-Folgekorrektur mechanisch nachgezogen; DVSEV-001-Folgekorrektur (Data-Validation-Abhängigkeit) mechanisch nachgezogen; Editorial Pass und Internal Certification ausstehend |
+| Status | S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending |
 | Geltungsbereich | RCC-002-Datenpipeline, Stufen S0–S8 |
 | Verbindlichkeit | Normativ für die RCC-002-Implementierung |
-| Primäre Abhängigkeit | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.7.1` |
-| Fachliche Abhängigkeiten | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version `0.5.0`; `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md`, Version `0.4.3`; `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md`, Version `0.4.2`; `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md`, Version `0.5.1`; `RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md`, Version `0.4.1` |
+| Primäre Abhängigkeit | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.8.0` |
+| Fachliche Abhängigkeiten | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version `0.6.0`; `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md`, Version `0.4.3`; `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md`, Version `0.4.2`; `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md`, Version `0.5.1`; `RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md`, Version `0.5.0` |
 | Referenziert durch | RCC-002-Implementierungsplan; RCC-002-Build- und Prüfwerkzeuge; RCC-002-Dataset-Release-Dokumentation |
 | Vorgesehene Reviews | Scientific Consistency Review; Architecture Integrity Review; Editorial Pass; Internal Certification; Claude Independent Architecture Review; Gemini Independent Scientific and Adversarial Audit; ChatGPT Final Consolidation; Baseline V1 Certified |
 
@@ -252,18 +252,37 @@ run:<UTC timestamp>:<UUIDv7-or-UUIDv4>
 
 ### 5.3 Source Snapshot ID
 
-Die Vorabbildung des `source_snapshot_id` MUSS ausschließlich quellinhaltliche und semantische Abrufmerkmale enthalten:
+Die Vorabbildung des `source_snapshot_id` MUSS exakt dem Profil
+`RCC002_SOURCE_SNAPSHOT_ID_V1/1.0.0` entsprechen und folgende Schlüssel
+enthalten:
 
-- Quellenbezeichnung;
-- Markt und Symbol;
-- Datenfrequenz;
-- normierte Liste aller Quelldateien;
-- SHA-256 jeder Quelldatei;
-- kanonische semantische Abrufparameter, die Auswahl oder Bedeutung der gelieferten Daten verändern;
-- tatsächlich aus den Quellbytes abgeleiteten Abdeckungszeitraum;
-- Quellenversions- oder Revisionskennung, soweit verfügbar.
+- `identity_profile_id`;
+- `source_retrieval_profile_id` und `source_retrieval_profile_version`;
+- `provider`, `market_type`, `dataset_kind`, `symbol` und `interval`;
+- `column_profile_id` und `timestamp_unit_profile_id`;
+- `source_revision`;
+- `source_files`;
+- `actual_coverage`.
 
-Provider-Revisionskennungen und semantische Abrufparameter MÜSSEN die Identität beeinflussen. Abrufzeitpunkt, lokaler Speicherpfad, Hostname, Benutzername, Transport-Retrys und Cache-Ort sind Run- beziehungsweise Provenienzmetadaten und DÜRFEN den `source_snapshot_id` NICHT verändern.
+Jeder `source_files`-Eintrag enthält exakt `provider_relative_name`,
+`byte_sha256`, `provider_checksum_sha256`, `size_bytes`, `csv_member_name`,
+`source_file_ordinal`, `archive_period`, `record_count`,
+`min_open_time_utc_ms`, `max_close_time_utc_ms` und `timestamp_unit`.
+`archive_period` enthält Familie, Token, inklusive UTC-Start- und exklusive
+UTC-Endgrenze. Die Liste wird nach normalisiertem `provider_relative_name`
+sortiert; erst danach werden nullbasierte, lückenlose und eindeutige Ordinale
+vergeben. Die ID-Darstellung lautet:
+
+```text
+source:sha256:<64 lowercase hex characters>
+```
+
+Provider-Revisionskennungen, registrierte Perioden, alle Source-Dateiwerte,
+die byte-abgeleitete Gesamtdeckung und die registrierten Profile MÜSSEN die
+Identität beeinflussen. Abrufzeitpunkt, lokaler
+Speicherpfad, Hostname, Benutzername, Transport-Retrys und Cache-Ort sind
+Run- beziehungsweise Provenienzmetadaten und DÜRFEN den
+`source_snapshot_id` NICHT verändern.
 
 `timezone`, `expected_start` und `expected_end` gehören ausschließlich zu
 `semantic_build_configuration.source_expectations`. Sie beeinflussen
@@ -350,33 +369,67 @@ beeinflussen.
 
 ### 5.8 Dataset Artifact Set ID
 
-Die `dataset_artifact_set_id` identifiziert die konkrete physische
-Veröffentlichungsmenge eines logischen Datasets. Ihre Vorabbildung MUSS
-enthalten:
+Die `dataset_artifact_set_id` identifiziert ausschließlich die konkrete
+physische Menge der als `DATA_ARTIFACT` klassifizierten veröffentlichten
+Datenartefakte eines logischen Datasets. Ihre exakte Vorabbildung lautet:
 
-- `dataset_id`;
-- geordnete Liste der veröffentlichten `artifact_id`s;
-- Veröffentlichungs- beziehungsweise Layoutprofil;
-- `physical_publication_configuration_sha256`;
-- vollständige Partitions- und Dateigrenzen.
+```json
+{
+  "identity_profile_id": "RCC002_DATASET_ARTIFACT_SET_ID_V1",
+  "dataset_id": "dataset:sha256:<digest>",
+  "physical_publication_configuration_sha256": "<64 lowercase hex>",
+  "data_artifacts": [
+    {
+      "logical_name": "<registered name>",
+      "relative_path": "<portable path>",
+      "artifact_id": "artifact:sha256:<digest>",
+      "byte_sha256": "<64 lowercase hex>",
+      "semantic_sha256": "<64 lowercase hex>",
+      "physical_layout_sha256": "<64 lowercase hex>",
+      "size_bytes": 0,
+      "schema_ref": "<schema_id>/<schema_version>",
+      "schema_fingerprint_sha256": "<64 lowercase hex>",
+      "view_allowlist_sha256": "<64 lowercase hex or null>"
+    }
+  ]
+}
+```
+
+`data_artifacts` wird nach normalisiertem `relative_path` und danach
+`logical_name` sortiert. Nur `DATA_ARTIFACT`-Einträge sind zulässig. Die
+nach RFC 8785 kanonisierten Bytes werden mit SHA-256 gehasht und als
+`dataset-artifact-set:sha256:<digest>` dargestellt.
 
 Eine reine Repartitionierung oder Neuverpackung behält bei semantisch
 identischen Inhalten denselben `dataset_id`, erzeugt aber eine neue
 `dataset_artifact_set_id`.
 
+JSON Schemas, Spezifikationen und Registries sind `SCHEMA_ARTIFACT`;
+Source-, Stage-, Run-, Dataset- und Reproduktionsmanifeste sind
+`CONTROL_MANIFEST`; Review-Manifeste und menschliche Review-/
+Zertifizierungsnachweise sind `REVIEW_ARTIFACT`; die abschließende
+Prüfsummenliste ist `RELEASE_LEDGER`. Diese vier Klassen gehen weder in die
+`dataset_artifact_set_id` noch in deren geordnete Artefaktliste ein.
+
 ### 5.9 Manifest ID
 
-Der `manifest_id` wird erst berechnet, nachdem alle anderen deterministischen IDs im Manifest feststehen.
+Der `manifest_id` wird erst berechnet, nachdem alle anderen deterministischen
+IDs im Manifest feststehen. Ein Manifest enthält weder seinen finalen
+Datei-Bytehash noch seine finale Dateigröße noch eine eigene `artifact_id`.
 
 Berechnung:
 
 1. Manifestinhalt ohne Feld `manifest_id` kanonisieren;
 2. SHA-256 der kanonischen Bytes berechnen;
 3. Ergebnis als `manifest_id` einsetzen;
-4. das vollständige Manifest speichern;
-5. zusätzlich den Byte-Hash der gespeicherten Manifestdatei protokollieren.
+4. das vollständige Manifest speichern.
 
-Der `manifest_id` und der Byte-Hash der finalen Datei dürfen verschieden sein, weil das Feld `manifest_id` selbst erst nach der Vorabbildung ergänzt wird.
+Der Bytehash und die Bytegröße der finalen Manifestdatei werden ausschließlich
+von einem nachgelagerten Objekt protokolliert: bei Kandidaten durch den
+Release-Builder außerhalb des Kandidatenmanifests, bei finalen Releases durch
+`RELEASE_LEDGER`. Der Ledger enthält weder seinen eigenen Hash noch seine
+eigene Größe; deren Nachweis gehört in den externen Release-Record. Damit
+existiert keine Selbsthash- oder gegenseitige Hashzirkularität.
 
 ---
 
@@ -694,17 +747,31 @@ kanonischen S0-Provenienzfelder:
 | Feld | Bedeutung |
 |---|---|
 | `source_snapshot_id` | deterministische Identität der Quelldatenfassung |
+| `source_snapshot_preimage_sha256` | Hash der exakt kanonisierten Source-Snapshot-Vorabbildung |
 | `provider` | kanonische Providerbezeichnung |
 | `market_type` | registrierter Markttyp |
+| `dataset_kind` | registrierte Datenfamilie |
 | `symbol` | registriertes Symbol |
 | `interval` | registriertes Datenintervall |
 | `retrieved_at_utc` | tatsächlicher Abrufzeitpunkt, nur Provenienz |
-| `source_file_name` | portabler Quelldateiname |
-| `source_byte_sha256` | SHA-256 der unveränderten Quellbytes |
-| `source_revision` | Providerrevision, soweit verfügbar |
-| `source_format` | registrierte Format- und Schemafamilie |
-| `source_location` | portable Herkunftsreferenz |
+| `source_retrieval_profile_id` / `source_retrieval_profile_version` | registriertes Abruf- und Periodenprofil |
+| `column_profile_id` | registriertes Spalten-, Header-, Delimiter- und Encodingprofil |
+| `timestamp_unit_profile_id` | registriertes periodenselektiertes Zeitstempelprofil |
+| `source_row_id_profile_id` / `source_row_id_profile_version` | Source-Row-ID-Profil V2 |
+| `source_files` | vollständige geordnete Liste physischer Quellartefakte |
+| `actual_coverage` | byte-abgeleitete Gesamtdeckung und Zeilenzahl |
+| `coverage_reconciliation` | Ergebnis der Datei-/Gesamtdeckungsprüfung |
 | `license_or_terms_ref` | optionale Referenz auf Nutzungsbedingungen |
+
+Jeder `source_files`-Eintrag MUSS die in §5.3 definierte exakte Feldmenge
+besitzen. Der Manifest-Validator MUSS zusätzlich beweisen, dass:
+
+- nach `provider_relative_name` sortiert und danach ordinalisiert wurde;
+- `source_file_ordinal` mit null beginnt, lückenlos und eindeutig ist;
+- jeder Bytehash und jede Bytegröße auf das unveränderte Einzelartefakt zeigt;
+- jeder Providerhash verifiziert ist;
+- jede `archive_period` durch das Abrufprofil zulässig ist;
+- Datei- und Gesamtdeckung byte-abgeleitet und widerspruchsfrei sind.
 
 `source_provider` und `source_retrieved_at_utc` sind ausschließlich
 historische Eingangsaliase. Die einzige zulässige gerichtete
@@ -799,10 +866,21 @@ Das Dataset Manifest MUSS mindestens enthalten:
   "quality_summary": {},
   "dataset_lineage": {},
   "knowledge_lineage": {},
-  "publication": {},
-  "reviews": []
+  "publication_candidate": {},
+  "review_requirements": []
 }
 ```
+
+Dieses Objekt ist der deterministische Dataset-Manifest-Kandidat. Es darf
+keine Ergebnisse enthalten, die erst nach seiner Erzeugung entstehen,
+insbesondere keine Review-Manifest-IDs, Reproduktions-Manifest-IDs,
+Release-Ledger-Hashes oder eigenen finalen Dateiwerte.
+
+Review- und Reproduktionsmanifeste referenzieren den Kandidaten einseitig über
+`subject_dataset_manifest_id`. Der externe Release-Record darf anschließend
+den Kandidaten, die erfolgreichen Review-/Reproduktionsmanifeste und den
+Release Ledger gemeinsam referenzieren. Kein Pfeil darf zum erneuten Hashen
+eines bereits identifizierten Vorgängerobjekts führen.
 
 ### 8.6 JSON Schema
 
@@ -857,11 +935,11 @@ View-Schemaidentität referenzieren:
 | `rcc002.view.paper` | `1.0.0` | `rcc002.view.paper/1.0.0` | Nein | `2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e` |
 | `rcc002.view.live` | `1.0.0` | `rcc002.view.live/1.0.0` | Nein | `2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e` |
 | `rcc002.view.label-research` | `1.0.0` | `rcc002.view.label-research/1.0.0` | Ja | `0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc` |
-| `rcc002.view.audit` | `1.0.0` | `rcc002.view.audit/1.0.0` | Ja | `3c29f3219e65ca87df199a52dc8d15b54a6ea28884a863d1479d27e8a2401b56` |
+| `rcc002.view.audit` | `2.0.0` | `rcc002.view.audit/2.0.0` | Ja | `0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc` |
 
 Die vollständig expandierten Listen und ihre kanonische Hashvorabbildung
 stehen autoritativ in
-`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.7.1`,
+`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.8.0`,
 Abschnitt 7.9. Die zugehörige Eigentums- und Leakage-Registry lautet
 `RCC002_S8_FIELD_OWNERSHIP_V1`, Version `1.0.0`.
 
@@ -882,6 +960,10 @@ Research-Feature-, Backtest-Input-, Paper- und Live-Views DÜRFEN kein Feld
 mit `field_owner_stage=S7_LABELS` enthalten. Die zusätzliche Präfixprüfung
 MUSS `fwd_`, `label_` und `barrier_` ablehnen, ersetzt aber nicht die
 stufenbasierte Prüfung.
+
+Audit View V1 ist zurückgezogen. Audit View V2 enthält exakt die 534
+geordneten Felder von `label-research/1.0.0`, denselben Allowlist-Hash und nur
+Felder der Erzeugerstufen S0 bis S7.
 
 #### 8.7.1 Row Preservation für S8-Views
 
@@ -1187,13 +1269,13 @@ referenzieren:
 
 | Dokument-ID | Version |
 |---|---:|
-| `RCC_002_DATA_PIPELINE_SPECIFICATION` | `0.7.1` |
-| `RCC-002-DV` | `0.5.0` |
+| `RCC_002_DATA_PIPELINE_SPECIFICATION` | `0.8.0` |
+| `RCC-002-DV` | `0.6.0` |
 | `RCC-002-IS` | `0.4.3` |
 | `RCC-002-ST` | `0.4.2` |
 | `RCC-002-RG` | `0.5.1` |
-| `RCC-002-LF` | `0.4.1` |
-| `RCC-002-RM` | `0.7.1` |
+| `RCC-002-LF` | `0.5.0` |
+| `RCC-002-RM` | `0.8.0` |
 
 Eine bloße Dateinennung ohne Dokument-ID und Version ist nicht ausreichend.
 
@@ -1235,6 +1317,7 @@ Jeder Build MUSS ein Inventar führen:
 
 | Feld | Bedeutung |
 |---|---|
+| `artifact_class` | Exakt eine der fünf normativen Release-Klassen |
 | `logical_name` | Stabile fachliche Bezeichnung |
 | `artifact_id` | Identität des gespeicherten Artefakts |
 | `relative_path` | Pfad innerhalb des Reproduktionssatzes |
@@ -1255,6 +1338,20 @@ Jeder Build MUSS ein Inventar führen:
 | `publication_status` | Status |
 
 Absolute lokale Pfade dürfen ergänzend im Run Manifest stehen, dürfen aber nicht die portable Artefaktidentität definieren.
+
+Die normative Klassifikation lautet:
+
+| `artifact_class` | Beispiele | Teil von `dataset_artifact_set_id` |
+|---|---|:---:|
+| `DATA_ARTIFACT` | S8-Viewdaten und veröffentlichte Datenpartitionen | Ja |
+| `SCHEMA_ARTIFACT` | JSON Schemas, Feldregistries, Profile | Nein |
+| `CONTROL_MANIFEST` | Source-, Stage-, Run-, Dataset- und Reproduktionsmanifeste | Nein |
+| `REVIEW_ARTIFACT` | Review-Manifeste und menschliche Review-/Zertifizierungsnachweise | Nein |
+| `RELEASE_LEDGER` | abschließende portable Prüfsummenliste | Nein |
+
+Jedes inventarisierte Objekt besitzt genau eine Klasse. Eine fehlende oder
+mehrdeutige Klasse ist fail-closed. Nur `DATA_ARTIFACT`-Einträge fließen in
+die Artefaktmengenvorabbildung aus §5.8 ein.
 
 ---
 
@@ -1288,6 +1385,23 @@ Veröffentlichung darf erst erfolgen, wenn:
 - das Dataset Manifest vollständig ist.
 
 Die Veröffentlichung MUSS durch atomare Umbenennung oder ein funktional gleichwertiges Commit-Verfahren erfolgen.
+
+Die zirkelfreie Erzeugungs- und Referenzreihenfolge ist:
+
+1. `DATA_ARTIFACT` und `SCHEMA_ARTIFACT` finalisieren;
+2. Source-, Stage- und Run-Manifeste finalisieren;
+3. den deterministischen Dataset-Manifest-Kandidaten ohne nachgelagerte
+   Review- oder Ledgerergebnisse bilden;
+4. Review- und Reproduktionsmanifeste erzeugen; sie referenzieren den
+   Kandidaten einseitig;
+5. alle freizugebenden Dateien außer dem Ledger byteweise finalisieren;
+6. `SHA256SUMS` als `RELEASE_LEDGER` zuletzt erzeugen; er listet alle
+   freizugebenden Dateien außer sich selbst in lexikographischer Pfadreihenfolge;
+7. den Ledger-Bytehash ausschließlich im externen Release-Record erfassen;
+8. den vollständig geprüften Kandidaten atomar veröffentlichen.
+
+Kein früheres Objekt wird nach Bildung seiner ID wegen eines späteren
+Review-, Reproduktions- oder Ledgerobjekts neu geschrieben.
 
 ### 14.3 Kein stilles Überschreiben
 
@@ -1787,144 +1901,237 @@ Die Implementierung darf abweichende Pfade verwenden, sofern:
   "manifest_schema_version": "1.0.0",
   "manifest_schema_ref": "rcc002.dataset-manifest/1.0.0",
   "manifest_type": "dataset",
-  "manifest_id": "manifest:sha256:<computed-after-preimage>",
-  "created_at_utc": "2026-07-23T00:00:00Z",
+  "manifest_id": "manifest:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "created_at_utc": "2026-07-30T12:00:00Z",
   "producer": {
-    "component": "rcc002-manifest-builder",
-    "version": "<implementation version>"
+    "component": "rcc002-fixture-builder",
+    "version": "1.0.0"
   },
   "project": "RCC-002",
   "status": "candidate",
-  "dataset_id": "dataset:sha256:<digest>",
-  "dataset_artifact_set_id": "dataset-artifact-set:sha256:<digest>",
-  "build_id": "build:sha256:<digest>",
-  "publication_run_id": "run:<timestamp>:<uuid>",
+  "dataset_id": "dataset:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "dataset_artifact_set_id": "dataset-artifact-set:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "dataset_artifact_set_preimage_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "dataset_profile": "rcc002-canonical",
+  "build_id": "build:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "publication_run_id": "run:2026-07-30T12:00:00Z:00000000-0000-4000-8000-000000000000",
   "source_snapshot_ids": [
-    "source:sha256:<digest>"
+    "source:sha256:0000000000000000000000000000000000000000000000000000000000000000"
   ],
-  "code_provenance": {
-    "repository": "<repository identifier>",
-    "commit_sha": "<commit>",
-    "worktree_clean": true,
-    "dirty_patch_sha256": null,
-    "entrypoint": "<entrypoint>"
-  },
-  "semantic_build_configuration": {
-    "profile_id": "<semantic profile>",
-    "canonical_sha256": "<digest>",
-    "secret_fields_removed": true
-  },
-  "physical_publication_configuration": {
-    "profile_id": "<physical profile>",
-    "canonical_sha256": "<digest>"
-  },
-  "specification_profile": [
-    {
-      "document_id": "RCC_002_DATA_PIPELINE_SPECIFICATION",
-      "version": "0.7.0",
-      "sha256": "<digest>"
-    },
-    {
-      "document_id": "RCC-002-DV",
-      "version": "0.4.0",
-      "sha256": "<digest>"
-    },
-    {
-      "document_id": "RCC-002-IS",
-      "version": "0.4.0",
-      "sha256": "<digest>"
-    },
-    {
-      "document_id": "RCC-002-ST",
-      "version": "0.4.0",
-      "sha256": "<digest>"
-    },
-    {
-      "document_id": "RCC-002-RG",
-      "version": "0.5.0",
-      "sha256": "<digest>"
-    },
-    {
-      "document_id": "RCC-002-LF",
-      "version": "0.4.0",
-      "sha256": "<digest>"
-    },
-    {
-      "document_id": "RCC-002-RM",
-      "version": "0.6.0",
-      "sha256": "<digest>"
-    }
-  ],
-  "environment_identity": {
-    "profile_id": "RCC_BUILD_ENV_IDENTITY_V2",
-    "canonical_sha256": "<digest>"
-  },
   "artifacts": [
     {
-      "logical_name": "<name>",
-      "artifact_id": "artifact:sha256:<digest>",
-      "relative_path": "<relative path>",
-      "schema_id": "<schema>",
-      "schema_version": "<version>",
-      "schema_ref": "<schema>/<version>",
-      "schema_fingerprint_sha256": "<digest>",
-      "field_registry_sha256": "<digest>",
-      "view_allowlist_sha256": "<digest-or-null>",
-      "byte_sha256": "<digest>",
-      "semantic_sha256": "<digest>",
-      "physical_layout_sha256": "<digest>",
-      "size_bytes": 0,
-      "row_count": 0,
-      "min_timestamp_utc": "<timestamp>",
-      "max_timestamp_utc": "<timestamp>",
-      "publication_status": "candidate"
+      "artifact_class": "DATA_ARTIFACT",
+      "logical_name": "audit-v2",
+      "relative_path": "data/rcc002/audit.parquet",
+      "artifact_id": "artifact:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "semantic_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "physical_layout_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 1,
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "view_allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
     }
   ],
-  "stage_schemas": [
+  "schema_artifacts": [
     {
-      "stage_id": "S7_LABELS",
-      "schema_id": "rcc002.stage.s7-labels",
-      "schema_version": "1.0.0",
-      "schema_ref": "rcc002.stage.s7-labels/1.0.0",
-      "schema_fingerprint_sha256": "<digest>"
+      "artifact_class": "SCHEMA_ARTIFACT",
+      "logical_name": "source-manifest-schema",
+      "relative_path": "schemas/rcc002/manifests/source-manifest/1.0.0.schema.json",
+      "byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 1
+    }
+  ],
+  "child_manifests": [
+    {
+      "artifact_class": "CONTROL_MANIFEST",
+      "manifest_type": "source",
+      "manifest_id": "manifest:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "relative_path": "manifests/source.json",
+      "byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 1
+    }
+  ],
+  "stages": [
+    {
+      "id": "S0",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S1",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S2",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S3",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S4",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S5",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S6",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S7",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "registries": [
+    {
+      "id": "RCC002_SOURCE_RETRIEVAL_REGISTRY_V1",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     }
   ],
   "views": [
     {
-      "view_schema_id": "rcc002.view.live",
-      "view_schema_version": "1.0.0",
-      "view_schema_ref": "rcc002.view.live/1.0.0",
-      "view_allowlist_sha256": "<digest>",
-      "s7_fields_allowed": false
-    }
-  ],
-  "quality_summary": {
-    "manifest_schema_valid": true,
-    "artifact_hashes_valid": true,
-    "dataset_lineage_complete": true,
-    "knowledge_lineage_complete": true,
-    "required_tests_passed": true
-  },
-  "reviews": [
-    {
-      "reviewer_system": "claude",
-      "status": "pending"
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
     },
     {
-      "reviewer_system": "gemini",
-      "status": "pending"
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
     }
   ],
-  "publication": {
+  "specification_profile": [
+    {
+      "id": "RCC-002-SPEC-0",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-1",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-2",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-3",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-4",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-5",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-6",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "code_provenance": {
+    "repository": "sniper-bot",
+    "commit_sha": "0000000000000000000000000000000000000000",
+    "worktree_clean": true,
+    "dirty_patch_sha256": null
+  },
+  "semantic_build_configuration": {
+    "profile_id": "semantic-v1",
+    "canonical_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "physical_publication_configuration": {
+    "profile_id": "physical-v1",
+    "canonical_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "environment_reference": {
+    "id": "RCC_BUILD_ENV_IDENTITY_V2",
+    "version": "1.0.0",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "quality_summary": {
+    "status": "PASS",
+    "critical_findings": 0,
+    "error_findings": 0,
+    "warning_findings": 0
+  },
+  "dataset_lineage": {
+    "graph_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "acyclic": true
+  },
+  "knowledge_lineage": {
+    "graph_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "acyclic": true
+  },
+  "publication_candidate": {
     "status": "candidate",
-    "published_at_utc": null,
     "supersedes": []
-  }
+  },
+  "review_requirements": [
+    {
+      "review_type": "scientific",
+      "required": true
+    }
+  ]
 }
 ```
 
-Der Beispielzeitstempel ist kein vorgegebener realer Buildzeitpunkt. Implementierungen MÜSSEN reale Werte einsetzen.
+Der Beispielzeitstempel ist kein vorgegebener realer Buildzeitpunkt.
+Implementierungen MÜSSEN reale Werte einsetzen. Das Beispiel enthält bewusst
+keine Reviewresultate, Reproduktionsresultate, Ledgerreferenz und keine
+Selbstwerte der finalen Manifestdatei.
 
 ---
 
@@ -2067,6 +2274,14 @@ Vor der Implementierungsfreigabe MÜSSEN versioniert vorliegen:
 - Umgebungs- und Lockstrategie;
 - Reconciliation-, Test- und Abnahmekriterien;
 - Sicherheits- und Geheimnisbereinigungsregeln.
+
+Durch `S8BCP-001` Revision 2 sind die Source- und Dataset-Manifest-Verträge,
+alle Manifest-Schema-IDs aus §8.6, Source Snapshot V1, Source Row ID V2,
+Artefaktklassen, Dataset-Manifest-Kandidat, Review-/Reproduktionsrichtung,
+Release-Ledger-Regel und die zugehörigen Golden Fixtures festgelegt. Diese
+Punkte dürfen nicht erneut als freie Implementierungsentscheidung geöffnet
+werden. Offen bleiben ausschließlich nicht materialisierte Verträge der
+Gesamtbaseline.
 
 Diese Punkte dürfen nach `Approved for Implementation` nicht ohne erneuten
 Review semantisch verändert werden.
@@ -2290,16 +2505,7 @@ Version 0.4.1
 Der aktuelle Status lautet:
 
 ```text
-C1 technisch abgeschlossen; RCC-002-SCR-007 Full-Scope Replacement
-Scientific Consistency Review durchgeführt; Major-Findings-Verifikation und
-Minor-Findings-Verifikation abgeschlossen; Minor Correction Cycle
-umgesetzt; RCC-002-SCR-008 (PASS WITH MINOR CORRECTIONS) und
-RCC-002-AIR-004 (PASS WITH MINOR CORRECTIONS) durchgeführt; Minor Finding
-AIR4-MIN-01 in Indicator und Signal Transformation behoben, mechanische
-Abhängigkeitsfolge in diesem Dokument nachgezogen; Korrekturzyklus
-RCC-002-DVSEV-001 (Reason-Code-Severity-Register in Data Validation)
-umgesetzt, mechanische Abhängigkeitsfolge in diesem Dokument nachgezogen;
-Editorial Pass und Internal Certification ausstehend
+S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending
 ```
 
 Nächste vorgeschriebene Schritte:

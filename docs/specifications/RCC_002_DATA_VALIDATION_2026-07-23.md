@@ -9,10 +9,10 @@
 | Titel | Data Validation Specification |
 | Speicherort im Repository | `docs/specifications/RCC_002_DATA_VALIDATION_2026-07-23.md` |
 | Dateiname | `RCC_002_DATA_VALIDATION_2026-07-23.md` |
-| Version | 0.5.0 |
+| Version | 0.6.0 |
 | Datum | 2026-07-23 |
-| Status | SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending |
-| Übergeordnetes Dokument | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version 0.7.1 |
+| Status | S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending |
+| Übergeordnetes Dokument | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version 0.8.0 |
 | Geltungsbereich | S0_SOURCE, S1_NORMALIZED und S2_VALIDATED der RCC-002-Datenpipeline |
 | Referenziert durch | RCC-002-Implementierung; Dataset Manifest; Pipeline Quality Gates; Reproduzierbarkeitsprüfung |
 | Autoritative Sprache | Englisch für Code, Schemas, Feldnamen und Fehlercodes; Deutsch für normative Erläuterungen |
@@ -31,6 +31,7 @@
 | C1 Patch Release | `RCC-002-C1-SCR` bestanden mit Minor Findings | Version 0.4.1: patch release: normative clarification of Canonical Row Preservation semantics (C1) in §20 Kriterium 16. No intended behavioural change. |
 | Minor Correction Cycle | `RCC-002-SCR-007-MinFV` umgesetzt | Version 0.4.2, 2026-07-27: Minor correction cycle: version, dependency, terminology, checklist and cross-reference consistency corrections. |
 | Reason-Code-Severity-Korrekturzyklus | `RCC-002-DVSEV-001` umgesetzt | Version 0.5.0, 2026-07-27: neuer Abschnitt 16.3 „Reason-Code-Severity-Register" ergänzt die in §16.2 geforderte, bislang für 26 von 32 Reason Codes fehlende Standard-Severity und schließt damit die Abnahmevoraussetzung §24.1 Nr. 3. Additive Ergänzung; keine bestehende Regel, kein bestehender Reason Code und keine bestehende Severity-Zuweisung wurde verändert. Grundlage: `docs/review/RCC_002_DVSEV_001_REASON_CODE_SEVERITY_CORRECTION_PROPOSAL_2026-07-27.md`. |
+| S8 Blocker Correction | `RCC-002-S8BCP-001` Revision 2 umgesetzt | Version 0.6.0 bindet Datei-, Spalten- und Zeitstempelprofile sowie Source-Row-Identität normativ; wissenschaftlicher und architektonischer Re-Review ausstehend. |
 
 ## 1. Zweck
 
@@ -177,16 +178,22 @@ Vor dem Parsing MUST mindestens bekannt sein:
 | Feld | Logischer Typ | Nullbar | Anforderung |
 |---|---|:---:|---|
 | `source_snapshot_id` | UTF-8-String | Nein | Deterministische Identität der unveränderten Quellenfassung |
+| `source_snapshot_preimage_sha256` | 64-stelliger Lowercase-Hex-String | Nein | Hash der exakten Source-Snapshot-Vorabbildung |
 | `provider` | UTF-8-String | Nein | Kanonische Anbieterkennung, z. B. Binance |
 | `market_type` | UTF-8-String | Nein | Registrierter Markttyp, z. B. Spot oder Futures |
+| `dataset_kind` | UTF-8-String | Nein | Registrierte Datenfamilie, z. B. `klines` |
 | `symbol` | UTF-8-String | Nein | Registriertes Symbol, z. B. BTCUSDT |
 | `interval` | UTF-8-String | Nein | Registriertes Datenintervall, z. B. `1m` |
 | `retrieved_at_utc` | UTC-Timestamp in Millisekunden | Nein | Provenienzzeitpunkt des Abrufs; nicht Teil der Source-ID |
-| `source_file_name` | UTF-8-String | Nein | Ursprünglicher Dateiname ohne lokale Pfadsemantik |
-| `source_byte_sha256` | 64-stelliger Lowercase-Hex-String | Nein | SHA-256 der unveränderten Quellbytes |
-| `source_revision` | UTF-8-String | Ja | Providerrevision, falls verfügbar |
-| `source_format` | UTF-8-String | Nein | Dateityp und Schemafamilie |
-| `source_location` | UTF-8-String | Nein | Dokumentierte Herkunft oder portable Quellenreferenz |
+| `source_retrieval_profile_id` | UTF-8-String | Nein | Registriertes Abruf- und Periodenprofil |
+| `source_retrieval_profile_version` | SemVer | Nein | Version des Abrufprofils |
+| `column_profile_id` | UTF-8-String | Nein | Registriertes Spalten-, Header-, Delimiter- und Encodingprofil |
+| `timestamp_unit_profile_id` | UTF-8-String | Nein | Registriertes periodenselektiertes Zeitstempelprofil |
+| `source_row_id_profile_id` | UTF-8-String | Nein | `RCC002_S1_SOURCE_ROW_ID_V2` |
+| `source_row_id_profile_version` | SemVer | Nein | `2.0.0` |
+| `source_files` | Geordnete Liste | Nein | Vollständige physische Quellartefakte gemäß Source Snapshot V1 |
+| `actual_coverage` | Objekt | Nein | Byte-abgeleitete Gesamtdeckung und Zeilenzahl |
+| `coverage_reconciliation` | Objekt | Nein | Datei-/Perioden-/Gesamtdeckungsstatus |
 | `license_or_terms_ref` | UTF-8-String | Ja | Referenz auf Nutzungsbedingungen |
 
 Fehlende Identitäts- oder Zeitmetadaten blockieren `CANONICAL_BUILD`.
@@ -196,10 +203,16 @@ Die kanonischen Feldnamen lauten `provider` und `retrieved_at_utc`.
 Legacy-Eingangsaliase akzeptiert und nicht parallel in S0 oder S1
 weitergeführt werden.
 
-Der S0-Source-Manifest-Eintrag muss das Schema
-`rcc002.stage.s0-source/1.0.0` erfüllen.
-Die unveränderten Quelldateien selbst behalten ihr dokumentiertes
-Providerformat und werden durch diesen Manifest-Eintrag referenziert.
+Das S0 Source Manifest muss das Schema
+`rcc002.source-manifest/1.0.0` erfüllen. Das logische S0-Stufenschema bleibt
+davon getrennt `rcc002.stage.s0-source/1.0.0`.
+Die unveränderten Quelldateien selbst behalten ihr Providerformat und werden
+als geordnete Einzelartefakte referenziert.
+`source_files.source_file_ordinal` wird erst nach Sortierung auf
+`provider_relative_name` vergeben und ist nullbasiert, lückenlos und
+eindeutig. Doppelte Namen oder Perioden, abweichende Byte-/Providerhashes,
+Pfadtraversierung oder nicht registrierte Perioden blockieren
+`CANONICAL_BUILD`.
 
 Die Validierung bezieht zusätzlich genau folgende Werte ausschließlich aus
 `semantic_build_configuration.source_expectations`:
@@ -222,8 +235,9 @@ jedoch allein aufgrund dieser Änderung `source_snapshot_id`.
 Bei monatlich oder täglich partitionierten Quellen MUST vor dem Einlesen eine
 erwartete Dateiliste erzeugt werden.
 
-Für jede erwartete Periode werden erfasst:
+Für jede erwartete Periode werden als `source_files`-Eintrag erfasst:
 
+- `source_file_ordinal`,
 - erwarteter Dateiname,
 - vorhanden/nicht vorhanden,
 - Dateigröße,
@@ -231,6 +245,10 @@ Für jede erwartete Periode werden erfasst:
 - lokal berechnete Checksumme,
 - Downloadstatus,
 - Extraktionsstatus.
+
+Die Liste wird vor dem Parsing kanonisch nach `provider_relative_name`
+sortiert und anschließend ordinalisiert. Eine
+spätere Dateisystem-, Glob- oder Locale-Reihenfolge darf sie nicht verändern.
 
 Eine fehlende erwartete Partition ist mindestens `ERROR`. Sie wird erst dann
 auf `WARN` herabgestuft, wenn die Quelle für diesen Zeitraum nachweislich keine
@@ -260,11 +278,19 @@ Für jede Datei MUST geprüft werden:
 - Datei ist regulär lesbar,
 - Größe ist größer als null,
 - Format oder Archiv kann geöffnet werden,
-- erwartete interne Datei ist vorhanden,
-- Header ist vorhanden und parsebar,
+- die im Spaltenprofil erwartete Anzahl interner Datendateien ist exakt erfüllt,
+- Headerzustand entspricht exakt `header_mode` des registrierten Spaltenprofils,
+- Encoding, BOM-Zustand, Zeilenende, Delimiter und Spaltenanzahl entsprechen
+  exakt dem registrierten Spaltenprofil,
 - lokale SHA-256-Checksumme wurde berechnet,
 - angebotene Anbieterchecksumme stimmt, sofern verfügbar,
 - keine unerwarteten zusätzlichen Nutzdaten wurden still übernommen.
+
+`header_mode = ABSENT` bedeutet ausdrücklich, dass die erste physische Zeile
+eine Datenzeile ist. Eine scheinbar plausible Headererkennung oder
+Spaltenzuordnung nach Inhalt ist unzulässig. Das für Binance Spot Klines
+registrierte Profil verlangt UTF-8 ohne BOM, LF, Komma, keinen Header und
+exakt zwölf Spalten in registrierter Reihenfolge.
 
 ### 6.3 Spreadsheet-Grenzprüfung
 
@@ -300,6 +326,8 @@ Das S1-Mindestschema lautet:
 |---|---|:---:|---|
 | `source_snapshot_id` | UTF-8-String | Nein | S0; durch S1 unverändert übernommen |
 | `source_row_id` | UTF-8-String | Nein | S1 |
+| `source_file_ordinal` | UInt32 | Nein | S0/S1 |
+| `original_record_index` | UInt64 | Nein | S1 |
 | `provider` | UTF-8-String | Nein | S0; durch S1 kanonisch übernommen |
 | `market_type` | UTF-8-String | Nein | S0; durch S1 kanonisch übernommen |
 | `symbol` | UTF-8-String | Nein | S0; durch S1 kanonisch übernommen |
@@ -316,8 +344,21 @@ Das S1-Mindestschema lautet:
 über eine versionierte Migrationsabbildung in `source_snapshot_id`
 überführen.
 
-`source_row_id` muss deterministisch als UTF-8-String erzeugt werden. Eine
-parallele typabhängige Darstellung als Integer ist unzulässig.
+`original_record_index` ist der nullbasierte physische Datenzeilenindex innerhalb
+der registrierten dekomprimierten Datendatei. Bei `header_mode = PRESENT`
+zählt die Headerzeile nicht, bei `ABSENT` erhält die erste Zeile den Index
+null.
+
+Für `RCC002_S1_SOURCE_ROW_ID_V2/2.0.0` lautet die exakte UTF-8-/ASCII-
+Darstellung:
+
+```text
+RCC002_S1_SOURCE_ROW_ID_V2:<source_snapshot_id>:<source_file_ordinal 8d>:<original_record_index 20d>
+```
+
+Die beiden Dezimalwerte sind links mit Nullen auf acht beziehungsweise
+zwanzig Stellen aufzufüllen. Eine parallele Integerdarstellung oder eine
+Ableitung aus dem später sortierten Zeilenindex ist unzulässig.
 
 Optionale Quellfelder wie `quote_volume` oder `trade_count` dürfen nur
 aufgenommen werden, wenn Feldname, Typ, Nullsemantik und Providerabbildung im
@@ -345,7 +386,31 @@ Zusätzliche Felder MAY erhalten bleiben, wenn:
 
 Nicht registrierte Zusatzfelder MUST im Schema-Report erscheinen.
 
-### 7.4 Schema-Fingerprint
+### 7.4 Providergebundene Spaltenabbildung
+
+Für das registrierte Binance-Spot-Kline-Profil werden die zwölf
+nullbasierten Quellspalten ausschließlich über
+`column_profile_id` abgebildet:
+
+```text
+0 open_time_raw
+1 open
+2 high
+3 low
+4 close
+5 volume
+6 close_time_raw
+7 quote_asset_volume
+8 trade_count
+9 taker_buy_base_asset_volume
+10 taker_buy_quote_asset_volume
+11 ignore
+```
+
+Fehlende, zusätzliche, vertauschte oder nicht parsebare Spalten sind
+fail-closed. Namens- oder Typinferenz aus Datenwerten ist unzulässig.
+
+### 7.5 Schema-Fingerprint
 
 Jedes S1- und S2-Artefakt MUST einen Schema-Fingerprint besitzen, der mindestens
 berücksichtigt:
@@ -403,7 +468,33 @@ Die allgemeine Regel lautet:
 
 für epochbasierte Zeitstempel.
 
-### 8.4 Entscheidungszeitpunkt
+### 8.4 Zeitstempel-Einheit und Normalisierung
+
+Vor dem Parsing wird aus `archive_period` und
+`timestamp_unit_profile_id` exakt eine Einheit ausgewählt. Die Stellenzahl
+oder Größenordnung eines einzelnen Rohwerts darf nicht zur Einheitserkennung
+verwendet werden.
+
+Für `BINANCE_SPOT_TIMESTAMP_UNITS_V1/1.0.0` gilt:
+
+```text
+archive period before 2025-01-01 -> millisecond
+archive period from   2025-01-01 -> microsecond
+```
+
+Millisekundenwerte werden unverändert übernommen. Mikrosekundenwerte sind nur
+gültig, wenn `open_time_raw mod 1000 = 0` und
+`close_time_raw mod 1000 = 999`; beide kanonischen Zeitstempel entstehen
+dann durch ganzzahlige Division durch 1000. Danach muss für `1m` gelten:
+
+```text
+close_time = open_time + 59999
+```
+
+Nicht registrierte Perioden, uneindeutige Profile oder Restklassenverletzungen
+sind `CRITICAL` und blockieren den Build.
+
+### 8.5 Entscheidungszeitpunkt
 
 S2 MUST unterscheiden:
 
@@ -414,7 +505,7 @@ S2 MUST unterscheiden:
 Indikatoren oder Signale für Kerze `t` dürfen im späteren Handel erst nach dem
 definierten Verfügbarkeitszeitpunkt dieser Kerze verwendet werden.
 
-### 8.5 Sortierung
+### 8.6 Sortierung
 
 S1 und S2 MUST nach dem vollständigen kanonischen Schlüssel aufsteigend
 sortiert sein.
@@ -978,9 +1069,15 @@ Zusätzlich muss für jede S1-Zeile genau ein gültiger:
 
 - `source_snapshot_id`;
 - `source_row_id`;
+- `source_file_ordinal`;
+- `original_record_index`;
 - `provider`
 
-auf eine inventarisierte S0-Quelle zurückführen.
+auf genau einen inventarisierten `source_files`-Eintrag und genau eine
+physische Datenzeile zurückführen. Das Paar
+`(source_file_ordinal, original_record_index)` muss innerhalb eines
+`source_snapshot_id` eindeutig sein und die V2-Source-Row-ID exakt
+reproduzieren.
 
 ### 17.2 S1 zu S2
 
@@ -1024,9 +1121,10 @@ folgenden Merkmale ändert:
 
 - Quellbytes;
 - Providerrevision;
-- semantische Abrufparameter;
-- logische Quellenabdeckung;
-- normiertes Quelldateiinventar.
+- registriertes Abruf-, Spalten-, Zeitstempel- oder Source-Row-ID-Profil;
+- registrierte Archivperiode;
+- Inhalt oder Ordnung des kanonischen `source_files`-Inventars;
+- byte-abgeleitete `actual_coverage`.
 
 Ein erneuter Abruf identischer Quellbytes mit identischen semantischen
 Abrufmerkmalen behält denselben `source_snapshot_id`.
@@ -1418,7 +1516,7 @@ konsistent aktualisiert, neu paketiert und erneut geprüft sind.
 Der aktuelle Status lautet:
 
 ```text
-SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending
+S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending
 ```
 
 Nächste vorgeschriebene Schritte:

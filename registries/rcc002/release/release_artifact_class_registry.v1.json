@@ -1,0 +1,110 @@
+{
+  "registry_id": "RCC002_RELEASE_ARTIFACT_CLASS_REGISTRY_V1",
+  "registry_version": "1.0.0",
+  "project": "RCC-002",
+  "status": "candidate_for_normative_review",
+  "classification_cardinality": "EXACTLY_ONE_CLASS_PER_RELEASED_FILE",
+  "unknown_or_multiple_match_action": "FAIL_RELEASE",
+  "classes": [
+    {
+      "artifact_class": "DATA_ARTIFACT",
+      "enters_dataset_artifact_set_id": true,
+      "dataset_manifest_placement": "artifacts",
+      "examples": [
+        "published S8 data views",
+        "published data partitions"
+      ]
+    },
+    {
+      "artifact_class": "SCHEMA_ARTIFACT",
+      "enters_dataset_artifact_set_id": false,
+      "dataset_manifest_placement": "schema_artifacts",
+      "examples": [
+        "JSON Schemas",
+        "registries",
+        "allowlists",
+        "Golden Fixtures",
+        "normative specifications",
+        "deterministic verification tools"
+      ]
+    },
+    {
+      "artifact_class": "CONTROL_MANIFEST",
+      "enters_dataset_artifact_set_id": false,
+      "dataset_manifest_placement": "pre-Dataset Source/Stage/Run only in child_manifests; Dataset self and post-Dataset Reproduction excluded",
+      "examples": [
+        "Source Manifest",
+        "Stage Manifest",
+        "Run Manifest",
+        "Dataset Manifest",
+        "Reproduction Manifest"
+      ]
+    },
+    {
+      "artifact_class": "REVIEW_ARTIFACT",
+      "enters_dataset_artifact_set_id": false,
+      "dataset_manifest_placement": "not referenced by Dataset Manifest",
+      "examples": [
+        "Review Manifest",
+        "human review",
+        "certification record",
+        "mechanical verification report"
+      ]
+    },
+    {
+      "artifact_class": "RELEASE_LEDGER",
+      "enters_dataset_artifact_set_id": false,
+      "dataset_manifest_placement": "not referenced by Dataset Manifest",
+      "examples": [
+        "final SHA256SUMS"
+      ]
+    }
+  ],
+  "correction_bundle_path_rules": [
+    {
+      "path_prefix": "docs/specifications/",
+      "artifact_class": "SCHEMA_ARTIFACT"
+    },
+    {
+      "path_prefix": "registries/",
+      "artifact_class": "SCHEMA_ARTIFACT"
+    },
+    {
+      "path_prefix": "schemas/",
+      "artifact_class": "SCHEMA_ARTIFACT"
+    },
+    {
+      "path_prefix": "tests/fixtures/",
+      "artifact_class": "SCHEMA_ARTIFACT"
+    },
+    {
+      "path_prefix": "scripts/rcc002/",
+      "artifact_class": "SCHEMA_ARTIFACT"
+    },
+    {
+      "path_prefix": "docs/review/",
+      "artifact_class": "REVIEW_ARTIFACT"
+    },
+    {
+      "exact_path": "SHA256SUMS",
+      "artifact_class": "RELEASE_LEDGER"
+    }
+  ],
+  "dataset_release_rules": {
+    "data_artifacts_sort_order": [
+      "normalized_relative_path",
+      "logical_name"
+    ],
+    "dataset_manifest_must_inventory": [
+      "every DATA_ARTIFACT",
+      "every SCHEMA_ARTIFACT",
+      "every already-final pre-Dataset Source/Stage/Run CONTROL_MANIFEST"
+    ],
+    "dataset_manifest_must_not_inventory": [
+      "itself",
+      "post-Dataset Reproduction Manifest",
+      "REVIEW_ARTIFACT",
+      "RELEASE_LEDGER"
+    ]
+  }
+}

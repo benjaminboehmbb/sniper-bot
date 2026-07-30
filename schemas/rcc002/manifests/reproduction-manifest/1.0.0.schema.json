@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:rcc002:schema:reproduction-manifest:1.0.0",
+  "title": "RCC-002 Reproduction Manifest 1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_schema_id",
+    "manifest_schema_version",
+    "manifest_schema_ref",
+    "manifest_type",
+    "manifest_id",
+    "created_at_utc",
+    "producer",
+    "project",
+    "status",
+    "subject_dataset_manifest_id",
+    "subject_dataset_manifest_byte_sha256",
+    "source_run_id",
+    "source_build_id",
+    "target_run_id",
+    "target_build_id",
+    "source_environment",
+    "target_environment",
+    "environment_differences",
+    "artifact_comparisons",
+    "comparison_report_relative_path",
+    "equality_result",
+    "deviations",
+    "final_status"
+  ],
+  "properties": {
+    "manifest_schema_id": {
+      "const": "rcc002.reproduction-manifest"
+    },
+    "manifest_schema_version": {
+      "const": "1.0.0"
+    },
+    "manifest_schema_ref": {
+      "const": "rcc002.reproduction-manifest/1.0.0"
+    },
+    "manifest_type": {
+      "const": "reproduction"
+    },
+    "manifest_id": {
+      "$ref": "#/$defs/manifest_id"
+    },
+    "created_at_utc": {
+      "$ref": "#/$defs/utc_timestamp"
+    },
+    "producer": {
+      "$ref": "#/$defs/producer"
+    },
+    "project": {
+      "const": "RCC-002"
+    },
+    "status": {
+      "enum": [
+        "candidate",
+        "final",
+        "failed"
+      ]
+    },
+    "subject_dataset_manifest_id": {
+      "$ref": "#/$defs/manifest_id"
+    },
+    "subject_dataset_manifest_byte_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "source_run_id": {
+      "type": "string",
+      "pattern": "^run:.+$",
+      "not": {
+        "type": "string",
+        "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+      }
+    },
+    "source_build_id": {
+      "type": "string",
+      "pattern": "^build:sha256:[0-9a-f]{64}$",
+      "not": {
+        "type": "string",
+        "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+      }
+    },
+    "target_run_id": {
+      "type": "string",
+      "pattern": "^run:.+$",
+      "not": {
+        "type": "string",
+        "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+      }
+    },
+    "target_build_id": {
+      "type": "string",
+      "pattern": "^build:sha256:[0-9a-f]{64}$",
+      "not": {
+        "type": "string",
+        "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+      }
+    },
+    "source_environment": {
+      "$ref": "#/$defs/environment"
+    },
+    "target_environment": {
+      "$ref": "#/$defs/environment"
+    },
+    "environment_differences": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "not": {
+          "type": "string",
+          "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+        }
+      }
+    },
+    "artifact_comparisons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "logical_name",
+          "byte_equal",
+          "semantic_equal",
+          "within_registered_tolerance",
+          "classification_equal"
+        ],
+        "properties": {
+          "logical_name": {
+            "type": "string",
+            "minLength": 1,
+            "not": {
+              "type": "string",
+              "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+            }
+          },
+          "byte_equal": {
+            "type": "boolean"
+          },
+          "semantic_equal": {
+            "type": "boolean"
+          },
+          "within_registered_tolerance": {
+            "type": "boolean"
+          },
+          "classification_equal": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "comparison_report_relative_path": {
+      "$ref": "#/$defs/portable_path"
+    },
+    "equality_result": {
+      "enum": [
+        "E0",
+        "E1",
+        "E2",
+        "E3"
+      ]
+    },
+    "deviations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "not": {
+          "type": "string",
+          "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+        }
+      }
+    },
+    "final_status": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "not": {
+        "type": "string",
+        "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+      }
+    },
+    "manifest_id": {
+      "type": "string",
+      "pattern": "^manifest:sha256:[0-9a-f]{64}$",
+      "not": {
+        "type": "string",
+        "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+      }
+    },
+    "utc_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$",
+      "not": {
+        "type": "string",
+        "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+      }
+    },
+    "portable_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$",
+      "not": {
+        "type": "string",
+        "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "version"
+      ],
+      "properties": {
+        "component": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "password|secret|token|private[_-]?key"
+          },
+          "allOf": [
+            {
+              "not": {
+                "type": "string",
+                "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+              }
+            }
+          ]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "type": "string",
+            "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "canonical_sha256"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "type": "string",
+            "pattern": "[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"
+          }
+        },
+        "canonical_sha256": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}

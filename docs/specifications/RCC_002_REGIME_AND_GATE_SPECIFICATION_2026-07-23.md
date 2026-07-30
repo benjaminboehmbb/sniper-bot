@@ -11,9 +11,9 @@
 | Dateiname | `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md` |
 | Version | 0.5.1 |
 | Datum | 2026-07-23 |
-| Status | SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending |
-| Übergeordnetes Dokument | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version 0.7.1 |
-| Direkte Abhängigkeiten | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version 0.5.0; `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md`, Version 0.4.3; `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md`, Version 0.4.2 |
+| Status | S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending |
+| Übergeordnetes Dokument | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version 0.8.0 |
+| Direkte Abhängigkeiten | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version 0.6.0; `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md`, Version 0.4.3; `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md`, Version 0.4.2 |
 | Geltungsbereich | S5_REGIMES und S6_GATES der RCC-002-Datenpipeline |
 | Referenziert durch | Strategieforschung; Backtests; Regimeanalyse; Paper-/Live-Parität; spätere adaptive Steuerung |
 | Autoritative Sprache | Englische Feldnamen, Profil-IDs, Zustände und Regeln sind normativ; deutsche Erläuterungen präzisieren die Semantik |
@@ -33,6 +33,7 @@
 | Architecture Integrity Review | `RCC-002-AIR-001` nicht bestanden; Korrektur eingearbeitet | Version 0.4.0 korrigiert die diesem Dokument zugeordneten Teile von `AIR-001-B01`, `AIR-001-B03`, `AIR-001-M01` und `AIR-001-M03`; dokumentübergreifender Re-Review ausstehend |
 | Scientific Consistency Re-Review 005 | `RCC-002-SCR-005` nicht bestanden; Korrektur eingearbeitet | Version 0.5.0 korrigiert `SCR-005-B01`, `SCR-005-M01` und `SCR-005-M02`; SCR-006 ausstehend |
 | Minor Correction Cycle | `RCC-002-SCR-007-MinFV` umgesetzt | Version 0.5.1, 2026-07-27: Minor correction cycle: version, dependency, terminology, checklist and cross-reference consistency corrections. |
+| S8 Blocker Correction | Abhängigkeiten nachgezogen | Normativer Inhalt unverändert; Abhängigkeiten auf Data Pipeline 0.8.0 und Data Validation 0.6.0 aktualisiert; Re-Review ausstehend. |
 | Editorial Pass | Ausstehend | Nach bestandenem Architecture Integrity Review |
 | Internal Certification | Ausstehend | Nach bestandenem Editorial Pass |
 | Claude Independent Architecture Review | Ausstehend | Erst nach Internal Certification |
@@ -2197,7 +2198,7 @@ konsistent aktualisiert, neu paketiert und erneut geprüft sind.
 Der aktuelle Status lautet:
 
 ```text
-SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending
+S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending
 ```
 
 Nächste vorgeschriebene Schritte:

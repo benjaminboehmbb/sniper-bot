@@ -1,0 +1,56 @@
+{
+  "manifest_schema_id": "rcc002.run-manifest",
+  "manifest_schema_version": "1.0.0",
+  "manifest_schema_ref": "rcc002.run-manifest/1.0.0",
+  "manifest_type": "run",
+  "manifest_id": "manifest:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "created_at_utc": "2026-07-30T12:00:00Z",
+  "producer": {
+    "component": "rcc002-fixture-builder",
+    "version": "1.0.0"
+  },
+  "project": "RCC-002",
+  "status": "candidate",
+  "run_id": "run:2026-07-30T12:00:00Z:00000000-0000-4000-8000-000000000000",
+  "build_id": "build:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "started_at_utc": "2026-07-30T12:00:00Z",
+  "ended_at_utc": "2026-07-30T12:01:00Z",
+  "code_provenance": {
+    "repository": "sniper-bot",
+    "commit_sha": "0000000000000000000000000000000000000000",
+    "worktree_clean": true,
+    "dirty_patch_sha256": null,
+    "entrypoint": "scripts/build_rcc002.py"
+  },
+  "environment": {
+    "environment_identity_profile_id": "RCC_BUILD_ENV_IDENTITY_V2",
+    "environment_identity_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "python_version": "3.12.0",
+    "lockfile_relative_path": "requirements.lock",
+    "lockfile_byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "platform": "linux",
+    "libraries": [
+      {
+        "name": "polars",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "execution_parameters": {
+    "semantic_build_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "physical_publication_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "effective_cli_arguments": [
+      "--profile",
+      "rcc002-canonical"
+    ]
+  },
+  "validation_outcome": {
+    "status": "PASS",
+    "reason_codes": []
+  },
+  "publication_outcome": {
+    "status": "NOT_ATTEMPTED",
+    "reason_codes": []
+  },
+  "unexpected": true
+}

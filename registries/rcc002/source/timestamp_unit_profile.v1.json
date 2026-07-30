@@ -1,0 +1,49 @@
+{
+  "profile_id": "BINANCE_SPOT_TIMESTAMP_UNITS_V1",
+  "profile_version": "1.0.0",
+  "project": "RCC-002",
+  "provider": "BINANCE_VISION",
+  "market_type": "spot",
+  "dataset_kind": "klines",
+  "canonical_unit": "MILLISECOND",
+  "status": "candidate_verified_for_normative_review",
+  "selection_input": "REGISTERED_ARCHIVE_PERIOD_DESCRIPTOR_ONLY",
+  "effective_boundary_utc": "2025-01-01T00:00:00Z",
+  "branches": [
+    {
+      "condition": "period_end_utc <= 2025-01-01T00:00:00Z",
+      "raw_unit": "MILLISECOND",
+      "open_time_conversion": "IDENTITY",
+      "close_time_conversion": "IDENTITY"
+    },
+    {
+      "condition": "period_start_utc >= 2025-01-01T00:00:00Z",
+      "raw_unit": "MICROSECOND",
+      "open_time_required_remainder_mod_1000": 0,
+      "close_time_required_remainder_mod_1000": 999,
+      "open_time_conversion": "INTEGER_FLOOR_DIVIDE_BY_1000",
+      "close_time_conversion": "INTEGER_FLOOR_DIVIDE_BY_1000"
+    }
+  ],
+  "boundary_crossing_archive_action": "FAIL_COMPLETE_SOURCE_SNAPSHOT",
+  "prohibited_selection_inputs": [
+    "raw_timestamp_magnitude",
+    "normalized_row_coverage",
+    "requested_start",
+    "requested_end",
+    "local_path",
+    "retrieval_time",
+    "per_record_unit_guess"
+  ],
+  "one_minute_post_conversion_invariants": [
+    "open_time_ms % 60000 == 0",
+    "close_time_ms == open_time_ms + 59999",
+    "close_time_ms - open_time_ms == 59999"
+  ],
+  "numeric_rules": {
+    "integer_only": true,
+    "floating_point_conversion": false,
+    "round_to_nearest": false,
+    "silent_truncation_without_remainder_check": false
+  }
+}

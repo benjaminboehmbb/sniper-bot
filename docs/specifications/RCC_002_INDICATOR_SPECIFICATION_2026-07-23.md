@@ -11,9 +11,9 @@
 | Dateiname | `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md` |
 | Version | 0.4.3 |
 | Datum | 2026-07-23 |
-| Status | SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending |
-| Übergeordnetes Dokument | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version 0.7.1 |
-| Direkte Abhängigkeit | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version 0.5.0 |
+| Status | S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending |
+| Übergeordnetes Dokument | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version 0.8.0 |
+| Direkte Abhängigkeit | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version 0.6.0 |
 | Geltungsbereich | S3_INDICATORS der RCC-002-Datenpipeline |
 | Referenziert durch | Signaltransformation; Regime- und Gate-Spezifikation; Labels; Backtest; Paper-/Live-Parität |
 | Autoritative Sprache | Mathematische Definitionen und englische Feldnamen sind normativ; deutsche Erläuterungen dienen der fachlichen Präzisierung |
@@ -34,6 +34,7 @@
 | C1 Patch Release | `RCC-002-C1-SCR` bestanden mit Minor Findings | Version 0.4.1: patch release: normative clarification of Canonical Row Preservation semantics (C1) in §4.3 und §30 Kriterium 2. No intended behavioural change. |
 | Minor Correction Cycle | `RCC-002-SCR-007-MinFV` umgesetzt | Version 0.4.2, 2026-07-27: Minor correction cycle: version, dependency, terminology, checklist and cross-reference consistency corrections. |
 | AIR4-MIN-01 Correction | `RCC-002-AIR-004` Minor Finding behoben | Version 0.4.3, 2026-07-27: Clarified that PASS_WITH_APPROVED_EXCEPTIONS carve-outs are exhaustive and cannot be extended by approval alone. |
+| S8 Blocker Correction | Abhängigkeiten nachgezogen | Normativer Inhalt unverändert; Abhängigkeiten auf Data Pipeline 0.8.0 und Data Validation 0.6.0 aktualisiert; Re-Review ausstehend. |
 
 ## 1. Zweck
 
@@ -1732,7 +1733,7 @@ konsistent aktualisiert, neu paketiert und erneut geprüft sind.
 Der aktuelle Status lautet:
 
 ```text
-SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending
+S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending
 ```
 
 Nächste vorgeschriebene Schritte:

@@ -6,9 +6,9 @@
 |---|---|
 | Dokumentklasse | Wissenschaftliche und technische Kernspezifikation |
 | Dokument-ID | `RCC_002_DATA_PIPELINE_SPECIFICATION` |
-| Version | 0.7.1 |
+| Version | 0.8.0 |
 | Datum | 2026-07-23 |
-| Status | SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending |
+| Status | S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending |
 | Speicherort im Repository | `docs/specifications/RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md` |
 | Dateiname | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md` |
 | Geltungsbereich | Kanonische Forschungsdatenpipeline für BTCUSDT und spätere weitere Assets/Zeitebenen |
@@ -25,6 +25,7 @@
 | Architecture Integrity Review | `RCC-002-AIR-001` nicht bestanden; Korrektur eingearbeitet | Version 0.6.0 korrigiert die diesem Dokument zugeordneten Teile von `AIR-001-B01`, `AIR-001-B02`, `AIR-001-B03`, `AIR-001-M01`, `AIR-001-M02`, `AIR-001-M03` und `AIR-001-m01`; dokumentübergreifender Re-Review ausstehend |
 | Scientific Consistency Re-Review 005 | `RCC-002-SCR-005` nicht bestanden; Korrektur eingearbeitet | Version 0.7.0 korrigiert `SCR-005-B01`, `SCR-005-B02`, `SCR-005-M01`, `SCR-005-M02`, `SCR-005-M03` und materialisiert `AIR-005-H01`; SCR-006 ausstehend |
 | C1 Patch Release | `RCC-002-C1-SCR` bestanden mit Minor Findings | Version 0.7.1: patch release: normative clarification of Canonical Row Preservation semantics (C1) via neue Untersektion 5.8. No intended behavioural change. |
+| S8 Blocker Correction | `RCC-002-S8BCP-001` Revision 2 umgesetzt | Version 0.8.0 korrigiert Source Ingest, Zeitstempel-Normalisierung, Source-Row-Identität, Audit View und Manifest-Verträge; wissenschaftlicher und architektonischer Re-Review ausstehend. |
 | Editorial Pass | Ausstehend | Nach bestandenem Architecture Integrity Review |
 | Internal Certification | Ausstehend | Nach bestandenem Editorial Pass |
 | Claude Independent Architecture Review | Ausstehend | Erst nach Internal Certification |
@@ -529,15 +530,16 @@ Unbekannte Major-Versionen sind fail-closed abzulehnen.
 
 ### 7.1 S0_SOURCE – Rohdatenaufnahme
 
-S0 besteht aus zwei getrennten normativen Objekten:
+S0 besteht aus zwei getrennten normativen Objektklassen:
 
-1. unveränderten Quellartefakten;
+1. genau einem unveränderten Quellartefakt je physischer Providerdatei;
 2. genau einem zugehörigen `source_manifest`.
 
 Quellbytes werden nicht modifiziert. Archiv- oder Kompressionsformate bleiben
 als Quellartefakt erhalten. Dekomprimierte Ableitungen erhalten eigene
 Artefaktidentitäten. Die Quellartefakte selbst besitzen kein zusätzlich
-erfundenes RCC-Zeilenschema.
+erfundenes RCC-Zeilenschema. Ein `source_manifest` darf mehrere physische
+Quellartefakte aggregieren; jedes Artefakt bleibt dabei einzeln adressierbar.
 
 Der folgende Vertrag ist ausschließlich der Feldvertrag des
 `source_manifest`:
@@ -545,17 +547,39 @@ Der folgende Vertrag ist ausschließlich der Feldvertrag des
 | Feld | Logischer Typ | Nullbar | Eigentümerobjekt | Bedeutung |
 |---|---|:---:|---|---|
 | `source_snapshot_id` | UTF-8-String | Nein | `source_manifest` | Deterministische Identität der Quellenfassung |
+| `source_snapshot_preimage_sha256` | 64-stelliger Lowercase-Hex-String | Nein | `source_manifest` | Hash der exakten Source-Snapshot-Vorabbildung |
 | `provider` | UTF-8-String | Nein | `source_manifest` | Kanonische Providerkennung |
 | `market_type` | UTF-8-String | Nein | `source_manifest` | Registrierter Markttyp |
+| `dataset_kind` | UTF-8-String | Nein | `source_manifest` | Registrierte Datenfamilie |
 | `symbol` | UTF-8-String | Nein | `source_manifest` | Registriertes Symbol |
 | `interval` | UTF-8-String | Nein | `source_manifest` | Registriertes Datenintervall |
 | `retrieved_at_utc` | UTC-Timestamp in Millisekunden | Nein | `source_manifest` | Provenienzzeitpunkt des Abrufs; nicht Teil der Source-ID |
-| `source_file_name` | UTF-8-String | Nein | `source_manifest` | Ursprünglicher Dateiname ohne lokale Pfadsemantik |
-| `source_byte_sha256` | 64-stelliger Lowercase-Hex-String | Nein | `source_manifest` | SHA-256 der unveränderten Quellbytes |
-| `source_revision` | UTF-8-String | Ja | `source_manifest` | Providerrevision, falls verfügbar |
-| `source_format` | UTF-8-String | Nein | `source_manifest` | Registrierte Format- und Schemafamilie |
-| `source_location` | UTF-8-String | Nein | `source_manifest` | Dokumentierte Herkunft oder portable Quellenreferenz |
+| `source_retrieval_profile_id` | UTF-8-String | Nein | `source_manifest` | Registriertes Abrufprofil |
+| `source_retrieval_profile_version` | SemVer | Nein | `source_manifest` | Version des Abrufprofils |
+| `column_profile_id` | UTF-8-String | Nein | `source_manifest` | Registriertes Spalten-, Header-, Delimiter- und Encodingprofil |
+| `timestamp_unit_profile_id` | UTF-8-String | Nein | `source_manifest` | Registriertes periodenselektiertes Zeitstempelprofil |
+| `source_row_id_profile_id` | UTF-8-String | Nein | `source_manifest` | `RCC002_S1_SOURCE_ROW_ID_V2` |
+| `source_row_id_profile_version` | SemVer | Nein | `source_manifest` | `2.0.0` |
+| `source_files` | Geordnete Liste | Nein | `source_manifest` | Physische Quellartefakte in kanonischer Abrufreihenfolge |
+| `actual_coverage` | Objekt | Nein | `source_manifest` | Byte-abgeleiteter Gesamtumfang nach Zeitstempelnormalisierung |
+| `coverage_reconciliation` | Objekt | Nein | `source_manifest` | Ergebnis der Datei-/Gesamtdeckungsprüfung |
 | `license_or_terms_ref` | UTF-8-String | Ja | `source_manifest` | Referenz auf Nutzungsbedingungen |
+
+Jeder Eintrag in `source_files` enthält exakt:
+
+| Feld | Logischer Typ | Nullbar | Bedeutung |
+|---|---|:---:|---|
+| `provider_relative_name` | UTF-8-String | Nein | Normalisierter portabler Providerpfad |
+| `byte_sha256` | 64-stelliger Lowercase-Hex-String | Nein | SHA-256 der unveränderten Providerbytes |
+| `provider_checksum_sha256` | 64-stelliger Lowercase-Hex-String | Nein | Vom Provider veröffentlichte und verifizierte SHA-256 |
+| `size_bytes` | UInt64 | Nein | Bytegröße der unveränderten Providerdatei |
+| `csv_member_name` | UTF-8-String | Nein | Einziger registrierter CSV-Member |
+| `source_file_ordinal` | UInt32 | Nein | Nullbasierter Index nach Sortierung auf `provider_relative_name` |
+| `archive_period` | Objekt | Nein | Familie, Token, inklusive UTC-Start- und exklusive UTC-Endgrenze |
+| `record_count` | UInt64 | Nein | Physische Datenzeilen nach registriertem Headermodus |
+| `min_open_time_utc_ms` | Int64 | Nein | Kleinster normalisierter Open-Zeitstempel |
+| `max_close_time_utc_ms` | Int64 | Nein | Größter normalisierter Close-Zeitstempel |
+| `timestamp_unit` | Enum | Nein | `MILLISECOND` oder `MICROSECOND` gemäß Profil |
 
 `provider` und `retrieved_at_utc` sind die einzigen kanonischen Feldnamen.
 `source_provider` und `source_retrieved_at_utc` sind ausschließlich zulässige
@@ -587,18 +611,24 @@ drei Felder enthalten.
 
 Für die Identitätswirkung gilt:
 
-- `source_snapshot_id` wird aus den quellinhaltlichen und semantischen
-  Abrufmerkmalen einschließlich `provider`, `market_type`, `symbol`,
-  `interval`, geordneter Quellbyte-Hashes, `source_revision` und
-  registrierter semantischer Abrufparameter gebildet;
+- `source_files` wird nach normalisiertem `provider_relative_name` sortiert;
+  erst danach werden lückenlose `source_file_ordinal`-Werte vergeben;
+- `source_snapshot_id` wird gemäß
+  `RCC002_SOURCE_SNAPSHOT_ID_V1/1.0.0` über die exakte RFC-8785-
+  Vorabbildung aus Retrievalprofil, Provider-/Markt-/Datasetidentität,
+  Symbol, Intervall, Spalten- und Zeitstempelprofil, Source Revision,
+  vollständiger `source_files`-Liste und `actual_coverage` gebildet;
+- `source_snapshot_id` hat die Darstellung
+  `source:sha256:<lowercase-sha256>`;
 - `retrieved_at_utc`, lokale Pfade, Hostdaten und Transport-Retrys beeinflussen
   `source_snapshot_id` nicht;
 - `timezone`, `expected_start` und `expected_end` gehen über
   `semantic_build_configuration_sha256` in `build_id` und `dataset_id` ein,
   nicht in `source_snapshot_id`.
 
-`source_revision` darf null sein, wenn der Provider keine Revision ausweist.
-Dieser Zustand muss im Source Manifest explizit dokumentiert werden.
+`source_revision` ist ein Source-Manifest-Feld und darf null sein, wenn der
+Provider keine Revision ausweist. Dieser Zustand muss explizit serialisiert
+werden.
 
 ### 7.2 S1_NORMALIZED – Normalisierung
 
@@ -611,6 +641,24 @@ S1 normalisiert:
 - Markttyp;
 - Symbolbezeichnung;
 - numerische Darstellung.
+
+Vor dem Lesen einer Datenzeile muss S1 anhand
+`source_retrieval_profile_id` und `archive_period` genau einen
+Eintrag des `timestamp_unit_profile_id` auswählen. Eine Einheit darf weder
+aus der Stellenzahl noch aus dem Zahlenwert eines Zeitstempels geraten werden.
+Für das registrierte Binance-Spot-Profil gilt:
+
+```text
+archive_period.period_end_utc <= 2025-01-01T00:00:00Z   -> raw_unit = millisecond
+archive_period.period_start_utc >= 2025-01-01T00:00:00Z -> raw_unit = microsecond
+```
+
+Bei `raw_unit = millisecond` ist der Rohwert unverändert zu übernehmen. Bei
+`raw_unit = microsecond` gilt für `open_time_raw` zwingend
+`open_time_raw mod 1000 = 0` und für `close_time_raw` zwingend
+`close_time_raw mod 1000 = 999`; anschließend werden beide Werte durch
+ganzzahlige Division durch 1000 in kanonische Millisekunden überführt. Jeder
+Profil-, Perioden- oder Restklassenkonflikt ist fail-closed abzulehnen.
 
 Der kanonische Primärschlüssel lautet:
 
@@ -631,6 +679,8 @@ Der kanonische S1-Zeilenvertrag enthält mindestens:
 |---|---|:---:|---|
 | `source_snapshot_id` | UTF-8-String | Nein | S0 |
 | `source_row_id` | UTF-8-String | Nein | S1 |
+| `source_file_ordinal` | UInt32 | Nein | S0/S1 |
+| `original_record_index` | UInt64 | Nein | S1 |
 | `provider` | UTF-8-String | Nein | S0/S1 |
 | `market_type` | UTF-8-String | Nein | S0/S1 |
 | `symbol` | UTF-8-String | Nein | S0/S1 |
@@ -643,9 +693,23 @@ Der kanonische S1-Zeilenvertrag enthält mindestens:
 | `close` | Float64 | Nein | S1 |
 | `volume` | Float64 | Nein | S1 |
 
-`source_row_id` identifiziert die normalisierte Zeile innerhalb des
-`source_snapshot_id` deterministisch. Seine Vorabbildung und
-Kanonisierungsregel müssen versioniert sein.
+`original_record_index` ist der nullbasierte physische Datensatzindex innerhalb
+der dekomprimierten registrierten Datendatei; eine Headerzeile zählt nicht als
+Datensatz. `source_file_ordinal` verweist auf genau einen Eintrag von
+`source_files`.
+
+Für `source_row_id_profile_ref =
+RCC002_S1_SOURCE_ROW_ID_V2/2.0.0` wird `source_row_id` ohne Trennzeichen-
+Escaping exakt als folgende ASCII-Zeichenfolge gebildet:
+
+```text
+RCC002_S1_SOURCE_ROW_ID_V2:<source_snapshot_id>:<source_file_ordinal 8d>:<original_record_index 20d>
+```
+
+`source_file_ordinal` ist dabei nullaufgefüllt auf acht Dezimalstellen,
+`original_record_index` auf zwanzig Dezimalstellen. Werte außerhalb dieser Breiten,
+unbekannte Profilversionen oder nicht auflösbare Ordinale sind fail-closed
+abzulehnen.
 
 Quellfelder wie Quote Volume, Trade Count oder Taker Volume sind nur dann
 kanonische Erweiterungsfelder, wenn sie mit Datentyp, Nullsemantik und
@@ -1921,194 +1985,559 @@ View-Schema-Fingerprint.
 
 ##### 7.9.3.6 `audit`
 
+Audit View V1 (`rcc002.view.audit/1.0.0`) ist zurückgezogen und darf nicht erzeugt oder konsumiert werden. Audit View V2 besitzt exakt dieselbe geordnete Feldmenge, denselben Allowlist-Hash und dieselben zulässigen Erzeugerstufen wie `label-research/1.0.0`; insbesondere enthält sie keine S8- oder Manifestfelder.
+
 ```json
 {
   "schema_id": "rcc002.view.audit",
-  "schema_version": "1.0.0",
-  "schema_ref": "rcc002.view.audit/1.0.0",
-  "allowlist_sha256": "3c29f3219e65ca87df199a52dc8d15b54a6ea28884a863d1479d27e8a2401b56",
+  "schema_version": "2.0.0",
+  "schema_ref": "rcc002.view.audit/2.0.0",
+  "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc",
   "allowed_producer_stages": [
-    "S0_SOURCE", "S1_NORMALIZED", "S2_VALIDATED", "S3_INDICATORS", "S4_SIGNALS", "S5_REGIMES", "S6_GATES",
-    "S7_LABELS", "S8_EXPORT"
+    "S0_SOURCE",
+    "S1_NORMALIZED",
+    "S2_VALIDATED",
+    "S3_INDICATORS",
+    "S4_SIGNALS",
+    "S5_REGIMES",
+    "S6_GATES",
+    "S7_LABELS"
   ],
   "fields": [
-    "source_snapshot_id", "provider", "market_type", "symbol", "interval", "source_row_id", "open_time",
-    "close_time", "open", "high", "low", "close", "volume", "market_segment_id", "quality_is_observed",
-    "quality_is_synthetic", "quality_has_source_conflict", "quality_gap_before", "quality_gap_after",
-    "quality_timestamp_valid", "quality_ohlc_valid", "quality_volume_valid", "quality_market_values_valid",
-    "quality_status", "quality_reason_codes", "quality_rule_version", "quality_gate_pass",
-    "indicator_profile_id", "indicator_profile_version", "indicator_schema_id", "indicator_schema_version",
-    "indicator_schema_ref", "indicator_segment_id", "sma_close_200", "sma_close_200_valid",
-    "sma_close_200_warmup_complete", "sma_close_200_reason_codes", "ema_close_50", "ema_close_50_valid",
-    "ema_close_50_warmup_complete", "ema_close_50_reason_codes", "rsi_wilder_14", "rsi_wilder_14_valid",
-    "rsi_wilder_14_warmup_complete", "rsi_wilder_14_reason_codes", "macd_line_12_26", "macd_line_12_26_valid",
-    "macd_line_12_26_warmup_complete", "macd_line_12_26_reason_codes", "macd_signal_line_12_26_9",
-    "macd_signal_line_12_26_9_valid", "macd_signal_line_12_26_9_warmup_complete",
-    "macd_signal_line_12_26_9_reason_codes", "macd_hist_12_26_9", "macd_hist_12_26_9_valid",
-    "macd_hist_12_26_9_warmup_complete", "macd_hist_12_26_9_reason_codes", "bb_mid_20", "bb_mid_20_valid",
-    "bb_mid_20_warmup_complete", "bb_mid_20_reason_codes", "bb_upper_20_2", "bb_upper_20_2_valid",
-    "bb_upper_20_2_warmup_complete", "bb_upper_20_2_reason_codes", "bb_lower_20_2", "bb_lower_20_2_valid",
-    "bb_lower_20_2_warmup_complete", "bb_lower_20_2_reason_codes", "bb_width_20_2", "bb_width_20_2_valid",
-    "bb_width_20_2_warmup_complete", "bb_width_20_2_reason_codes", "stoch_k_14", "stoch_k_14_valid",
-    "stoch_k_14_warmup_complete", "stoch_k_14_reason_codes", "true_range", "true_range_valid",
-    "true_range_warmup_complete", "true_range_reason_codes", "atr_wilder_14", "atr_wilder_14_valid",
-    "atr_wilder_14_warmup_complete", "atr_wilder_14_reason_codes", "roc_close_12_pct", "roc_close_12_pct_valid",
-    "roc_close_12_pct_warmup_complete", "roc_close_12_pct_reason_codes", "obv", "obv_valid",
-    "obv_warmup_complete", "obv_reason_codes", "typical_price", "typical_price_valid",
-    "typical_price_warmup_complete", "typical_price_reason_codes", "cci_20", "cci_20_valid",
-    "cci_20_warmup_complete", "cci_20_reason_codes", "mfi_14", "mfi_14_valid", "mfi_14_warmup_complete",
-    "mfi_14_reason_codes", "plus_di_14", "plus_di_14_valid", "plus_di_14_warmup_complete",
-    "plus_di_14_reason_codes", "minus_di_14", "minus_di_14_valid", "minus_di_14_warmup_complete",
-    "minus_di_14_reason_codes", "dx_14", "dx_14_valid", "dx_14_warmup_complete", "dx_14_reason_codes",
-    "adx_wilder_14", "adx_wilder_14_valid", "adx_wilder_14_warmup_complete", "adx_wilder_14_reason_codes",
-    "signal_profile_id", "signal_profile_version", "signal_schema_id", "signal_schema_version",
-    "signal_schema_ref", "sig_rsi_mr_d", "sig_rsi_mr_d_valid", "sig_rsi_mr_d_reason_codes",
-    "sig_macd_momentum_d", "sig_macd_momentum_d_valid", "sig_macd_momentum_d_reason_codes",
-    "sig_bollinger_mr_d", "sig_bollinger_mr_d_valid", "sig_bollinger_mr_d_reason_codes", "sig_stoch_mr_d",
-    "sig_stoch_mr_d_valid", "sig_stoch_mr_d_reason_codes", "sig_cci_mr_d", "sig_cci_mr_d_valid",
-    "sig_cci_mr_d_reason_codes", "sig_mfi_mr_d", "sig_mfi_mr_d_valid", "sig_mfi_mr_d_reason_codes",
-    "sig_obv_momentum_d", "sig_obv_momentum_d_valid", "sig_obv_momentum_d_reason_codes", "sig_roc_momentum_d",
-    "sig_roc_momentum_d_valid", "sig_roc_momentum_d_reason_codes", "state_ma200_trend_d",
-    "state_ma200_trend_d_valid", "state_ma200_trend_d_reason_codes", "state_ema50_trend_d",
-    "state_ema50_trend_d_valid", "state_ema50_trend_d_reason_codes", "state_atr_relative_d",
-    "state_atr_relative_d_valid", "state_atr_relative_d_reason_codes", "state_adx_strength_d",
-    "state_adx_strength_d_valid", "state_adx_strength_d_reason_codes", "score_rsi_mr_c", "score_rsi_mr_c_valid",
-    "score_rsi_mr_c_reason_codes", "score_macd_momentum_c", "score_macd_momentum_c_valid",
-    "score_macd_momentum_c_reason_codes", "score_bollinger_mr_c", "score_bollinger_mr_c_valid",
-    "score_bollinger_mr_c_reason_codes", "score_stoch_mr_c", "score_stoch_mr_c_valid",
-    "score_stoch_mr_c_reason_codes", "score_cci_mr_c", "score_cci_mr_c_valid", "score_cci_mr_c_reason_codes",
-    "score_mfi_mr_c", "score_mfi_mr_c_valid", "score_mfi_mr_c_reason_codes", "score_obv_momentum_c",
-    "score_obv_momentum_c_valid", "score_obv_momentum_c_reason_codes", "score_roc_momentum_c",
-    "score_roc_momentum_c_valid", "score_roc_momentum_c_reason_codes", "score_ma200_trend_c",
-    "score_ma200_trend_c_valid", "score_ma200_trend_c_reason_codes", "score_ema50_trend_c",
-    "score_ema50_trend_c_valid", "score_ema50_trend_c_reason_codes", "score_atr_relative_c",
-    "score_atr_relative_c_valid", "score_atr_relative_c_reason_codes", "score_adx_strength_c",
-    "score_adx_strength_c_valid", "score_adx_strength_c_reason_codes", "regime_raw", "regime_effective",
-    "regime_candidate", "regime_candidate_count", "regime_transition_flag", "regime_transition_from",
-    "regime_transition_to", "ma200_slope_1440_pct", "trend_strength", "trend_strength_valid",
-    "trend_strength_reason_codes", "volatility_relative", "volatility_relative_valid",
-    "volatility_relative_reason_codes", "regime_model_id", "regime_model_version", "regime_schema_id",
-    "regime_schema_version", "regime_schema_ref", "regime_valid", "regime_reason_codes", "allow_long",
-    "allow_short", "data_gate_pass", "gate_state", "gate_reason_codes_long", "gate_reason_codes_short",
-    "gate_profile_id", "gate_profile_version", "gate_schema_id", "gate_schema_version", "gate_schema_ref",
-    "gate_valid", "gate_evaluated_at", "label_profile_id", "label_profile_version", "label_schema_id",
-    "label_schema_version", "label_schema_ref", "horizon_registry_id", "horizon_registry_version",
-    "cost_profile_id", "cost_profile_version", "barrier_profile_id", "barrier_profile_version",
-    "label_reason_code_registry_version", "label_numeric_profile_id", "label_numeric_profile_version",
-    "label_horizon_bars_h001", "label_available_at_h001", "fwd_cc_valid_h001", "fwd_cc_reason_codes_h001",
-    "fwd_cc_label_segment_id_h001", "fwd_cc_long_ret_h001", "fwd_cc_short_ret_h001", "fwd_cc_log_ret_h001",
-    "fwd_cc_short_log_ret_h001", "fwd_noc_valid_h001", "fwd_noc_reason_codes_h001",
-    "fwd_noc_label_segment_id_h001", "fwd_noc_long_ret_h001", "fwd_noc_short_ret_h001",
-    "fwd_noc_long_net_proxy_fee_rt_0004_h001", "fwd_noc_short_net_proxy_fee_rt_0004_h001",
-    "fwd_excursion_valid_h001", "fwd_excursion_reason_codes_h001", "fwd_excursion_label_segment_id_h001",
-    "fwd_long_mfe_h001", "fwd_long_mae_h001", "fwd_short_mfe_h001", "fwd_short_mae_h001",
-    "fwd_long_mfe_first_bar_h001", "fwd_long_mae_first_bar_h001", "fwd_short_mfe_first_bar_h001",
-    "fwd_short_mae_first_bar_h001", "label_cc_direction_valid_h001", "label_cc_direction_reason_codes_h001",
-    "label_cc_direction_segment_id_h001", "label_cc_long_direction_h001", "label_cc_short_direction_h001",
-    "label_noc_direction_valid_h001", "label_noc_direction_reason_codes_h001",
-    "label_noc_direction_segment_id_h001", "label_noc_long_direction_h001", "label_noc_short_direction_h001",
+    "source_snapshot_id",
+    "provider",
+    "market_type",
+    "symbol",
+    "interval",
+    "source_row_id",
+    "open_time",
+    "close_time",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "market_segment_id",
+    "quality_is_observed",
+    "quality_is_synthetic",
+    "quality_has_source_conflict",
+    "quality_gap_before",
+    "quality_gap_after",
+    "quality_timestamp_valid",
+    "quality_ohlc_valid",
+    "quality_volume_valid",
+    "quality_market_values_valid",
+    "quality_status",
+    "quality_reason_codes",
+    "quality_rule_version",
+    "quality_gate_pass",
+    "indicator_profile_id",
+    "indicator_profile_version",
+    "indicator_schema_id",
+    "indicator_schema_version",
+    "indicator_schema_ref",
+    "indicator_segment_id",
+    "sma_close_200",
+    "sma_close_200_valid",
+    "sma_close_200_warmup_complete",
+    "sma_close_200_reason_codes",
+    "ema_close_50",
+    "ema_close_50_valid",
+    "ema_close_50_warmup_complete",
+    "ema_close_50_reason_codes",
+    "rsi_wilder_14",
+    "rsi_wilder_14_valid",
+    "rsi_wilder_14_warmup_complete",
+    "rsi_wilder_14_reason_codes",
+    "macd_line_12_26",
+    "macd_line_12_26_valid",
+    "macd_line_12_26_warmup_complete",
+    "macd_line_12_26_reason_codes",
+    "macd_signal_line_12_26_9",
+    "macd_signal_line_12_26_9_valid",
+    "macd_signal_line_12_26_9_warmup_complete",
+    "macd_signal_line_12_26_9_reason_codes",
+    "macd_hist_12_26_9",
+    "macd_hist_12_26_9_valid",
+    "macd_hist_12_26_9_warmup_complete",
+    "macd_hist_12_26_9_reason_codes",
+    "bb_mid_20",
+    "bb_mid_20_valid",
+    "bb_mid_20_warmup_complete",
+    "bb_mid_20_reason_codes",
+    "bb_upper_20_2",
+    "bb_upper_20_2_valid",
+    "bb_upper_20_2_warmup_complete",
+    "bb_upper_20_2_reason_codes",
+    "bb_lower_20_2",
+    "bb_lower_20_2_valid",
+    "bb_lower_20_2_warmup_complete",
+    "bb_lower_20_2_reason_codes",
+    "bb_width_20_2",
+    "bb_width_20_2_valid",
+    "bb_width_20_2_warmup_complete",
+    "bb_width_20_2_reason_codes",
+    "stoch_k_14",
+    "stoch_k_14_valid",
+    "stoch_k_14_warmup_complete",
+    "stoch_k_14_reason_codes",
+    "true_range",
+    "true_range_valid",
+    "true_range_warmup_complete",
+    "true_range_reason_codes",
+    "atr_wilder_14",
+    "atr_wilder_14_valid",
+    "atr_wilder_14_warmup_complete",
+    "atr_wilder_14_reason_codes",
+    "roc_close_12_pct",
+    "roc_close_12_pct_valid",
+    "roc_close_12_pct_warmup_complete",
+    "roc_close_12_pct_reason_codes",
+    "obv",
+    "obv_valid",
+    "obv_warmup_complete",
+    "obv_reason_codes",
+    "typical_price",
+    "typical_price_valid",
+    "typical_price_warmup_complete",
+    "typical_price_reason_codes",
+    "cci_20",
+    "cci_20_valid",
+    "cci_20_warmup_complete",
+    "cci_20_reason_codes",
+    "mfi_14",
+    "mfi_14_valid",
+    "mfi_14_warmup_complete",
+    "mfi_14_reason_codes",
+    "plus_di_14",
+    "plus_di_14_valid",
+    "plus_di_14_warmup_complete",
+    "plus_di_14_reason_codes",
+    "minus_di_14",
+    "minus_di_14_valid",
+    "minus_di_14_warmup_complete",
+    "minus_di_14_reason_codes",
+    "dx_14",
+    "dx_14_valid",
+    "dx_14_warmup_complete",
+    "dx_14_reason_codes",
+    "adx_wilder_14",
+    "adx_wilder_14_valid",
+    "adx_wilder_14_warmup_complete",
+    "adx_wilder_14_reason_codes",
+    "signal_profile_id",
+    "signal_profile_version",
+    "signal_schema_id",
+    "signal_schema_version",
+    "signal_schema_ref",
+    "sig_rsi_mr_d",
+    "sig_rsi_mr_d_valid",
+    "sig_rsi_mr_d_reason_codes",
+    "sig_macd_momentum_d",
+    "sig_macd_momentum_d_valid",
+    "sig_macd_momentum_d_reason_codes",
+    "sig_bollinger_mr_d",
+    "sig_bollinger_mr_d_valid",
+    "sig_bollinger_mr_d_reason_codes",
+    "sig_stoch_mr_d",
+    "sig_stoch_mr_d_valid",
+    "sig_stoch_mr_d_reason_codes",
+    "sig_cci_mr_d",
+    "sig_cci_mr_d_valid",
+    "sig_cci_mr_d_reason_codes",
+    "sig_mfi_mr_d",
+    "sig_mfi_mr_d_valid",
+    "sig_mfi_mr_d_reason_codes",
+    "sig_obv_momentum_d",
+    "sig_obv_momentum_d_valid",
+    "sig_obv_momentum_d_reason_codes",
+    "sig_roc_momentum_d",
+    "sig_roc_momentum_d_valid",
+    "sig_roc_momentum_d_reason_codes",
+    "state_ma200_trend_d",
+    "state_ma200_trend_d_valid",
+    "state_ma200_trend_d_reason_codes",
+    "state_ema50_trend_d",
+    "state_ema50_trend_d_valid",
+    "state_ema50_trend_d_reason_codes",
+    "state_atr_relative_d",
+    "state_atr_relative_d_valid",
+    "state_atr_relative_d_reason_codes",
+    "state_adx_strength_d",
+    "state_adx_strength_d_valid",
+    "state_adx_strength_d_reason_codes",
+    "score_rsi_mr_c",
+    "score_rsi_mr_c_valid",
+    "score_rsi_mr_c_reason_codes",
+    "score_macd_momentum_c",
+    "score_macd_momentum_c_valid",
+    "score_macd_momentum_c_reason_codes",
+    "score_bollinger_mr_c",
+    "score_bollinger_mr_c_valid",
+    "score_bollinger_mr_c_reason_codes",
+    "score_stoch_mr_c",
+    "score_stoch_mr_c_valid",
+    "score_stoch_mr_c_reason_codes",
+    "score_cci_mr_c",
+    "score_cci_mr_c_valid",
+    "score_cci_mr_c_reason_codes",
+    "score_mfi_mr_c",
+    "score_mfi_mr_c_valid",
+    "score_mfi_mr_c_reason_codes",
+    "score_obv_momentum_c",
+    "score_obv_momentum_c_valid",
+    "score_obv_momentum_c_reason_codes",
+    "score_roc_momentum_c",
+    "score_roc_momentum_c_valid",
+    "score_roc_momentum_c_reason_codes",
+    "score_ma200_trend_c",
+    "score_ma200_trend_c_valid",
+    "score_ma200_trend_c_reason_codes",
+    "score_ema50_trend_c",
+    "score_ema50_trend_c_valid",
+    "score_ema50_trend_c_reason_codes",
+    "score_atr_relative_c",
+    "score_atr_relative_c_valid",
+    "score_atr_relative_c_reason_codes",
+    "score_adx_strength_c",
+    "score_adx_strength_c_valid",
+    "score_adx_strength_c_reason_codes",
+    "regime_raw",
+    "regime_effective",
+    "regime_candidate",
+    "regime_candidate_count",
+    "regime_transition_flag",
+    "regime_transition_from",
+    "regime_transition_to",
+    "ma200_slope_1440_pct",
+    "trend_strength",
+    "trend_strength_valid",
+    "trend_strength_reason_codes",
+    "volatility_relative",
+    "volatility_relative_valid",
+    "volatility_relative_reason_codes",
+    "regime_model_id",
+    "regime_model_version",
+    "regime_schema_id",
+    "regime_schema_version",
+    "regime_schema_ref",
+    "regime_valid",
+    "regime_reason_codes",
+    "allow_long",
+    "allow_short",
+    "data_gate_pass",
+    "gate_state",
+    "gate_reason_codes_long",
+    "gate_reason_codes_short",
+    "gate_profile_id",
+    "gate_profile_version",
+    "gate_schema_id",
+    "gate_schema_version",
+    "gate_schema_ref",
+    "gate_valid",
+    "gate_evaluated_at",
+    "label_profile_id",
+    "label_profile_version",
+    "label_schema_id",
+    "label_schema_version",
+    "label_schema_ref",
+    "horizon_registry_id",
+    "horizon_registry_version",
+    "cost_profile_id",
+    "cost_profile_version",
+    "barrier_profile_id",
+    "barrier_profile_version",
+    "label_reason_code_registry_version",
+    "label_numeric_profile_id",
+    "label_numeric_profile_version",
+    "label_horizon_bars_h001",
+    "label_available_at_h001",
+    "fwd_cc_valid_h001",
+    "fwd_cc_reason_codes_h001",
+    "fwd_cc_label_segment_id_h001",
+    "fwd_cc_long_ret_h001",
+    "fwd_cc_short_ret_h001",
+    "fwd_cc_log_ret_h001",
+    "fwd_cc_short_log_ret_h001",
+    "fwd_noc_valid_h001",
+    "fwd_noc_reason_codes_h001",
+    "fwd_noc_label_segment_id_h001",
+    "fwd_noc_long_ret_h001",
+    "fwd_noc_short_ret_h001",
+    "fwd_noc_long_net_proxy_fee_rt_0004_h001",
+    "fwd_noc_short_net_proxy_fee_rt_0004_h001",
+    "fwd_excursion_valid_h001",
+    "fwd_excursion_reason_codes_h001",
+    "fwd_excursion_label_segment_id_h001",
+    "fwd_long_mfe_h001",
+    "fwd_long_mae_h001",
+    "fwd_short_mfe_h001",
+    "fwd_short_mae_h001",
+    "fwd_long_mfe_first_bar_h001",
+    "fwd_long_mae_first_bar_h001",
+    "fwd_short_mfe_first_bar_h001",
+    "fwd_short_mae_first_bar_h001",
+    "label_cc_direction_valid_h001",
+    "label_cc_direction_reason_codes_h001",
+    "label_cc_direction_segment_id_h001",
+    "label_cc_long_direction_h001",
+    "label_cc_short_direction_h001",
+    "label_noc_direction_valid_h001",
+    "label_noc_direction_reason_codes_h001",
+    "label_noc_direction_segment_id_h001",
+    "label_noc_long_direction_h001",
+    "label_noc_short_direction_h001",
     "label_noc_long_net_proxy_fee_rt_0004_direction_h001",
-    "label_noc_short_net_proxy_fee_rt_0004_direction_h001", "barrier_valid_h001", "barrier_reason_codes_h001",
-    "barrier_label_segment_id_h001", "barrier_long_outcome_tp050_sl020_h001",
-    "barrier_short_outcome_tp050_sl020_h001", "barrier_long_first_hit_bar_tp050_sl020_h001",
-    "barrier_short_first_hit_bar_tp050_sl020_h001", "barrier_long_first_hit_time_tp050_sl020_h001",
-    "barrier_short_first_hit_time_tp050_sl020_h001", "label_horizon_bars_h005", "label_available_at_h005",
-    "fwd_cc_valid_h005", "fwd_cc_reason_codes_h005", "fwd_cc_label_segment_id_h005", "fwd_cc_long_ret_h005",
-    "fwd_cc_short_ret_h005", "fwd_cc_log_ret_h005", "fwd_cc_short_log_ret_h005", "fwd_noc_valid_h005",
-    "fwd_noc_reason_codes_h005", "fwd_noc_label_segment_id_h005", "fwd_noc_long_ret_h005",
-    "fwd_noc_short_ret_h005", "fwd_noc_long_net_proxy_fee_rt_0004_h005",
-    "fwd_noc_short_net_proxy_fee_rt_0004_h005", "fwd_excursion_valid_h005", "fwd_excursion_reason_codes_h005",
-    "fwd_excursion_label_segment_id_h005", "fwd_long_mfe_h005", "fwd_long_mae_h005", "fwd_short_mfe_h005",
-    "fwd_short_mae_h005", "fwd_long_mfe_first_bar_h005", "fwd_long_mae_first_bar_h005",
-    "fwd_short_mfe_first_bar_h005", "fwd_short_mae_first_bar_h005", "label_cc_direction_valid_h005",
-    "label_cc_direction_reason_codes_h005", "label_cc_direction_segment_id_h005",
-    "label_cc_long_direction_h005", "label_cc_short_direction_h005", "label_noc_direction_valid_h005",
-    "label_noc_direction_reason_codes_h005", "label_noc_direction_segment_id_h005",
-    "label_noc_long_direction_h005", "label_noc_short_direction_h005",
+    "label_noc_short_net_proxy_fee_rt_0004_direction_h001",
+    "barrier_valid_h001",
+    "barrier_reason_codes_h001",
+    "barrier_label_segment_id_h001",
+    "barrier_long_outcome_tp050_sl020_h001",
+    "barrier_short_outcome_tp050_sl020_h001",
+    "barrier_long_first_hit_bar_tp050_sl020_h001",
+    "barrier_short_first_hit_bar_tp050_sl020_h001",
+    "barrier_long_first_hit_time_tp050_sl020_h001",
+    "barrier_short_first_hit_time_tp050_sl020_h001",
+    "label_horizon_bars_h005",
+    "label_available_at_h005",
+    "fwd_cc_valid_h005",
+    "fwd_cc_reason_codes_h005",
+    "fwd_cc_label_segment_id_h005",
+    "fwd_cc_long_ret_h005",
+    "fwd_cc_short_ret_h005",
+    "fwd_cc_log_ret_h005",
+    "fwd_cc_short_log_ret_h005",
+    "fwd_noc_valid_h005",
+    "fwd_noc_reason_codes_h005",
+    "fwd_noc_label_segment_id_h005",
+    "fwd_noc_long_ret_h005",
+    "fwd_noc_short_ret_h005",
+    "fwd_noc_long_net_proxy_fee_rt_0004_h005",
+    "fwd_noc_short_net_proxy_fee_rt_0004_h005",
+    "fwd_excursion_valid_h005",
+    "fwd_excursion_reason_codes_h005",
+    "fwd_excursion_label_segment_id_h005",
+    "fwd_long_mfe_h005",
+    "fwd_long_mae_h005",
+    "fwd_short_mfe_h005",
+    "fwd_short_mae_h005",
+    "fwd_long_mfe_first_bar_h005",
+    "fwd_long_mae_first_bar_h005",
+    "fwd_short_mfe_first_bar_h005",
+    "fwd_short_mae_first_bar_h005",
+    "label_cc_direction_valid_h005",
+    "label_cc_direction_reason_codes_h005",
+    "label_cc_direction_segment_id_h005",
+    "label_cc_long_direction_h005",
+    "label_cc_short_direction_h005",
+    "label_noc_direction_valid_h005",
+    "label_noc_direction_reason_codes_h005",
+    "label_noc_direction_segment_id_h005",
+    "label_noc_long_direction_h005",
+    "label_noc_short_direction_h005",
     "label_noc_long_net_proxy_fee_rt_0004_direction_h005",
-    "label_noc_short_net_proxy_fee_rt_0004_direction_h005", "barrier_valid_h005", "barrier_reason_codes_h005",
-    "barrier_label_segment_id_h005", "barrier_long_outcome_tp050_sl020_h005",
-    "barrier_short_outcome_tp050_sl020_h005", "barrier_long_first_hit_bar_tp050_sl020_h005",
-    "barrier_short_first_hit_bar_tp050_sl020_h005", "barrier_long_first_hit_time_tp050_sl020_h005",
-    "barrier_short_first_hit_time_tp050_sl020_h005", "label_horizon_bars_h015", "label_available_at_h015",
-    "fwd_cc_valid_h015", "fwd_cc_reason_codes_h015", "fwd_cc_label_segment_id_h015", "fwd_cc_long_ret_h015",
-    "fwd_cc_short_ret_h015", "fwd_cc_log_ret_h015", "fwd_cc_short_log_ret_h015", "fwd_noc_valid_h015",
-    "fwd_noc_reason_codes_h015", "fwd_noc_label_segment_id_h015", "fwd_noc_long_ret_h015",
-    "fwd_noc_short_ret_h015", "fwd_noc_long_net_proxy_fee_rt_0004_h015",
-    "fwd_noc_short_net_proxy_fee_rt_0004_h015", "fwd_excursion_valid_h015", "fwd_excursion_reason_codes_h015",
-    "fwd_excursion_label_segment_id_h015", "fwd_long_mfe_h015", "fwd_long_mae_h015", "fwd_short_mfe_h015",
-    "fwd_short_mae_h015", "fwd_long_mfe_first_bar_h015", "fwd_long_mae_first_bar_h015",
-    "fwd_short_mfe_first_bar_h015", "fwd_short_mae_first_bar_h015", "label_cc_direction_valid_h015",
-    "label_cc_direction_reason_codes_h015", "label_cc_direction_segment_id_h015",
-    "label_cc_long_direction_h015", "label_cc_short_direction_h015", "label_noc_direction_valid_h015",
-    "label_noc_direction_reason_codes_h015", "label_noc_direction_segment_id_h015",
-    "label_noc_long_direction_h015", "label_noc_short_direction_h015",
+    "label_noc_short_net_proxy_fee_rt_0004_direction_h005",
+    "barrier_valid_h005",
+    "barrier_reason_codes_h005",
+    "barrier_label_segment_id_h005",
+    "barrier_long_outcome_tp050_sl020_h005",
+    "barrier_short_outcome_tp050_sl020_h005",
+    "barrier_long_first_hit_bar_tp050_sl020_h005",
+    "barrier_short_first_hit_bar_tp050_sl020_h005",
+    "barrier_long_first_hit_time_tp050_sl020_h005",
+    "barrier_short_first_hit_time_tp050_sl020_h005",
+    "label_horizon_bars_h015",
+    "label_available_at_h015",
+    "fwd_cc_valid_h015",
+    "fwd_cc_reason_codes_h015",
+    "fwd_cc_label_segment_id_h015",
+    "fwd_cc_long_ret_h015",
+    "fwd_cc_short_ret_h015",
+    "fwd_cc_log_ret_h015",
+    "fwd_cc_short_log_ret_h015",
+    "fwd_noc_valid_h015",
+    "fwd_noc_reason_codes_h015",
+    "fwd_noc_label_segment_id_h015",
+    "fwd_noc_long_ret_h015",
+    "fwd_noc_short_ret_h015",
+    "fwd_noc_long_net_proxy_fee_rt_0004_h015",
+    "fwd_noc_short_net_proxy_fee_rt_0004_h015",
+    "fwd_excursion_valid_h015",
+    "fwd_excursion_reason_codes_h015",
+    "fwd_excursion_label_segment_id_h015",
+    "fwd_long_mfe_h015",
+    "fwd_long_mae_h015",
+    "fwd_short_mfe_h015",
+    "fwd_short_mae_h015",
+    "fwd_long_mfe_first_bar_h015",
+    "fwd_long_mae_first_bar_h015",
+    "fwd_short_mfe_first_bar_h015",
+    "fwd_short_mae_first_bar_h015",
+    "label_cc_direction_valid_h015",
+    "label_cc_direction_reason_codes_h015",
+    "label_cc_direction_segment_id_h015",
+    "label_cc_long_direction_h015",
+    "label_cc_short_direction_h015",
+    "label_noc_direction_valid_h015",
+    "label_noc_direction_reason_codes_h015",
+    "label_noc_direction_segment_id_h015",
+    "label_noc_long_direction_h015",
+    "label_noc_short_direction_h015",
     "label_noc_long_net_proxy_fee_rt_0004_direction_h015",
-    "label_noc_short_net_proxy_fee_rt_0004_direction_h015", "barrier_valid_h015", "barrier_reason_codes_h015",
-    "barrier_label_segment_id_h015", "barrier_long_outcome_tp050_sl020_h015",
-    "barrier_short_outcome_tp050_sl020_h015", "barrier_long_first_hit_bar_tp050_sl020_h015",
-    "barrier_short_first_hit_bar_tp050_sl020_h015", "barrier_long_first_hit_time_tp050_sl020_h015",
-    "barrier_short_first_hit_time_tp050_sl020_h015", "label_horizon_bars_h060", "label_available_at_h060",
-    "fwd_cc_valid_h060", "fwd_cc_reason_codes_h060", "fwd_cc_label_segment_id_h060", "fwd_cc_long_ret_h060",
-    "fwd_cc_short_ret_h060", "fwd_cc_log_ret_h060", "fwd_cc_short_log_ret_h060", "fwd_noc_valid_h060",
-    "fwd_noc_reason_codes_h060", "fwd_noc_label_segment_id_h060", "fwd_noc_long_ret_h060",
-    "fwd_noc_short_ret_h060", "fwd_noc_long_net_proxy_fee_rt_0004_h060",
-    "fwd_noc_short_net_proxy_fee_rt_0004_h060", "fwd_excursion_valid_h060", "fwd_excursion_reason_codes_h060",
-    "fwd_excursion_label_segment_id_h060", "fwd_long_mfe_h060", "fwd_long_mae_h060", "fwd_short_mfe_h060",
-    "fwd_short_mae_h060", "fwd_long_mfe_first_bar_h060", "fwd_long_mae_first_bar_h060",
-    "fwd_short_mfe_first_bar_h060", "fwd_short_mae_first_bar_h060", "label_cc_direction_valid_h060",
-    "label_cc_direction_reason_codes_h060", "label_cc_direction_segment_id_h060",
-    "label_cc_long_direction_h060", "label_cc_short_direction_h060", "label_noc_direction_valid_h060",
-    "label_noc_direction_reason_codes_h060", "label_noc_direction_segment_id_h060",
-    "label_noc_long_direction_h060", "label_noc_short_direction_h060",
+    "label_noc_short_net_proxy_fee_rt_0004_direction_h015",
+    "barrier_valid_h015",
+    "barrier_reason_codes_h015",
+    "barrier_label_segment_id_h015",
+    "barrier_long_outcome_tp050_sl020_h015",
+    "barrier_short_outcome_tp050_sl020_h015",
+    "barrier_long_first_hit_bar_tp050_sl020_h015",
+    "barrier_short_first_hit_bar_tp050_sl020_h015",
+    "barrier_long_first_hit_time_tp050_sl020_h015",
+    "barrier_short_first_hit_time_tp050_sl020_h015",
+    "label_horizon_bars_h060",
+    "label_available_at_h060",
+    "fwd_cc_valid_h060",
+    "fwd_cc_reason_codes_h060",
+    "fwd_cc_label_segment_id_h060",
+    "fwd_cc_long_ret_h060",
+    "fwd_cc_short_ret_h060",
+    "fwd_cc_log_ret_h060",
+    "fwd_cc_short_log_ret_h060",
+    "fwd_noc_valid_h060",
+    "fwd_noc_reason_codes_h060",
+    "fwd_noc_label_segment_id_h060",
+    "fwd_noc_long_ret_h060",
+    "fwd_noc_short_ret_h060",
+    "fwd_noc_long_net_proxy_fee_rt_0004_h060",
+    "fwd_noc_short_net_proxy_fee_rt_0004_h060",
+    "fwd_excursion_valid_h060",
+    "fwd_excursion_reason_codes_h060",
+    "fwd_excursion_label_segment_id_h060",
+    "fwd_long_mfe_h060",
+    "fwd_long_mae_h060",
+    "fwd_short_mfe_h060",
+    "fwd_short_mae_h060",
+    "fwd_long_mfe_first_bar_h060",
+    "fwd_long_mae_first_bar_h060",
+    "fwd_short_mfe_first_bar_h060",
+    "fwd_short_mae_first_bar_h060",
+    "label_cc_direction_valid_h060",
+    "label_cc_direction_reason_codes_h060",
+    "label_cc_direction_segment_id_h060",
+    "label_cc_long_direction_h060",
+    "label_cc_short_direction_h060",
+    "label_noc_direction_valid_h060",
+    "label_noc_direction_reason_codes_h060",
+    "label_noc_direction_segment_id_h060",
+    "label_noc_long_direction_h060",
+    "label_noc_short_direction_h060",
     "label_noc_long_net_proxy_fee_rt_0004_direction_h060",
-    "label_noc_short_net_proxy_fee_rt_0004_direction_h060", "barrier_valid_h060", "barrier_reason_codes_h060",
-    "barrier_label_segment_id_h060", "barrier_long_outcome_tp050_sl020_h060",
-    "barrier_short_outcome_tp050_sl020_h060", "barrier_long_first_hit_bar_tp050_sl020_h060",
-    "barrier_short_first_hit_bar_tp050_sl020_h060", "barrier_long_first_hit_time_tp050_sl020_h060",
-    "barrier_short_first_hit_time_tp050_sl020_h060", "label_horizon_bars_h240", "label_available_at_h240",
-    "fwd_cc_valid_h240", "fwd_cc_reason_codes_h240", "fwd_cc_label_segment_id_h240", "fwd_cc_long_ret_h240",
-    "fwd_cc_short_ret_h240", "fwd_cc_log_ret_h240", "fwd_cc_short_log_ret_h240", "fwd_noc_valid_h240",
-    "fwd_noc_reason_codes_h240", "fwd_noc_label_segment_id_h240", "fwd_noc_long_ret_h240",
-    "fwd_noc_short_ret_h240", "fwd_noc_long_net_proxy_fee_rt_0004_h240",
-    "fwd_noc_short_net_proxy_fee_rt_0004_h240", "fwd_excursion_valid_h240", "fwd_excursion_reason_codes_h240",
-    "fwd_excursion_label_segment_id_h240", "fwd_long_mfe_h240", "fwd_long_mae_h240", "fwd_short_mfe_h240",
-    "fwd_short_mae_h240", "fwd_long_mfe_first_bar_h240", "fwd_long_mae_first_bar_h240",
-    "fwd_short_mfe_first_bar_h240", "fwd_short_mae_first_bar_h240", "label_cc_direction_valid_h240",
-    "label_cc_direction_reason_codes_h240", "label_cc_direction_segment_id_h240",
-    "label_cc_long_direction_h240", "label_cc_short_direction_h240", "label_noc_direction_valid_h240",
-    "label_noc_direction_reason_codes_h240", "label_noc_direction_segment_id_h240",
-    "label_noc_long_direction_h240", "label_noc_short_direction_h240",
+    "label_noc_short_net_proxy_fee_rt_0004_direction_h060",
+    "barrier_valid_h060",
+    "barrier_reason_codes_h060",
+    "barrier_label_segment_id_h060",
+    "barrier_long_outcome_tp050_sl020_h060",
+    "barrier_short_outcome_tp050_sl020_h060",
+    "barrier_long_first_hit_bar_tp050_sl020_h060",
+    "barrier_short_first_hit_bar_tp050_sl020_h060",
+    "barrier_long_first_hit_time_tp050_sl020_h060",
+    "barrier_short_first_hit_time_tp050_sl020_h060",
+    "label_horizon_bars_h240",
+    "label_available_at_h240",
+    "fwd_cc_valid_h240",
+    "fwd_cc_reason_codes_h240",
+    "fwd_cc_label_segment_id_h240",
+    "fwd_cc_long_ret_h240",
+    "fwd_cc_short_ret_h240",
+    "fwd_cc_log_ret_h240",
+    "fwd_cc_short_log_ret_h240",
+    "fwd_noc_valid_h240",
+    "fwd_noc_reason_codes_h240",
+    "fwd_noc_label_segment_id_h240",
+    "fwd_noc_long_ret_h240",
+    "fwd_noc_short_ret_h240",
+    "fwd_noc_long_net_proxy_fee_rt_0004_h240",
+    "fwd_noc_short_net_proxy_fee_rt_0004_h240",
+    "fwd_excursion_valid_h240",
+    "fwd_excursion_reason_codes_h240",
+    "fwd_excursion_label_segment_id_h240",
+    "fwd_long_mfe_h240",
+    "fwd_long_mae_h240",
+    "fwd_short_mfe_h240",
+    "fwd_short_mae_h240",
+    "fwd_long_mfe_first_bar_h240",
+    "fwd_long_mae_first_bar_h240",
+    "fwd_short_mfe_first_bar_h240",
+    "fwd_short_mae_first_bar_h240",
+    "label_cc_direction_valid_h240",
+    "label_cc_direction_reason_codes_h240",
+    "label_cc_direction_segment_id_h240",
+    "label_cc_long_direction_h240",
+    "label_cc_short_direction_h240",
+    "label_noc_direction_valid_h240",
+    "label_noc_direction_reason_codes_h240",
+    "label_noc_direction_segment_id_h240",
+    "label_noc_long_direction_h240",
+    "label_noc_short_direction_h240",
     "label_noc_long_net_proxy_fee_rt_0004_direction_h240",
-    "label_noc_short_net_proxy_fee_rt_0004_direction_h240", "barrier_valid_h240", "barrier_reason_codes_h240",
-    "barrier_label_segment_id_h240", "barrier_long_outcome_tp050_sl020_h240",
-    "barrier_short_outcome_tp050_sl020_h240", "barrier_long_first_hit_bar_tp050_sl020_h240",
-    "barrier_short_first_hit_bar_tp050_sl020_h240", "barrier_long_first_hit_time_tp050_sl020_h240",
-    "barrier_short_first_hit_time_tp050_sl020_h240", "label_horizon_bars_h1440", "label_available_at_h1440",
-    "fwd_cc_valid_h1440", "fwd_cc_reason_codes_h1440", "fwd_cc_label_segment_id_h1440", "fwd_cc_long_ret_h1440",
-    "fwd_cc_short_ret_h1440", "fwd_cc_log_ret_h1440", "fwd_cc_short_log_ret_h1440", "fwd_noc_valid_h1440",
-    "fwd_noc_reason_codes_h1440", "fwd_noc_label_segment_id_h1440", "fwd_noc_long_ret_h1440",
-    "fwd_noc_short_ret_h1440", "fwd_noc_long_net_proxy_fee_rt_0004_h1440",
-    "fwd_noc_short_net_proxy_fee_rt_0004_h1440", "fwd_excursion_valid_h1440",
-    "fwd_excursion_reason_codes_h1440", "fwd_excursion_label_segment_id_h1440", "fwd_long_mfe_h1440",
-    "fwd_long_mae_h1440", "fwd_short_mfe_h1440", "fwd_short_mae_h1440", "fwd_long_mfe_first_bar_h1440",
-    "fwd_long_mae_first_bar_h1440", "fwd_short_mfe_first_bar_h1440", "fwd_short_mae_first_bar_h1440",
-    "label_cc_direction_valid_h1440", "label_cc_direction_reason_codes_h1440",
-    "label_cc_direction_segment_id_h1440", "label_cc_long_direction_h1440", "label_cc_short_direction_h1440",
-    "label_noc_direction_valid_h1440", "label_noc_direction_reason_codes_h1440",
-    "label_noc_direction_segment_id_h1440", "label_noc_long_direction_h1440", "label_noc_short_direction_h1440",
+    "label_noc_short_net_proxy_fee_rt_0004_direction_h240",
+    "barrier_valid_h240",
+    "barrier_reason_codes_h240",
+    "barrier_label_segment_id_h240",
+    "barrier_long_outcome_tp050_sl020_h240",
+    "barrier_short_outcome_tp050_sl020_h240",
+    "barrier_long_first_hit_bar_tp050_sl020_h240",
+    "barrier_short_first_hit_bar_tp050_sl020_h240",
+    "barrier_long_first_hit_time_tp050_sl020_h240",
+    "barrier_short_first_hit_time_tp050_sl020_h240",
+    "label_horizon_bars_h1440",
+    "label_available_at_h1440",
+    "fwd_cc_valid_h1440",
+    "fwd_cc_reason_codes_h1440",
+    "fwd_cc_label_segment_id_h1440",
+    "fwd_cc_long_ret_h1440",
+    "fwd_cc_short_ret_h1440",
+    "fwd_cc_log_ret_h1440",
+    "fwd_cc_short_log_ret_h1440",
+    "fwd_noc_valid_h1440",
+    "fwd_noc_reason_codes_h1440",
+    "fwd_noc_label_segment_id_h1440",
+    "fwd_noc_long_ret_h1440",
+    "fwd_noc_short_ret_h1440",
+    "fwd_noc_long_net_proxy_fee_rt_0004_h1440",
+    "fwd_noc_short_net_proxy_fee_rt_0004_h1440",
+    "fwd_excursion_valid_h1440",
+    "fwd_excursion_reason_codes_h1440",
+    "fwd_excursion_label_segment_id_h1440",
+    "fwd_long_mfe_h1440",
+    "fwd_long_mae_h1440",
+    "fwd_short_mfe_h1440",
+    "fwd_short_mae_h1440",
+    "fwd_long_mfe_first_bar_h1440",
+    "fwd_long_mae_first_bar_h1440",
+    "fwd_short_mfe_first_bar_h1440",
+    "fwd_short_mae_first_bar_h1440",
+    "label_cc_direction_valid_h1440",
+    "label_cc_direction_reason_codes_h1440",
+    "label_cc_direction_segment_id_h1440",
+    "label_cc_long_direction_h1440",
+    "label_cc_short_direction_h1440",
+    "label_noc_direction_valid_h1440",
+    "label_noc_direction_reason_codes_h1440",
+    "label_noc_direction_segment_id_h1440",
+    "label_noc_long_direction_h1440",
+    "label_noc_short_direction_h1440",
     "label_noc_long_net_proxy_fee_rt_0004_direction_h1440",
-    "label_noc_short_net_proxy_fee_rt_0004_direction_h1440", "barrier_valid_h1440",
-    "barrier_reason_codes_h1440", "barrier_label_segment_id_h1440", "barrier_long_outcome_tp050_sl020_h1440",
-    "barrier_short_outcome_tp050_sl020_h1440", "barrier_long_first_hit_bar_tp050_sl020_h1440",
-    "barrier_short_first_hit_bar_tp050_sl020_h1440", "barrier_long_first_hit_time_tp050_sl020_h1440",
-    "barrier_short_first_hit_time_tp050_sl020_h1440", "retrieved_at_utc", "source_file_name",
-    "source_byte_sha256", "source_revision", "source_format", "source_location", "license_or_terms_ref",
-    "manifest_schema_id", "manifest_schema_version", "manifest_schema_ref", "manifest_type", "manifest_id",
-    "created_at_utc", "dataset_id", "dataset_artifact_set_id", "build_id", "run_id", "artifact_id",
-    "relative_path", "media_type", "schema_id", "schema_version", "schema_ref", "schema_fingerprint_sha256",
-    "field_registry_sha256", "view_allowlist_sha256", "byte_sha256", "semantic_sha256",
-    "physical_layout_sha256", "publication_status"
+    "label_noc_short_net_proxy_fee_rt_0004_direction_h1440",
+    "barrier_valid_h1440",
+    "barrier_reason_codes_h1440",
+    "barrier_label_segment_id_h1440",
+    "barrier_long_outcome_tp050_sl020_h1440",
+    "barrier_short_outcome_tp050_sl020_h1440",
+    "barrier_long_first_hit_bar_tp050_sl020_h1440",
+    "barrier_short_first_hit_bar_tp050_sl020_h1440",
+    "barrier_long_first_hit_time_tp050_sl020_h1440",
+    "barrier_short_first_hit_time_tp050_sl020_h1440"
   ]
 }
 ```
@@ -2502,6 +2931,13 @@ Vor einer Implementierungsfreigabe müssen festgelegt und versioniert sein:
 - JSON-Schema-Strategie und verbindliche Schemaablage;
 - Test-, Paritäts- und Abnahmekriterien.
 
+Für `S8BCP-001` Revision 2 sind Source-Retrieval-, Spalten-, Zeitstempel-,
+Source-Snapshot- und Source-Row-ID-Profile, Audit View V2,
+Manifest-Schemaablage und Golden Fixtures konkret festgelegt. Diese Punkte
+sind nicht mehr als freie Implementierungsentscheidung behandelbar. Die
+verbleibenden Punkte dieser Liste betreffen nur noch die nicht durch
+`S8BCP-001` materialisierten Gesamtbaseline-Verträge.
+
 ### 20.2 Während der Implementierung konkretisierbar
 
 Innerhalb der vorab festgelegten physischen Profile dürfen während der
@@ -2571,7 +3007,7 @@ Die Befunde sind erst geschlossen, wenn:
 Der aktuelle Status lautet:
 
 ```text
-SCR-005-Corrected Draft – Scientific Consistency Re-Review 006 Pending
+S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending
 ```
 
 Die Spezifikationsfamilie ist noch nicht zur Implementierung freigegeben.

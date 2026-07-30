@@ -1,0 +1,230 @@
+{
+  "manifest_schema_id": "rcc002.dataset-manifest",
+  "manifest_schema_version": "1.0.0",
+  "manifest_schema_ref": "rcc002.dataset-manifest/1.0.0",
+  "manifest_type": "dataset",
+  "manifest_id": "manifest:sha256:INVALID",
+  "created_at_utc": "2026-07-30T12:00:00Z",
+  "producer": {
+    "component": "rcc002-fixture-builder",
+    "version": "1.0.0"
+  },
+  "project": "RCC-002",
+  "status": "candidate",
+  "dataset_id": "dataset:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "dataset_artifact_set_id": "dataset-artifact-set:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "dataset_artifact_set_preimage_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "dataset_profile": "rcc002-canonical",
+  "build_id": "build:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "publication_run_id": "run:2026-07-30T12:00:00Z:00000000-0000-4000-8000-000000000000",
+  "source_snapshot_ids": [
+    "source:sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  ],
+  "artifacts": [
+    {
+      "artifact_class": "DATA_ARTIFACT",
+      "logical_name": "audit-v2",
+      "relative_path": "data/rcc002/audit.parquet",
+      "artifact_id": "artifact:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "semantic_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "physical_layout_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 1,
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "view_allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    }
+  ],
+  "schema_artifacts": [
+    {
+      "artifact_class": "SCHEMA_ARTIFACT",
+      "logical_name": "source-manifest-schema",
+      "relative_path": "schemas/rcc002/manifests/source-manifest/1.0.0.schema.json",
+      "byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 1
+    }
+  ],
+  "child_manifests": [
+    {
+      "artifact_class": "CONTROL_MANIFEST",
+      "manifest_type": "source",
+      "manifest_id": "manifest:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "relative_path": "manifests/source.json",
+      "byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "size_bytes": 1
+    }
+  ],
+  "stages": [
+    {
+      "id": "S0",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S1",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S2",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S3",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S4",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S5",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S6",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "S7",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "registries": [
+    {
+      "id": "RCC002_SOURCE_RETRIEVAL_REGISTRY_V1",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "views": [
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    },
+    {
+      "schema_id": "rcc002.view.audit",
+      "schema_version": "2.0.0",
+      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+    }
+  ],
+  "specification_profile": [
+    {
+      "id": "RCC-002-SPEC-0",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-1",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-2",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-3",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-4",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-5",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "RCC-002-SPEC-6",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "code_provenance": {
+    "repository": "sniper-bot",
+    "commit_sha": "0000000000000000000000000000000000000000",
+    "worktree_clean": true,
+    "dirty_patch_sha256": null
+  },
+  "semantic_build_configuration": {
+    "profile_id": "semantic-v1",
+    "canonical_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "physical_publication_configuration": {
+    "profile_id": "physical-v1",
+    "canonical_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "environment_reference": {
+    "id": "RCC_BUILD_ENV_IDENTITY_V2",
+    "version": "1.0.0",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "quality_summary": {
+    "status": "PASS",
+    "critical_findings": 0,
+    "error_findings": 0,
+    "warning_findings": 0
+  },
+  "dataset_lineage": {
+    "graph_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "acyclic": true
+  },
+  "knowledge_lineage": {
+    "graph_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "acyclic": true
+  },
+  "publication_candidate": {
+    "status": "candidate",
+    "supersedes": []
+  },
+  "review_requirements": [
+    {
+      "review_type": "scientific",
+      "required": true
+    }
+  ]
+}

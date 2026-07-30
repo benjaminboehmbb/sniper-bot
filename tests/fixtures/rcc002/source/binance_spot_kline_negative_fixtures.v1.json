@@ -1,0 +1,70 @@
+{
+  "fixture_id": "RCC002_BINANCE_SPOT_KLINE_NEGATIVE_FIXTURES_V1",
+  "fixture_version": "1.0.0",
+  "retrieval_profile_id": "RCC002_BINANCE_VISION_SPOT_KLINES_V1",
+  "cases": [
+    {
+      "case_id": "microsecond_open_remainder_wrong",
+      "period_start_utc": "2025-01-01T00:00:00Z",
+      "period_end_utc": "2025-01-02T00:00:00Z",
+      "raw_open_time": 1735689600000001,
+      "raw_close_time": 1735689659999999,
+      "expected_error": "RCC_SOURCE_TIMESTAMP_OPEN_REMAINDER"
+    },
+    {
+      "case_id": "microsecond_close_remainder_wrong",
+      "period_start_utc": "2025-01-01T00:00:00Z",
+      "period_end_utc": "2025-01-02T00:00:00Z",
+      "raw_open_time": 1735689600000000,
+      "raw_close_time": 1735689659999998,
+      "expected_error": "RCC_SOURCE_TIMESTAMP_CLOSE_REMAINDER"
+    },
+    {
+      "case_id": "microsecond_period_contains_millisecond_values",
+      "period_start_utc": "2025-01-01T00:00:00Z",
+      "period_end_utc": "2025-01-02T00:00:00Z",
+      "raw_open_time": 1735689600000,
+      "raw_close_time": 1735689659999,
+      "expected_error": "RCC_SOURCE_TIMESTAMP_UNIT_MISMATCH"
+    },
+    {
+      "case_id": "millisecond_period_contains_microsecond_values",
+      "period_start_utc": "2024-12-31T00:00:00Z",
+      "period_end_utc": "2025-01-01T00:00:00Z",
+      "raw_open_time": 1735603200000000,
+      "raw_close_time": 1735603259999999,
+      "expected_error": "RCC_SOURCE_TIMESTAMP_UNIT_MISMATCH"
+    },
+    {
+      "case_id": "archive_period_crosses_unit_boundary",
+      "period_start_utc": "2024-12-31T00:00:00Z",
+      "period_end_utc": "2025-01-02T00:00:00Z",
+      "expected_error": "RCC_SOURCE_ARCHIVE_PERIOD_CROSSES_UNIT_BOUNDARY"
+    },
+    {
+      "case_id": "unexpected_header",
+      "first_record_utf8": "open_time,open,high,low,close,volume,close_time,quote_asset_volume,number_of_trades,taker_buy_base_asset_volume,taker_buy_quote_asset_volume,ignore",
+      "expected_error": "RCC_SOURCE_HEADER_MODE_MISMATCH"
+    },
+    {
+      "case_id": "wrong_column_count",
+      "record_utf8": "1735689600000000,1,1,1,1,1,1735689659999999,1,1,1,1",
+      "observed_column_count": 11,
+      "expected_error": "RCC_SOURCE_COLUMN_COUNT_MISMATCH"
+    },
+    {
+      "case_id": "multiple_csv_members",
+      "zip_member_names": [
+        "BTCUSDT-1m-2025-01-01.csv",
+        "unexpected.csv"
+      ],
+      "expected_error": "RCC_SOURCE_ZIP_MEMBER_COUNT_MISMATCH"
+    },
+    {
+      "case_id": "provider_checksum_mismatch",
+      "provider_checksum_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "computed_archive_sha256": "10a12909f1b0e3fcc6b7f502e5ea9be5d1ba3455dd8ab16cc61c8650640ba7c0",
+      "expected_error": "RCC_SOURCE_PROVIDER_CHECKSUM_MISMATCH"
+    }
+  ]
+}

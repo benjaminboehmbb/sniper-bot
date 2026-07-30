@@ -1,0 +1,79 @@
+{
+  "fixture_id": "RCC002_SOURCE_IDENTITY_GOLDEN_V1",
+  "fixture_version": "1.0.0",
+  "source_snapshot_profile_ref": "RCC002_SOURCE_SNAPSHOT_ID_V1/1.0.0",
+  "source_row_id_profile_ref": "RCC002_S1_SOURCE_ROW_ID_V2/2.0.0",
+  "source_snapshot_case": {
+    "preimage": {
+      "identity_profile_id": "RCC002_SOURCE_SNAPSHOT_ID_V1",
+      "source_retrieval_profile_id": "RCC002_BINANCE_VISION_SPOT_KLINES_V1",
+      "source_retrieval_profile_version": "1.0.0",
+      "provider": "BINANCE_VISION",
+      "market_type": "spot",
+      "dataset_kind": "klines",
+      "symbol": "BTCUSDT",
+      "interval": "1m",
+      "column_profile_id": "BINANCE_SPOT_KLINE_12_COLUMN_V1",
+      "timestamp_unit_profile_id": "BINANCE_SPOT_TIMESTAMP_UNITS_V1",
+      "source_revision": null,
+      "source_files": [
+        {
+          "provider_relative_name": "data/spot/daily/klines/BTCUSDT/1m/BTCUSDT-1m-2024-12-31.zip",
+          "byte_sha256": "756551b6eb4f0a0173af3333762e6c95d08c7503bb3b7b79807e10a02575a4af",
+          "provider_checksum_sha256": "756551b6eb4f0a0173af3333762e6c95d08c7503bb3b7b79807e10a02575a4af",
+          "size_bytes": 71638,
+          "csv_member_name": "BTCUSDT-1m-2024-12-31.csv",
+          "source_file_ordinal": 0,
+          "archive_period": {
+            "archive_family": "DAILY",
+            "period_token": "2024-12-31",
+            "period_start_utc": "2024-12-31T00:00:00Z",
+            "period_end_utc": "2025-01-01T00:00:00Z"
+          },
+          "record_count": 1440,
+          "min_open_time_utc_ms": 1735603200000,
+          "max_close_time_utc_ms": 1735689599999,
+          "timestamp_unit": "MILLISECOND"
+        }
+      ],
+      "actual_coverage": {
+        "min_open_time_utc_ms": 1735603200000,
+        "max_close_time_utc_ms": 1735689599999,
+        "record_count": 1440
+      }
+    },
+    "expected_sha256": "3bddbcade7a268026a2912acbaf95817723ac243dfa57a77c2a75a2dae69ab32",
+    "expected_source_snapshot_id": "source:sha256:3bddbcade7a268026a2912acbaf95817723ac243dfa57a77c2a75a2dae69ab32"
+  },
+  "source_row_id_cases": [
+    {
+      "source_file_ordinal": 0,
+      "original_record_index": 0,
+      "expected_source_row_id": "RCC002_S1_SOURCE_ROW_ID_V2:source:sha256:3bddbcade7a268026a2912acbaf95817723ac243dfa57a77c2a75a2dae69ab32:00000000:00000000000000000000"
+    },
+    {
+      "source_file_ordinal": 12,
+      "original_record_index": 1440,
+      "expected_source_row_id": "RCC002_S1_SOURCE_ROW_ID_V2:source:sha256:3bddbcade7a268026a2912acbaf95817723ac243dfa57a77c2a75a2dae69ab32:00000012:00000000000000001440"
+    }
+  ],
+  "negative_cases": [
+    {
+      "case_id": "noncanonical_source_file_order",
+      "expected_error": "RCC_SOURCE_FILE_ORDER_MISMATCH"
+    },
+    {
+      "case_id": "duplicate_logical_period_different_bytes",
+      "expected_error": "RCC_SOURCE_DUPLICATE_PERIOD_CONFLICT"
+    },
+    {
+      "case_id": "record_index_after_sort",
+      "expected_error": "RCC_SOURCE_RECORD_INDEX_NOT_ORIGINAL"
+    },
+    {
+      "case_id": "row_id_width_overflow",
+      "source_file_ordinal": 100000000,
+      "expected_error": "RCC_SOURCE_ROW_ID_WIDTH_OVERFLOW"
+    }
+  ]
+}

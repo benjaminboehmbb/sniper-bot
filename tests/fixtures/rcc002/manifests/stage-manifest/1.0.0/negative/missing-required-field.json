@@ -1,0 +1,81 @@
+{
+  "manifest_schema_id": "rcc002.stage-manifest",
+  "manifest_schema_version": "1.0.0",
+  "manifest_schema_ref": "rcc002.stage-manifest/1.0.0",
+  "manifest_type": "stage",
+  "manifest_id": "manifest:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "created_at_utc": "2026-07-30T12:00:00Z",
+  "producer": {
+    "component": "rcc002-fixture-builder",
+    "version": "1.0.0"
+  },
+  "status": "candidate",
+  "stage_id": "S1_NORMALIZED",
+  "stage_version": "1.0.0",
+  "component": {
+    "component": "rcc002-s1",
+    "version": "1.0.0"
+  },
+  "build_id": "build:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "run_id": "run:2026-07-30T12:00:00Z:00000000-0000-4000-8000-000000000000",
+  "input_schema": {
+    "schema_id": "rcc002.stage.s1-normalized",
+    "schema_version": "1.0.0",
+    "schema_ref": "rcc002.stage.s1-normalized/1.0.0",
+    "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "output_schema": {
+    "schema_id": "rcc002.stage.s1-normalized",
+    "schema_version": "1.0.0",
+    "schema_ref": "rcc002.stage.s1-normalized/1.0.0",
+    "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "parents": [
+    {
+      "artifact_id": "artifact:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "relative_path": "data/rcc002/s1.parquet",
+      "byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "outputs": [
+    {
+      "artifact_id": "artifact:sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "relative_path": "data/rcc002/s1.parquet",
+      "byte_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "semantic_build_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "physical_publication_configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "specification_profile": [
+    {
+      "id": "RCC-002-REF",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "registries": [
+    {
+      "id": "RCC002_S1_SOURCE_ROW_ID_V2",
+      "version": "1.0.0",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "reconciliation": {
+    "input_rows": 1440,
+    "output_rows": 1440,
+    "primary_key_verified": true,
+    "row_order_verified": true,
+    "segment_reconciliation_status": "NOT_APPLICABLE",
+    "validity_reconciliation_status": "PASS"
+  },
+  "validation": {
+    "status": "PASS",
+    "tests_passed": 1,
+    "tests_failed": 0
+  },
+  "warnings": [],
+  "failures": [],
+  "publication": {
+    "status": "candidate"
+  }
+}
