@@ -339,6 +339,8 @@ def validate_rows(
             S2Row(
                 source_snapshot_id=row.source_snapshot_id,
                 source_row_id=row.source_row_id,
+                source_file_ordinal=row.source_file_ordinal,
+                original_record_index=row.original_record_index,
                 provider=row.provider,
                 market_type=row.market_type,
                 symbol=row.symbol,

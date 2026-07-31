@@ -18,7 +18,7 @@ from typing import Final, Mapping
 # ---------------------------------------------------------------------------
 
 COMPONENT_ID: Final[str] = "RCC002_S4_SIGNAL_TRANSFORMER"
-COMPONENT_VERSION: Final[str] = "0.3.0"
+COMPONENT_VERSION: Final[str] = "0.3.1"
 
 
 # ---------------------------------------------------------------------------

@@ -46,6 +46,7 @@ from rcc002.s3.constants import (
     INDICATOR_PROFILE_ID,
     INDICATOR_PROFILE_VERSION,
     INDICATOR_SCHEMA_ID,
+    INDICATOR_SCHEMA_REF,
     INDICATOR_SCHEMA_VERSION,
 )
 from rcc002.s3.formulas import (
@@ -221,6 +222,8 @@ def compute_indicators(s2_rows: list[S2Row]) -> S3Result:
             S3Row(
                 source_snapshot_id=s2row.source_snapshot_id,
                 source_row_id=s2row.source_row_id,
+                source_file_ordinal=s2row.source_file_ordinal,
+                original_record_index=s2row.original_record_index,
                 provider=s2row.provider,
                 market_type=s2row.market_type,
                 symbol=s2row.symbol,
@@ -250,6 +253,7 @@ def compute_indicators(s2_rows: list[S2Row]) -> S3Result:
                 indicator_profile_version=INDICATOR_PROFILE_VERSION,
                 indicator_schema_id=INDICATOR_SCHEMA_ID,
                 indicator_schema_version=INDICATOR_SCHEMA_VERSION,
+                indicator_schema_ref=INDICATOR_SCHEMA_REF,
                 indicator_segment_id=segment_id_per_row[i],
                 indicators=indicators,
             )

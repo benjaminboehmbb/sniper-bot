@@ -2,10 +2,16 @@
 
 import unittest
 
+from rcc002.s0.profiles import (
+    ArchivePeriod,
+    SourceProfileError,
+    TimestampUnit,
+)
 from rcc002.s1.normalize import (
     NormalizationAbortedError,
-    parse_csv_rows,
     normalize_rows,
+    normalize_registered_rows,
+    parse_csv_rows,
 )
 
 SNAPSHOT = "source:sha256:" + "a" * 64
@@ -53,6 +59,35 @@ class ParseCsvRowsTests(unittest.TestCase):
         rows = parse_csv_rows(text, COLUMN_MAPPING)
         self.assertEqual(len(rows), 2)
 
+    def test_headerless_mode_retains_record_zero(self) -> None:
+        text = (
+            "0,1,2,0.5,1.5,100\n"
+            "60000,1,2,0.5,1.5,100\n"
+        )
+        rows = parse_csv_rows(
+            text,
+            COLUMN_MAPPING,
+            header_mode="ABSENT",
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["open_time"], "0")
+
+    def test_headerless_mode_rejects_blank_physical_record(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_csv_rows(
+                "0,1,2,0.5,1.5,100\n\n",
+                COLUMN_MAPPING,
+                header_mode="ABSENT",
+            )
+
+    def test_unknown_header_mode_fails_closed(self) -> None:
+        with self.assertRaises(ValueError):
+            parse_csv_rows(
+                "header\n",
+                COLUMN_MAPPING,
+                header_mode="INFER",
+            )
+
 
 class NormalizeRowsBasicTests(unittest.TestCase):
     def normalize(self, raw_rows: list[dict[str, str]], **overrides: object):
@@ -65,6 +100,40 @@ class NormalizeRowsBasicTests(unittest.TestCase):
         )
         kwargs.update(overrides)
         return normalize_rows(raw_rows, **kwargs)  # type: ignore[arg-type]
+
+    def test_registered_period_selects_microseconds_and_preserves_coordinates(
+        self,
+    ) -> None:
+        period = ArchivePeriod(
+            archive_family="DAILY",
+            period_token="2025-01-01",
+            period_start_utc="2025-01-01T00:00:00Z",
+            period_end_utc="2025-01-02T00:00:00Z",
+        )
+        result = normalize_registered_rows(
+            [
+                {
+                    "open_time": "1735689600000000",
+                    "close_time": "1735689659999999",
+                    "open": "1.0",
+                    "high": "2.0",
+                    "low": "0.5",
+                    "close": "1.5",
+                    "volume": "100.0",
+                }
+            ],
+            archive_period=period,
+            source_snapshot_id=SNAPSHOT,
+            source_file_ordinal=7,
+            provider="BINANCE_VISION",
+            market_type="spot",
+            symbol="BTCUSDT",
+            interval="1m",
+        )
+        row = result.rows[0]
+        self.assertEqual(row.open_time, 1_735_689_600_000)
+        self.assertEqual(row.source_file_ordinal, 7)
+        self.assertEqual(row.original_record_index, 0)
 
     def test_produces_one_row_per_input(self) -> None:
         result = self.normalize(make_raw_rows(0, 60_000, 120_000))
@@ -123,6 +192,18 @@ class SourceRowIdOriginalOrderTests(unittest.TestCase):
             r for r in result.rows if r.open_time == 120_000
         )
         self.assertTrue(row_with_open_time_120000.source_row_id.endswith("0" * 19 + "0"))
+
+    def test_file_ordinal_is_encoded(self) -> None:
+        result = normalize_rows(
+            make_raw_rows(0),
+            source_snapshot_id=SNAPSHOT,
+            provider="binance",
+            market_type="spot",
+            symbol="BTCUSDT",
+            interval="1m",
+            source_file_ordinal=7,
+        )
+        self.assertIn(":00000007:", result.rows[0].source_row_id)
 
 
 class DuplicateKeyPreservationTests(unittest.TestCase):
@@ -256,6 +337,79 @@ class MultiProviderSortTests(unittest.TestCase):
             multi_provider=True,
         )
         self.assertEqual(len(result.rows), 2)
+
+
+class RegisteredTimestampUnitTests(unittest.TestCase):
+    def test_microsecond_pair_is_normalized_to_milliseconds(self) -> None:
+        raw_rows = [
+            {
+                "open_time": "1735689600000000",
+                "open": "1",
+                "high": "2",
+                "low": "0.5",
+                "close": "1.5",
+                "volume": "100",
+                "close_time": "1735689659999999",
+            }
+        ]
+        result = normalize_rows(
+            raw_rows,
+            source_snapshot_id=SNAPSHOT,
+            provider="binance",
+            market_type="spot",
+            symbol="BTCUSDT",
+            interval="1m",
+            resolved_timestamp_unit=TimestampUnit.MICROSECOND,
+        )
+        self.assertEqual(result.rows[0].open_time, 1_735_689_600_000)
+        self.assertEqual(result.rows[0].close_time, 1_735_689_659_999)
+
+    def test_millisecond_pair_is_preserved_exactly(self) -> None:
+        raw_rows = [
+            {
+                "open_time": "1735603200000",
+                "open": "1",
+                "high": "2",
+                "low": "0.5",
+                "close": "1.5",
+                "volume": "100",
+                "close_time": "1735603259999",
+            }
+        ]
+        result = normalize_rows(
+            raw_rows,
+            source_snapshot_id=SNAPSHOT,
+            provider="binance",
+            market_type="spot",
+            symbol="BTCUSDT",
+            interval="1m",
+            resolved_timestamp_unit=TimestampUnit.MILLISECOND,
+        )
+        self.assertEqual(result.rows[0].open_time, 1_735_603_200_000)
+        self.assertEqual(result.rows[0].close_time, 1_735_603_259_999)
+
+    def test_wrong_microsecond_remainder_fails(self) -> None:
+        raw_rows = [
+            {
+                "open_time": "1735689600000001",
+                "open": "1",
+                "high": "2",
+                "low": "0.5",
+                "close": "1.5",
+                "volume": "100",
+                "close_time": "1735689659999999",
+            }
+        ]
+        with self.assertRaises(SourceProfileError):
+            normalize_rows(
+                raw_rows,
+                source_snapshot_id=SNAPSHOT,
+                provider="binance",
+                market_type="spot",
+                symbol="BTCUSDT",
+                interval="1m",
+                resolved_timestamp_unit=TimestampUnit.MICROSECOND,
+            )
 
 
 if __name__ == "__main__":

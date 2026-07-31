@@ -4,33 +4,15 @@ Ties together the file-integrity checks (rcc002/s0/integrity.py) and the
 source_manifest model (rcc002/s0/manifest.py) into a single ingestion result
 for one source file.
 
-DEFERRED, NOT IMPLEMENTED: deterministic computation of `source_snapshot_id`.
+S8BCP-001 Revision 2 closes the previously deferred source-identity gaps for
+the registered Binance Vision Spot kline profile. The strict archive-period,
+timestamp, coverage, and Source Snapshot V1 implementation lives in
+``rcc002.s0.profiles`` and ``rcc002.s0.source_identity``.
 
-Reproducibility §5.3 ("Source Snapshot ID") requires the pre-image to
-include, among other things:
-
-  - "kanonische semantische Abrufparameter, die Auswahl oder Bedeutung der
-    gelieferten Daten verändern" (canonical semantic retrieval parameters
-    that change the selection or meaning of the delivered data) — the
-    certified specification family does not define a concrete registry or
-    field list for what these parameters are for any provider, RCC-002
-    generally, or BTCUSDT/Binance specifically. No section in Data Pipeline,
-    Data Validation, or Reproducibility enumerates them.
-
-  - "tatsächlich aus den Quellbytes abgeleiteten Abdeckungszeitraum" (the
-    actual coverage period derived from the source bytes) — but Data
-    Pipeline §7.1 states S0's source_manifest schema contains no row/
-    timestamp fields at all ("Die Quellartefakte selbst besitzen kein
-    zusätzlich erfundenes RCC-Zeilenschema"), and Data Validation §7.1
-    confirms `open_time`/`close_time` are first produced at S1, not S0. No
-    section specifies the mechanism (column position, date format, etc.) by
-    which an S0-stage process would derive a coverage period from raw source
-    bytes it is not otherwise specified to parse.
-
-Implementing `source_snapshot_id` now would require guessing at both gaps.
-Per instruction, this is reported rather than assumed: `ingest_source()`
-therefore requires the caller to supply an already-computed
-`source_snapshot_id`, and does not compute it internally.
+``ingest_source`` remains the legacy generic plain-CSV entry point and keeps
+accepting a caller-supplied snapshot identity. New registered Binance builds
+must use the strict profile implementation and may not use this legacy path
+to bypass archive scanning or aggregate source identity.
 """
 
 from __future__ import annotations
@@ -52,7 +34,11 @@ from rcc002.s0.integrity import (
     compute_source_byte_sha256,
     count_data_rows,
 )
-from rcc002.s0.manifest import SourceManifest, migrate_legacy_aliases
+from rcc002.s0.manifest import (
+    LegacySourceManifest,
+    migrate_legacy_aliases,
+    validate_legacy_provider,
+)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -69,7 +55,7 @@ class IngestionResult:
     state: SourceFileState
     checks: tuple[IntegrityCheckResult, ...]
     truncation_finding: TruncationFinding | None
-    manifest: SourceManifest | None
+    manifest: LegacySourceManifest | None
 
 
 def ingest_source(
@@ -92,8 +78,10 @@ def ingest_source(
     """Run the S0 mandatory integrity checks and, if VERIFIED, build the
     source_manifest for one source file.
 
-    `source_snapshot_id` MUST be supplied by the caller; see this module's
-    docstring for why it is not computed here.
+    `source_snapshot_id` is supplied by the caller because this function is
+    the legacy generic plain-CSV entry point. Registered Binance Vision builds
+    derive it through ``rcc002.s0.source_identity`` before constructing their
+    aggregate Source Manifest.
 
     `raw_metadata`, if given, is passed through `migrate_legacy_aliases`
     first (Data Pipeline §7.1 / Data Validation §5.1) and any resulting
@@ -105,6 +93,7 @@ def ingest_source(
         migrated = migrate_legacy_aliases(raw_metadata)
         provider = str(migrated.get("provider", provider))
         retrieved_at_utc = int(migrated.get("retrieved_at_utc", retrieved_at_utc))
+    validate_legacy_provider(provider)
 
     checks: list[IntegrityCheckResult] = [
         check_exists(path),
@@ -157,7 +146,7 @@ def ingest_source(
             manifest=None,
         )
 
-    manifest = SourceManifest(
+    manifest = LegacySourceManifest(
         source_snapshot_id=source_snapshot_id,
         provider=provider,
         market_type=market_type,

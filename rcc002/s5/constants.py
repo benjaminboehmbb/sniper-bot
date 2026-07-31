@@ -9,7 +9,7 @@ from typing import Final, Mapping
 
 
 COMPONENT_ID: Final[str] = "RCC002_S5_REGIME_CLASSIFIER"
-COMPONENT_VERSION: Final[str] = "0.4.0"
+COMPONENT_VERSION: Final[str] = "0.4.1"
 
 REGIME_MODEL_ID: Final[str] = "RCC002_TREND_CONTEXT_REGIME_V1"
 REGIME_MODEL_VERSION: Final[str] = "1.0.0"

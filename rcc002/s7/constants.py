@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from enum import Enum
 import hashlib
 import json
 from types import MappingProxyType
 from typing import Final, Mapping
 
+from rcc002.s6.schema import S6Row
+
 
 COMPONENT_ID: Final[str] = "RCC002_S7_LABEL_BUILDER"
-COMPONENT_VERSION: Final[str] = "0.3.0"
+COMPONENT_VERSION: Final[str] = "0.3.1"
 
 EXPECTED_INPUT_SCHEMA_ID: Final[str] = "rcc002.stage.s6-gates"
 EXPECTED_INPUT_SCHEMA_VERSION: Final[str] = "1.0.0"
@@ -256,6 +258,10 @@ LABEL_SCHEMA_FINGERPRINT_SHA256: Final[str] = _canonical_sha256(
             EXPECTED_INPUT_SCHEMA_VERSION,
         ],
         "preserve_input_fields_in_order": True,
+        "input_fields": [
+            field.name
+            for field in fields(S6Row)
+        ],
         "extension_fields": [
             {
                 "name": item.name,
@@ -283,6 +289,10 @@ SEMANTIC_BUILD_CONFIGURATION_SHA256: Final[str] = _canonical_sha256(
     {
         "label_profile": [LABEL_PROFILE_ID, LABEL_PROFILE_VERSION],
         "schema": [LABEL_SCHEMA_ID, LABEL_SCHEMA_VERSION],
+        "input_field_order": [
+            field.name
+            for field in fields(S6Row)
+        ],
         "horizons": [
             [item.horizon_id, item.bars, item.suffix]
             for item in HORIZONS

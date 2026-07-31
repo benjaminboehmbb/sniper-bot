@@ -2,6 +2,7 @@
 
 import unittest
 
+from rcc002.s1.row_id import SourceRowIdError
 from rcc002.s1.schema import (
     CANONICAL_PRIMARY_KEY_MULTI_PROVIDER,
     CANONICAL_PRIMARY_KEY_SINGLE_PROVIDER,
@@ -14,7 +15,13 @@ from rcc002.s1.schema import (
 def make_row(**overrides: object) -> S1Row:
     fields: dict[str, object] = dict(
         source_snapshot_id="source:sha256:" + "a" * 64,
-        source_row_id="RCC002_S1_SOURCE_ROW_ID_V1:x:00000000000000000000",
+        source_row_id=(
+            "RCC002_S1_SOURCE_ROW_ID_V2:"
+            "source:sha256:" + "a" * 64
+            + ":00000000:00000000000000000000"
+        ),
+        source_file_ordinal=0,
+        original_record_index=0,
         provider="binance",
         market_type="spot",
         symbol="BTCUSDT",
@@ -56,6 +63,22 @@ class S1RowConstructionTests(unittest.TestCase):
     def test_ohlcv_fields_must_be_float(self) -> None:
         with self.assertRaises(ValueError):
             make_row(open=1)  # type: ignore[arg-type]  # int, not float
+
+    def test_source_coordinates_must_be_unsigned_integers(self) -> None:
+        with self.assertRaises(ValueError):
+            make_row(source_file_ordinal=-1)
+        with self.assertRaises(ValueError):
+            make_row(original_record_index=True)
+        with self.assertRaises(ValueError):
+            make_row(source_file_ordinal=100_000_000)
+
+    def test_v2_row_id_must_match_stored_original_record_index(self) -> None:
+        with self.assertRaises(SourceRowIdError) as context:
+            make_row(original_record_index=1)
+        self.assertEqual(
+            context.exception.reason_code,
+            "RCC_SOURCE_RECORD_INDEX_NOT_ORIGINAL",
+        )
 
 
 class CanonicalKeyTests(unittest.TestCase):

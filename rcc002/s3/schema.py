@@ -43,6 +43,8 @@ class S3Row:
     # --- S2 fields, unchanged (Data Validation §15) ---
     source_snapshot_id: str
     source_row_id: str
+    source_file_ordinal: int
+    original_record_index: int
     provider: str
     market_type: str
     symbol: str
@@ -74,6 +76,7 @@ class S3Row:
     indicator_profile_version: str
     indicator_schema_id: str
     indicator_schema_version: str
+    indicator_schema_ref: str
     indicator_segment_id: str
 
     # --- Indicator groups, in allowlist order (§5, §26.3 column 7) ---

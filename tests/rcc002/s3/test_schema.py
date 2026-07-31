@@ -2,7 +2,10 @@
 
 import unittest
 
-from rcc002.s3.constants import INDICATOR_FIELD_ALLOWLIST
+from rcc002.s3.constants import (
+    INDICATOR_FIELD_ALLOWLIST,
+    INDICATOR_SCHEMA_REF,
+)
 from rcc002.s3.schema import IndicatorField, S3Row
 
 
@@ -16,6 +19,8 @@ def make_row(**overrides: object) -> S3Row:
     fields: dict[str, object] = dict(
         source_snapshot_id="source:sha256:" + "a" * 64,
         source_row_id="RCC002_S1_SOURCE_ROW_ID_V1:x:00000000000000000000",
+        source_file_ordinal=0,
+        original_record_index=0,
         provider="binance",
         market_type="spot",
         symbol="BTCUSDT",
@@ -45,6 +50,7 @@ def make_row(**overrides: object) -> S3Row:
         indicator_profile_version="1.0.0",
         indicator_schema_id="rcc002.stage.s3-indicators",
         indicator_schema_version="1.0.0",
+        indicator_schema_ref=INDICATOR_SCHEMA_REF,
         indicator_segment_id="ind-seg",
         indicators=make_indicators(),
     )
@@ -89,6 +95,11 @@ class S3RowTests(unittest.TestCase):
     def test_s2_fields_carried_through(self) -> None:
         row = make_row(close=42.0)
         self.assertEqual(row.close, 42.0)
+
+    def test_indicator_schema_ref_is_exact(self) -> None:
+        expected = "rcc002.stage.s3-indicators/1.0.0"
+        self.assertEqual(INDICATOR_SCHEMA_REF, expected)
+        self.assertEqual(make_row().indicator_schema_ref, expected)
 
 
 if __name__ == "__main__":

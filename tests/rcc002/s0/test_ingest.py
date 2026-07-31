@@ -6,6 +6,7 @@ from pathlib import Path
 
 from rcc002.s0.integrity import SourceFileState
 from rcc002.s0.ingest import ingest_source
+from rcc002.s0.profiles import SourceProfileError
 
 VALID_SNAPSHOT_ID = "source:sha256:" + "a" * 64
 
@@ -50,6 +51,27 @@ class MissingFileTests(IngestSourceTestCase):
     def test_missing_file_checks_recorded(self) -> None:
         result = self.ingest(self.tmp_path / "does-not-exist.csv")
         self.assertFalse(result.checks[0].passed)
+
+
+class RegisteredProviderBoundaryTests(IngestSourceTestCase):
+    def test_registered_provider_is_rejected_before_file_access(self) -> None:
+        with self.assertRaises(SourceProfileError) as context:
+            self.ingest(
+                self.tmp_path / "does-not-exist.csv",
+                provider="BINANCE_VISION",
+            )
+        self.assertEqual(
+            context.exception.reason_code,
+            "RCC_SOURCE_REGISTERED_PROVIDER_LEGACY_PATH_FORBIDDEN",
+        )
+
+    def test_registered_provider_cannot_enter_through_legacy_alias(self) -> None:
+        path = self.write_csv("BTCUSDT-1m.csv", 1)
+        with self.assertRaises(SourceProfileError):
+            self.ingest(
+                path,
+                raw_metadata={"source_provider": "BINANCE_VISION"},
+            )
 
 
 class EmptyFileTests(IngestSourceTestCase):

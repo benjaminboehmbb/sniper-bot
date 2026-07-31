@@ -15,7 +15,7 @@ import dataclasses
 class S2Row:
     """One canonical S2_VALIDATED row (Data Validation §15).
 
-    All 13 S1 fields are carried through unchanged (byte-identical values,
+    All 15 S1 fields are carried through unchanged (byte-identical values,
     same types); `quality_*` fields are additive per §15's own statement
     that S2 "ausschließlich ergänzt" (only adds) fields.
     """
@@ -23,6 +23,8 @@ class S2Row:
     # --- S1 fields, unchanged (Data Pipeline §7.2 / Data Validation §7.1) ---
     source_snapshot_id: str
     source_row_id: str
+    source_file_ordinal: int
+    original_record_index: int
     provider: str
     market_type: str
     symbol: str

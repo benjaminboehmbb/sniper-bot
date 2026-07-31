@@ -16,6 +16,8 @@ def make_row(source_row_id: str, open_time: int) -> S1Row:
     return S1Row(
         source_snapshot_id=SNAPSHOT,
         source_row_id=source_row_id,
+        source_file_ordinal=0,
+        original_record_index=0,
         provider="binance",
         market_type="spot",
         symbol="BTCUSDT",

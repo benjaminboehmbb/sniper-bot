@@ -35,12 +35,14 @@ from rcc002.s3.constants import (
     INDICATOR_PROFILE_ID,
     INDICATOR_PROFILE_VERSION,
     INDICATOR_SCHEMA_ID,
+    INDICATOR_SCHEMA_REF,
     INDICATOR_SCHEMA_VERSION,
 )
 from rcc002.s3.schema import IndicatorField, S3Row
 from rcc002.s4 import formulas
 from rcc002.s4.constants import (
     EXPECTED_INPUT_SCHEMA_ID,
+    EXPECTED_INPUT_SCHEMA_REF,
     EXPECTED_INPUT_SCHEMA_VERSION,
     FIELD_DEFINITIONS,
     SIGNAL_BASE_FIELDS,
@@ -291,6 +293,8 @@ def _validate_s3_row(row: S3Row) -> None:
         raise ValueError(
             "SIG_SCHEMA_MISMATCH: unexpected S3 schema version"
         )
+    if row.indicator_schema_ref != EXPECTED_INPUT_SCHEMA_REF:
+        raise ValueError("SIG_SCHEMA_MISMATCH: unexpected S3 schema ref")
     if row.indicator_schema_id != INDICATOR_SCHEMA_ID:
         raise ValueError(
             "SIG_SCHEMA_MISMATCH: repository S3 schema id disagrees"
@@ -298,6 +302,10 @@ def _validate_s3_row(row: S3Row) -> None:
     if row.indicator_schema_version != INDICATOR_SCHEMA_VERSION:
         raise ValueError(
             "SIG_SCHEMA_MISMATCH: repository S3 schema version disagrees"
+        )
+    if row.indicator_schema_ref != INDICATOR_SCHEMA_REF:
+        raise ValueError(
+            "SIG_SCHEMA_MISMATCH: repository S3 schema ref disagrees"
         )
     if row.indicator_profile_id != INDICATOR_PROFILE_ID:
         raise ValueError(

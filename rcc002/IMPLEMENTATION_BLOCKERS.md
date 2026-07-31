@@ -1,12 +1,10 @@
 # RCC-002 Implementation — Deferred Blockers
 
-Tracks specification gaps confirmed during implementation that block a
-specific future roadmap step. Not a certification or governance document;
-a plain implementation-tracking record living alongside the code it blocks.
-Investigated during Step 2 (S0 Source Manifest model + ingestion); accepted
-as deferred blockers for **Roadmap Step 13 (Reproducibility identity
-module)** without modifying any certified specification and without
-implementing a workaround.
+Historical record of specification gaps confirmed during implementation.
+Both recorded gaps were closed normatively by S8BCP-001 Revision 2 and are
+implemented for the registered Binance Vision Spot kline profile. This file
+preserves the original findings and records their exact closure; it is not a
+certification or governance document.
 
 ---
 
@@ -66,10 +64,11 @@ implementation — two mutually exclusive options presented):
 
 | Blocker | Status | Confirmed by |
 |---|---|---|
-| 1. Semantic retrieval parameters | OPEN — deferred to Step 13 | Investigation accepted 2026-07-27 |
-| 2. Coverage period from S0 bytes | OPEN — deferred to Step 13 | Investigation accepted 2026-07-27 |
+| 1. Semantic retrieval parameters | CLOSED — `RCC002_BINANCE_VISION_SPOT_KLINES_V1` | S8BCP-001 Revision 2 |
+| 2. Coverage period from S0 bytes | CLOSED — restricted structural S0 coverage scan | S8BCP-001 Revision 2 |
 
-Neither blocker required, or received, a specification modification or an
-implementation workaround. `source_snapshot_id` remains a required,
-caller-supplied field throughout S0–S7; it is not computed anywhere in this
-codebase until both blockers are resolved and Step 13 is reached.
+Closure is profile-specific. New registered Binance Vision builds derive
+`source_snapshot_id` from the exact Source Snapshot V1 preimage implemented in
+`rcc002/s0/source_identity.py`. The legacy generic plain-CSV ingestion path
+continues to accept caller-supplied historical identities and must not be used
+to bypass the registered profile.

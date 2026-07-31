@@ -27,6 +27,13 @@ from __future__ import annotations
 
 import dataclasses
 
+from rcc002.s0.profiles import (
+    ArchivePeriod,
+    TimestampUnit,
+    normalize_timestamp_pair,
+    reconcile_timestamp_to_period,
+    resolve_timestamp_unit,
+)
 from rcc002.s1.numeric import NumericParsingError, parse_integer_field, parse_numeric_field
 from rcc002.s1.row_id import compute_source_row_id
 from rcc002.s1.schema import S1Row
@@ -50,7 +57,12 @@ class NormalizationAbortedError(Exception):
         )
 
 
-def parse_csv_rows(text: str, column_mapping: dict[str, int]) -> list[dict[str, str]]:
+def parse_csv_rows(
+    text: str,
+    column_mapping: dict[str, int],
+    *,
+    header_mode: str = "PRESENT",
+) -> list[dict[str, str]]:
     """Split raw delimited source text into per-row raw string fields.
 
     `column_mapping` maps required raw-field names (`open_time`, `open`,
@@ -62,10 +74,19 @@ def parse_csv_rows(text: str, column_mapping: dict[str, int]) -> list[dict[str, 
     lines = text.splitlines()
     if not lines:
         return []
-    _header, *data_lines = lines
+    if header_mode == "PRESENT":
+        _header, *data_lines = lines
+    elif header_mode == "ABSENT":
+        data_lines = lines
+    else:
+        raise ValueError(f"unsupported registered header_mode {header_mode!r}")
     rows: list[dict[str, str]] = []
     for line in data_lines:
         if not line.strip():
+            if header_mode == "ABSENT":
+                raise ValueError(
+                    "registered headerless source contains an empty record"
+                )
             continue
         cells = line.split(",")
         rows.append({name: cells[idx] for name, idx in column_mapping.items()})
@@ -88,6 +109,9 @@ def normalize_rows(
     market_type: str,
     symbol: str,
     interval: str,
+    source_file_ordinal: int = 0,
+    resolved_timestamp_unit: TimestampUnit | None = None,
+    archive_period: ArchivePeriod | None = None,
     multi_provider: bool = False,
 ) -> NormalizationResult:
     """Normalize raw S0 rows into canonical, sorted S1 rows.
@@ -99,13 +123,27 @@ def normalize_rows(
     """
     critical_errors: list[NumericParsingError] = []
     parsed_rows: list[S1Row] = []
+    if archive_period is not None:
+        period_unit = resolve_timestamp_unit(archive_period)
+        if (
+            resolved_timestamp_unit is not None
+            and resolved_timestamp_unit is not period_unit
+        ):
+            raise ValueError(
+                "resolved timestamp unit contradicts archive period"
+            )
+        resolved_timestamp_unit = period_unit
 
-    for original_row_index, raw_row in enumerate(raw_rows):
-        source_row_id = compute_source_row_id(source_snapshot_id, original_row_index)
+    for original_record_index, raw_row in enumerate(raw_rows):
+        source_row_id = compute_source_row_id(
+            source_snapshot_id,
+            source_file_ordinal,
+            original_record_index,
+        )
         row_had_critical_error = False
 
         try:
-            open_time_ms = parse_integer_field("open_time", raw_row["open_time"])
+            raw_open_time = parse_integer_field("open_time", raw_row["open_time"])
         except NumericParsingError as exc:
             critical_errors.append(exc)
             continue  # cannot proceed with the rest of this row without open_time
@@ -119,10 +157,13 @@ def normalize_rows(
                 row_had_critical_error = True
 
         raw_close_time = raw_row.get("close_time")
-        source_close_time_ms: int | None = None
+        raw_source_close_time: int | None = None
         if raw_close_time is not None:
             try:
-                source_close_time_ms = parse_integer_field("close_time", raw_close_time)
+                raw_source_close_time = parse_integer_field(
+                    "close_time",
+                    raw_close_time,
+                )
             except NumericParsingError as exc:
                 critical_errors.append(exc)
                 row_had_critical_error = True
@@ -135,14 +176,36 @@ def normalize_rows(
         # value through unchanged (corrected 2026-07-27, DVSEV-001 Step 4 —
         # see rcc002.s1.time module docstring for the full rationale). A
         # misaligned-but-parseable open_time still yields a valid S1 row.
-        close_time_ms = resolve_close_time_ms(
-            open_time_ms, interval, source_close_time_ms=source_close_time_ms
-        )
+        if resolved_timestamp_unit is not None:
+            if raw_source_close_time is None:
+                raise ValueError(
+                    "registered timestamp-unit conversion requires close_time"
+                )
+            open_time_ms, close_time_ms = normalize_timestamp_pair(
+                raw_open_time,
+                raw_source_close_time,
+                resolved_timestamp_unit,
+            )
+            if archive_period is not None:
+                reconcile_timestamp_to_period(
+                    open_time_ms,
+                    close_time_ms,
+                    archive_period,
+                )
+        else:
+            open_time_ms = raw_open_time
+            close_time_ms = resolve_close_time_ms(
+                open_time_ms,
+                interval,
+                source_close_time_ms=raw_source_close_time,
+            )
 
         parsed_rows.append(
             S1Row(
                 source_snapshot_id=source_snapshot_id,
                 source_row_id=source_row_id,
+                source_file_ordinal=source_file_ordinal,
+                original_record_index=original_record_index,
                 provider=provider,
                 market_type=market_type,
                 symbol=symbol,
@@ -167,3 +230,29 @@ def normalize_rows(
     was_resorted = sorted_rows != original_order
 
     return NormalizationResult(rows=sorted_rows, was_resorted=was_resorted)
+
+
+def normalize_registered_rows(
+    raw_rows: list[dict[str, str]],
+    *,
+    archive_period: ArchivePeriod,
+    source_snapshot_id: str,
+    source_file_ordinal: int,
+    provider: str,
+    market_type: str,
+    symbol: str,
+    interval: str,
+    multi_provider: bool = False,
+) -> NormalizationResult:
+    """Normalize one registered source file using its period-selected unit."""
+    return normalize_rows(
+        raw_rows,
+        source_snapshot_id=source_snapshot_id,
+        provider=provider,
+        market_type=market_type,
+        symbol=symbol,
+        interval=interval,
+        source_file_ordinal=source_file_ordinal,
+        archive_period=archive_period,
+        multi_provider=multi_provider,
+    )

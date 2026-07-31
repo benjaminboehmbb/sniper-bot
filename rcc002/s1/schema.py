@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import dataclasses
 
+from rcc002.s1.row_id import validate_source_row_id_coordinates
+
 # Canonical primary key (Data Pipeline §7.2 / Data Validation §8.2). If
 # multiple providers occur within a not-yet-consolidated dataset, `provider`
 # joins the key immediately before `market_type` (both documents agree on
@@ -75,6 +77,8 @@ class S1Row:
 
     source_snapshot_id: str
     source_row_id: str
+    source_file_ordinal: int
+    original_record_index: int
     provider: str
     market_type: str
     symbol: str
@@ -110,6 +114,25 @@ class S1Row:
                     f"{field_name!r} must be an integer UTC timestamp in "
                     f"milliseconds, per Data Pipeline §7.2"
                 )
+        for field_name, maximum in (
+            ("source_file_ordinal", 10**8 - 1),
+            ("original_record_index", 2**64 - 1),
+        ):
+            value = getattr(self, field_name)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or not 0 <= value <= maximum
+            ):
+                raise ValueError(
+                    f"{field_name!r} must be an unsigned canonical integer"
+                )
+        validate_source_row_id_coordinates(
+            self.source_row_id,
+            source_snapshot_id=self.source_snapshot_id,
+            source_file_ordinal=self.source_file_ordinal,
+            original_record_index=self.original_record_index,
+        )
         for field_name in ("open", "high", "low", "close", "volume"):
             value = getattr(self, field_name)
             if not isinstance(value, float):

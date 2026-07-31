@@ -14,6 +14,7 @@ from rcc002.s3.constants import (
     INDICATOR_PROFILE_ID,
     INDICATOR_PROFILE_VERSION,
     INDICATOR_SCHEMA_ID,
+    INDICATOR_SCHEMA_REF,
     INDICATOR_SCHEMA_VERSION,
 )
 from rcc002.s3.schema import IndicatorField, S3Row
@@ -131,6 +132,8 @@ def _make_row(
     values: dict[str, object] = {
         "source_snapshot_id": "snapshot-1",
         "source_row_id": f"source-row-{index}",
+        "source_file_ordinal": 0,
+        "original_record_index": index,
         "provider": "binance",
         "market_type": "spot",
         "symbol": "BTCUSDT",
@@ -160,6 +163,7 @@ def _make_row(
         "indicator_profile_version": INDICATOR_PROFILE_VERSION,
         "indicator_schema_id": INDICATOR_SCHEMA_ID,
         "indicator_schema_version": INDICATOR_SCHEMA_VERSION,
+        "indicator_schema_ref": INDICATOR_SCHEMA_REF,
         "indicator_segment_id": indicator_segment_id,
         "indicators": _make_indicators(indicator_overrides),
     }
@@ -287,6 +291,11 @@ class TestStageWideInputRejection(unittest.TestCase):
     def test_schema_version_mismatch_is_rejected(self) -> None:
         self.assert_rejected(
             _make_row(0, indicator_schema_version="2.0.0")
+        )
+
+    def test_schema_ref_mismatch_is_rejected(self) -> None:
+        self.assert_rejected(
+            _make_row(0, indicator_schema_ref="wrong")
         )
 
     def test_profile_id_mismatch_is_rejected(self) -> None:

@@ -9,6 +9,8 @@ def make_row(**overrides: object) -> S2Row:
     fields: dict[str, object] = dict(
         source_snapshot_id="source:sha256:" + "a" * 64,
         source_row_id="RCC002_S1_SOURCE_ROW_ID_V1:x:00000000000000000000",
+        source_file_ordinal=0,
+        original_record_index=0,
         provider="binance",
         market_type="spot",
         symbol="BTCUSDT",

@@ -9,7 +9,7 @@ from typing import Final, Mapping
 
 
 COMPONENT_ID: Final[str] = "RCC002_S6_GATE_EVALUATOR"
-COMPONENT_VERSION: Final[str] = "0.4.0"
+COMPONENT_VERSION: Final[str] = "0.4.1"
 
 EXPECTED_INPUT_SCHEMA_ID: Final[str] = "rcc002.stage.s5-regimes"
 EXPECTED_INPUT_SCHEMA_VERSION: Final[str] = "1.0.0"
