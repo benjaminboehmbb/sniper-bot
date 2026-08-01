@@ -8,9 +8,9 @@
 | Speicherort | `docs/specifications/` |
 | Dateiname | `RCC_002_REPRODUCIBILITY_AND_MANIFEST_2026-07-23.md` |
 | Dokument-ID | `RCC-002-RM` |
-| Version | `0.8.0` |
+| Version | `0.9.0` |
 | Datum | `2026-07-23` |
-| Status | S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending |
+| Status | RCC-002-S8RR002-BCP-001-REV2 Corrected Candidate – Independent Review of Generated Artifacts Pending |
 | Geltungsbereich | RCC-002-Datenpipeline, Stufen S0–S8 |
 | Verbindlichkeit | Normativ für die RCC-002-Implementierung |
 | Primäre Abhängigkeit | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.8.0` |
@@ -897,6 +897,23 @@ Die erste Baseline reserviert:
 | Review Manifest | `rcc002.review-manifest` | `1.0.0` | `rcc002.review-manifest/1.0.0` |
 | Reproduction Manifest | `rcc002.reproduction-manifest` | `1.0.0` | `rcc002.reproduction-manifest/1.0.0` |
 
+Die Korrektur `RCC-002-S8RR002-BCP-001-REV2` führt zusätzlich Dataset
+Manifest Schema `1.0.1` ein:
+
+| Manifesttyp | `schema_id` | `schema_version` | `schema_ref` |
+|---|---|---|---|
+| Dataset Manifest | `rcc002.dataset-manifest` | `1.0.1` | `rcc002.dataset-manifest/1.0.1` |
+
+Schema `1.0.1` behebt die strukturelle Akzeptanz von `views`- und
+`specification_profile`-Arrays, die bereits gegen den fachlichen Vertrag
+dieses Dokuments (§8.7 und §12.3) ungültig sind: fehlende, doppelte,
+umgeordnete, unbekannte oder veraltete Einträge sowie hash-inkonsistente
+Einträge. Dataset Manifest Schema `1.0.0` bleibt als zertifiziertes,
+bytegleiches historisches Artefakt samt seiner historischen Fixtures
+unverändert erhalten und bleibt für historische Verifikation zulässig. Es
+ist für prospektive S8-Produktion zurückgezogen: neuer Code DARF Dataset
+Manifest `1.0.0` NICHT ausgeben.
+
 Die Schemaidentität MUSS:
 
 - eindeutig;
@@ -936,6 +953,16 @@ View-Schemaidentität referenzieren:
 | `rcc002.view.live` | `1.0.0` | `rcc002.view.live/1.0.0` | Nein | `2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e` |
 | `rcc002.view.label-research` | `1.0.0` | `rcc002.view.label-research/1.0.0` | Ja | `0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc` |
 | `rcc002.view.audit` | `2.0.0` | `rcc002.view.audit/2.0.0` | Ja | `0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc` |
+
+`DatasetManifest.views` ist die kanonische, geordnete Registry-Momentaufnahme
+des aktuellen RCC-002-Datenprofils in exakt der oben angegebenen Reihenfolge
+mit exakt den oben genannten sechs Einträgen; es ist nicht das physische
+Artefaktinventar. Physisch materialisierte Views eines konkreten Builds
+werden getrennt unter `artifacts` erfasst; ein minimaler Build kann daher
+weniger als sechs physische Datenartefakte enthalten, während `views`
+weiterhin exakt die genannten sechs Schemata registriert. Fehlende,
+doppelte, umgeordnete, unbekannte, veraltete oder hash-inkonsistente
+Einträge in `views` machen das gesamte Dataset Manifest ungültig.
 
 Die vollständig expandierten Listen und ihre kanonische Hashvorabbildung
 stehen autoritativ in
@@ -1275,9 +1302,22 @@ referenzieren:
 | `RCC-002-ST` | `0.4.2` |
 | `RCC-002-RG` | `0.5.1` |
 | `RCC-002-LF` | `0.5.0` |
-| `RCC-002-RM` | `0.8.0` |
+| `RCC-002-RM` | `0.9.0` |
 
 Eine bloße Dateinennung ohne Dokument-ID und Version ist nicht ausreichend.
+
+Für ein deklariertes Dataset-Manifest-Profil ist `specification_profile`
+exakt, geordnet und geschlossen: genau die sieben oben genannten Dokumente in
+der angegebenen Reihenfolge, ohne zusätzlichen, fehlenden, doppelten,
+umgeordneten, unbekannten oder veralteten Eintrag. Die Formulierung „MUSS
+mindestens... referenzieren" regelt ausschließlich die Vollständigkeit über
+künftige Profilversionen der RCC-002-Spezifikationsfamilie hinweg; sie
+erlaubt keine zusätzlichen Einträge innerhalb eines einzelnen deklarierten
+aktuellen Profils. Eine künftige zusätzliche Spezifikation erfordert ein
+explizites neues Profil und eine Schema-Revision; sie DARF NICHT still an ein
+`1.0.1`-Manifest angehängt werden. Fehlende, doppelte, umgeordnete,
+unbekannte, veraltete oder hash-inkonsistente Einträge machen das gesamte
+Dataset Manifest ungültig.
 
 ### 12.4 Entscheidungsobjekt
 
@@ -1898,8 +1938,8 @@ Die Implementierung darf abweichende Pfade verwenden, sofern:
 ```json
 {
   "manifest_schema_id": "rcc002.dataset-manifest",
-  "manifest_schema_version": "1.0.0",
-  "manifest_schema_ref": "rcc002.dataset-manifest/1.0.0",
+  "manifest_schema_version": "1.0.1",
+  "manifest_schema_ref": "rcc002.dataset-manifest/1.0.1",
   "manifest_type": "dataset",
   "manifest_id": "manifest:sha256:0000000000000000000000000000000000000000000000000000000000000000",
   "created_at_utc": "2026-07-30T12:00:00Z",
@@ -2003,37 +2043,37 @@ Die Implementierung darf abweichende Pfade verwenden, sofern:
   ],
   "views": [
     {
-      "schema_id": "rcc002.view.audit",
-      "schema_version": "2.0.0",
-      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_id": "rcc002.view.research-features",
+      "schema_version": "1.0.0",
+      "schema_ref": "rcc002.view.research-features/1.0.0",
       "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+      "allowlist_sha256": "2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e"
     },
     {
-      "schema_id": "rcc002.view.audit",
-      "schema_version": "2.0.0",
-      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_id": "rcc002.view.backtest-inputs",
+      "schema_version": "1.0.0",
+      "schema_ref": "rcc002.view.backtest-inputs/1.0.0",
       "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+      "allowlist_sha256": "2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e"
     },
     {
-      "schema_id": "rcc002.view.audit",
-      "schema_version": "2.0.0",
-      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_id": "rcc002.view.paper",
+      "schema_version": "1.0.0",
+      "schema_ref": "rcc002.view.paper/1.0.0",
       "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+      "allowlist_sha256": "2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e"
     },
     {
-      "schema_id": "rcc002.view.audit",
-      "schema_version": "2.0.0",
-      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_id": "rcc002.view.live",
+      "schema_version": "1.0.0",
+      "schema_ref": "rcc002.view.live/1.0.0",
       "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
+      "allowlist_sha256": "2f2fd811b5ed8754ad8b02ee2222d885d7da3e7551ecbd5cf65fe38831c0806e"
     },
     {
-      "schema_id": "rcc002.view.audit",
-      "schema_version": "2.0.0",
-      "schema_ref": "rcc002.view.audit/2.0.0",
+      "schema_id": "rcc002.view.label-research",
+      "schema_version": "1.0.0",
+      "schema_ref": "rcc002.view.label-research/1.0.0",
       "schema_fingerprint_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "allowlist_sha256": "0e223d60ed4139f73194f1cb3b886a8eface9229183ad522a093e966827518cc"
     },
@@ -2047,38 +2087,38 @@ Die Implementierung darf abweichende Pfade verwenden, sofern:
   ],
   "specification_profile": [
     {
-      "id": "RCC-002-SPEC-0",
-      "version": "1.0.0",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      "id": "RCC_002_DATA_PIPELINE_SPECIFICATION",
+      "version": "0.8.0",
+      "sha256": "0e060d30b75082b74eb5211b1d378837aa7872d86f62e5e162586e2a2cc37fad"
     },
     {
-      "id": "RCC-002-SPEC-1",
-      "version": "1.0.0",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      "id": "RCC-002-DV",
+      "version": "0.6.0",
+      "sha256": "459c4a99a266b420d52a69f2fb1a6b36a99529e999842bc8271f3336c444bb31"
     },
     {
-      "id": "RCC-002-SPEC-2",
-      "version": "1.0.0",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      "id": "RCC-002-IS",
+      "version": "0.4.3",
+      "sha256": "0d8ad604cce88daa56193ee054f4d28237d60135a67cebbde883d2c00d18539d"
     },
     {
-      "id": "RCC-002-SPEC-3",
-      "version": "1.0.0",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      "id": "RCC-002-ST",
+      "version": "0.4.2",
+      "sha256": "b3de8b4b7c69c30fd811edbeceb246b1b981d7d561c54b585535e72ca0fd8c74"
     },
     {
-      "id": "RCC-002-SPEC-4",
-      "version": "1.0.0",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      "id": "RCC-002-RG",
+      "version": "0.5.1",
+      "sha256": "37ee84f1ddd86c0765e9c4df3b57aa5907472ba481f54181e8f8d6dccf354cdc"
     },
     {
-      "id": "RCC-002-SPEC-5",
-      "version": "1.0.0",
-      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      "id": "RCC-002-LF",
+      "version": "0.5.0",
+      "sha256": "526665966c83c8fc7254c663474fe08ee721125ae6cdcd88e5a4f5b80af5882f"
     },
     {
-      "id": "RCC-002-SPEC-6",
-      "version": "1.0.0",
+      "id": "RCC-002-RM",
+      "version": "0.9.0",
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     }
   ],
@@ -2132,6 +2172,38 @@ Der Beispielzeitstempel ist kein vorgegebener realer Buildzeitpunkt.
 Implementierungen MÜSSEN reale Werte einsetzen. Das Beispiel enthält bewusst
 keine Reviewresultate, Reproduktionsresultate, Ledgerreferenz und keine
 Selbstwerte der finalen Manifestdatei.
+
+Der `sha256`-Wert des `specification_profile`-Eintrags `RCC-002-RM/0.9.0`
+ist ausschließlich ein expliziter Nullwert-Platzhalter (64 Nullzeichen) für
+die unvermeidliche Selbstreferenz dieses Dokuments auf sich selbst; er ist
+kein realer Dateihash und darf niemals als solcher interpretiert werden. Alle
+sechs übrigen `specification_profile`-Einträge verwenden reale, literale
+SHA-256-Dateihashes der referenzierten Dokumente in ihrer jeweils genannten
+Version. Konkrete `1.0.1`-Fixtures werden erst nach Finalisierung der
+`RCC-002-RM/0.9.0`-Bytes erzeugt und MÜSSEN für alle sieben Dokumente,
+einschließlich `RCC-002-RM/0.9.0`, reale SHA-256-Werte enthalten; kein
+anderer `specification_profile`-Digest in diesem Beispiel oder in einer
+`1.0.1`-Fixture darf ein Platzhalter sein.
+
+**Korrekturvermerk (`RCC-002-S8RR002-BCP-001-REV2`, `2026-08-01`).** Dieses
+Beispiel korrigiert zwei in `RCC_002_S8_IMPLEMENTATION_READINESS_REVIEW_
+2026-07-31.md` festgestellte Blocker der Vorversion `0.8.0`:
+
+- `S8-RR2-B01`: `views` enthielt sechsfach `rcc002.view.audit/2.0.0` statt der
+  sechs verschiedenen registrierten Views aus §8.7. Korrigiert durch die
+  exakte, geordnete Sechs-View-Registry-Momentaufnahme.
+- `S8-RR2-B02`: `specification_profile` enthielt die Platzhalter-IDs
+  `RCC-002-SPEC-0` bis `RCC-002-SPEC-6`, jeweils Version `1.0.0`, statt des
+  verbindlichen Siebendokument-Profils aus §12.3. Korrigiert durch das exakte,
+  geordnete Siebendokument-Profil mit sechs literalen Nicht-Selbst-Hashes und
+  genau einem gekennzeichneten Nullwert-Platzhalter für den
+  `RCC-002-RM/0.9.0`-Selbsteintrag.
+
+Ausdrücklich außerhalb dieses Korrekturumfangs bleiben: das gleichnamige,
+aber semantisch getrennte Feld `specification_profile` des Stage Manifest
+Schema `1.0.0` (§8.4, referenziert stufenspezifische Spezifikationsstände,
+nicht das Dataset-Manifest-Profil) sowie die vorbestehende illustrative
+Felddrift in §8.5.
 
 ---
 
@@ -2502,21 +2574,62 @@ RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md
 Version 0.4.1
 ```
 
+Version `0.9.0` korrigiert im fokussierten Korrekturzyklus
+`RCC-002-S8RR002-BCP-001-REV2` die von
+`RCC_002_S8_IMPLEMENTATION_READINESS_REVIEW_2026-07-31.md` festgestellten
+Blocker `S8-RR2-B01` und `S8-RR2-B02` an den zertifizierten
+Dataset-Manifest-Artefakten der Vorversion `0.8.0`. Dies ist eine geringfügige
+normative Änderung, da sie explizite kanonische Snapshot-Semantik, exakte
+geordnete Mitgliedschaftsregeln, eine neue Schemaidentität und eine
+prospektive Rückzugsregel einführt, ohne bestehende zertifizierte Verträge
+byteweise zu verändern. Im Einzelnen:
+
+- §8.6: Einführung von Dataset Manifest Schema `1.0.1` neben dem
+  unveränderten, historisch bytegleichen Schema `1.0.0`; Rückzug von
+  Schema `1.0.0` für prospektive S8-Produktion;
+- §8.7: explizite Kanonisierungs- und Abgeschlossenheitsregel für
+  `DatasetManifest.views` (exakt sechs Einträge in exakt der registrierten
+  Reihenfolge, Trennung von `views` und `artifacts`);
+- §12.3: Aktualisierung des Selbsteintrags auf `RCC-002-RM/0.9.0` sowie
+  explizite Kanonisierungs- und Abgeschlossenheitsregel für
+  `specification_profile` (exakt sieben Einträge in exakt der registrierten
+  Reihenfolge je deklariertem Profil; „mindestens" regelt nur künftiges
+  Familienwachstum über Profilversionen hinweg);
+- §24: Ersetzung der defekten sechsfachen `rcc002.view.audit/2.0.0`-Wiederholung
+  durch die exakte Sechs-View-Registry-Momentaufnahme; Ersetzung der
+  Platzhalter-IDs `RCC-002-SPEC-0` bis `RCC-002-SPEC-6` durch das exakte
+  Siebendokument-Profil mit sechs literalen Nicht-Selbst-Hashes und einem
+  gekennzeichneten Nullwert-Platzhalter ausschließlich für den
+  `RCC-002-RM/0.9.0`-Selbsteintrag; dazugehöriger datierter Korrekturvermerk
+  mit Befund-IDs und Umfangsausschlüssen.
+
+Ausdrücklich außerhalb dieses Korrekturumfangs bleiben das gleichnamige, aber
+semantisch getrennte `specification_profile`-Feld des Stage Manifest Schema
+`1.0.0` sowie die vorbestehende illustrative Felddrift in §8.5. Kein Feld,
+keine Invariante und kein Test der sechs übrigen aktuellen Spezifikationen
+wurde verändert; ihre Abhängigkeitsversionen bleiben `RCC_002_DATA_PIPELINE_
+SPECIFICATION_2026-07-23.md` Version `0.8.0`, `RCC_002_DATA_VALIDATION_2026-
+07-23.md` Version `0.6.0`, `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md`
+Version `0.4.3`, `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md` Version
+`0.4.2`, `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md` Version
+`0.5.1` und `RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md`
+Version `0.5.0`, wie in der Kopfzeile dieses Dokuments angegeben.
+
 Der aktuelle Status lautet:
 
 ```text
-S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending
+RCC-002-S8RR002-BCP-001-REV2 Corrected Candidate – Independent Review of
+Generated Artifacts Pending
 ```
 
 Nächste vorgeschriebene Schritte:
 
-1. Bundle- und Manifestregeneration gegen die sieben aktuellen
-   Spezifikationen sowie unabhängige Hash- und Round-trip-Prüfung;
-2. fokussierte Re-Review der AIR4-MIN-01-Korrektur;
-3. Editorial Pass;
-4. Internal Certification;
-5. Claude Independent Architecture Review;
-6. Gemini Independent Scientific and Adversarial Audit;
-7. ChatGPT Final Consolidation;
-8. `Baseline V1 Certified`;
-9. Implementierungsfreigabe.
+1. mechanische Verifikation und fokussierte Tests des korrigierten
+   Kandidaten (`scripts/rcc002/verify_s8rr002_artifacts.py`);
+2. unabhängiger Scientific Consistency Re-Review der generierten Artefakte;
+3. unabhängiger Architecture Integrity Re-Review der generierten Artefakte;
+4. Zertifizierung und Commit des korrigierten Kandidaten;
+5. Regeneration der S8-Implementierungseingabe gegen den neuen zertifizierten
+   `HEAD`;
+6. Wiederholung der S8-Implementation-Readiness-Review;
+7. Implementierungsfreigabe erst nach explizitem `READY`-Verdikt.
