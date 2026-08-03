@@ -1,0 +1,95 @@
+{
+  "ledger_schema_version": "1",
+  "manifest_type": "dataset",
+  "manifest_schema_ref": "rcc002.dataset-manifest/1.0.2",
+  "cases": {
+    "absolute-path.json": {
+      "rejection_class": "absolute_path",
+      "description": "artifacts[0].relative_path is an absolute path instead of a portable relative path."
+    },
+    "extra-property.json": {
+      "rejection_class": "extra_property",
+      "description": "Top-level payload carries an undeclared property forbidden by additionalProperties: false."
+    },
+    "invalid-id.json": {
+      "rejection_class": "invalid_id",
+      "description": "manifest_id does not match the manifest:sha256:<64 lowercase hex> pattern."
+    },
+    "invalid-timestamp.json": {
+      "rejection_class": "invalid_timestamp",
+      "description": "created_at_utc uses a non-UTC offset instead of the mandatory Z suffix."
+    },
+    "missing-required-field.json": {
+      "rejection_class": "missing_required_field",
+      "description": "Required top-level property project is absent."
+    },
+    "path-traversal.json": {
+      "rejection_class": "path_traversal",
+      "description": "artifacts[0].relative_path contains a parent-traversal segment (../)."
+    },
+    "secret-like-field.json": {
+      "rejection_class": "secret_like_field",
+      "description": "Top-level payload carries an undeclared, secret-like-named property (api_token)."
+    },
+    "secret-like-value.json": {
+      "rejection_class": "secret_like_value",
+      "description": "producer.component carries a secret-like value pattern (api_token=secret)."
+    },
+    "wrong-schema-identity.json": {
+      "rejection_class": "wrong_schema_identity",
+      "description": "manifest_schema_id does not equal the constant rcc002.dataset-manifest."
+    },
+    "wrong-schema-version.json": {
+      "rejection_class": "wrong_schema_version",
+      "description": "manifest_schema_version does not equal the constant 1.0.2."
+    },
+    "wrong-type-nullability.json": {
+      "rejection_class": "wrong_type_nullability",
+      "description": "project is null instead of the required non-nullable string constant."
+    },
+    "duplicate-view.json": {
+      "rejection_class": "duplicate_view",
+      "description": "views[2] duplicates views[1] (backtest-inputs); the distinct paper view is absent."
+    },
+    "missing-view.json": {
+      "rejection_class": "missing_view",
+      "description": "views[4] duplicates views[3] (live); the distinct label-research view is absent."
+    },
+    "reordered-view.json": {
+      "rejection_class": "reordered_view",
+      "description": "All six registered views are present but views[0] and views[1] are transposed."
+    },
+    "unknown-view.json": {
+      "rejection_class": "unknown_view",
+      "description": "views[5] references an unregistered schema_id (rcc002.view.experimental) instead of audit/2.0.0."
+    },
+    "wrong-view-allowlist-hash.json": {
+      "rejection_class": "wrong_view_allowlist_hash",
+      "description": "views[0] (research-features) carries the 534-field allowlist hash instead of its own 232-field hash."
+    },
+    "duplicate-specification.json": {
+      "rejection_class": "duplicate_specification",
+      "description": "specification_profile[2] duplicates specification_profile[1] (RCC-002-DV); RCC-002-IS is absent."
+    },
+    "missing-specification.json": {
+      "rejection_class": "missing_specification",
+      "description": "specification_profile[4] duplicates specification_profile[3] (RCC-002-ST); RCC-002-RG is absent."
+    },
+    "reordered-specification.json": {
+      "rejection_class": "reordered_specification",
+      "description": "All seven profile documents are present but positions 0 and 1 are transposed."
+    },
+    "unknown-specification.json": {
+      "rejection_class": "unknown_specification",
+      "description": "specification_profile[3] references an unregistered document id (RCC-002-XX) instead of RCC-002-ST."
+    },
+    "stale-specification-version.json": {
+      "rejection_class": "stale_specification_version",
+      "description": "specification_profile[1] (RCC-002-DV) declares stale version 0.5.0 instead of the current 0.6.0."
+    },
+    "wrong-view-fingerprint-hash.json": {
+      "rejection_class": "wrong_view_fingerprint_hash",
+      "description": "views[0] (research-features) carries the backtest-inputs schema_fingerprint_sha256 literal instead of its own certified literal."
+    }
+  }
+}

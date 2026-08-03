@@ -61,6 +61,12 @@ python -m unittest tools.test_timing_5m_v2_minimal
 
 # Run the run_engine dry-run loop directly (synthetic price stream, Ctrl+C to stop)
 python -m run_engine.main
+
+# RCC-002 S8 Track 1 mandatory gate (authoritative for Track 1 only)
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/rcc002/run_s8candbcp_gate.py
+
+# Do not use flat unittest discovery for Track 1. It may traverse the excluded
+# tests/rcc002/s8 candidate subtree. Use only the mandatory Track 1 gate above.
 ```
 
 `tests/regression/` is the TD-005 automated regression suite: it replays controlled-condition

@@ -1,0 +1,120 @@
+{
+  "scope_schema_version": "1",
+  "scope_id": "RCC002_S8CANDBCP_GATE_SCOPE_V1",
+  "approved_proposal": {
+    "path": "docs/review/RCC_002_S8_IMPLEMENTATION_CANDIDATE_BLOCKER_CORRECTION_PROPOSAL_REV9_2026-08-02.md",
+    "sha256": "6b7651306368bb015508263db0cbe3fc07d51aa504aecf30be6634b190d6225f"
+  },
+  "policy_id": "RCC002_S8CANDBCP_GATE_POLICY_V1",
+  "policy_preimage_rule": {
+    "encoding": "ASCII",
+    "category_order": [
+      "current_state_modules",
+      "historical_replay_adapter_modules",
+      "historical_audit_only_modules",
+      "excluded_track2_candidate_modules"
+    ],
+    "line_grammar": [
+      "policy_id=<policy_id>",
+      "category=<category_name>",
+      "path=<repository_relative_posix_path>"
+    ],
+    "path_order": "exact array order within each category",
+    "line_separator": "LF",
+    "final_terminator": "exactly one LF",
+    "line_count": 65,
+    "byte_count": 2687,
+    "sha256": "27414251ea113e9f135f7ed93ce120bd0fe454575914083654b8c9d71e2bfbe1"
+  },
+  "counts": {
+    "policy_path_count": 60,
+    "governed_track1_module_count": 49,
+    "current_state_module_count": 45,
+    "historical_replay_adapter_module_count": 2,
+    "historical_audit_only_module_count": 2,
+    "excluded_track2_candidate_module_count": 11,
+    "executable_module_count": 47
+  },
+  "path_digests": {
+    "current_state_modules": "f9c7f83efe8ce803137164c156e0e96b05efa06638c0837bb980dc6cf316bda0",
+    "historical_replay_adapter_modules": "afc9cc6661e4a850f28cfd98029fc9d50da1c36428c1acc07307f955da73b00c",
+    "historical_audit_only_modules": "14e9b8d244a09f5cc5409d3ca080a5436e2f9c8d5c0db01a95dec97b47c749a6",
+    "excluded_track2_candidate_modules": "dd0c85003474bdc4672e8eebdef16f61ae7dd9568a7de0f33d4c613f0e786f3a",
+    "governed_track1_modules": "188186713fc48329629439d7c5cddaade388723270236126fb41f1bd756f3d2c",
+    "executable_modules": "b80cda1c8adf75c7b687f93952dc897e1c0f1e4c06dab5bd6e5b777d19fa653a",
+    "policy_paths": "b611d04c24a509c13701570474057b661993c929c4655db2727d22943da95641"
+  },
+  "current_state_modules": [
+    "tests/rcc002/s0/test_ingest.py",
+    "tests/rcc002/s0/test_integrity.py",
+    "tests/rcc002/s0/test_manifest.py",
+    "tests/rcc002/s0/test_profiles.py",
+    "tests/rcc002/s0/test_source_identity.py",
+    "tests/rcc002/s1/test_normalize.py",
+    "tests/rcc002/s1/test_numeric.py",
+    "tests/rcc002/s1/test_row_id.py",
+    "tests/rcc002/s1/test_schema.py",
+    "tests/rcc002/s1/test_time.py",
+    "tests/rcc002/s2/test_anomalies.py",
+    "tests/rcc002/s2/test_duplicates.py",
+    "tests/rcc002/s2/test_invariants.py",
+    "tests/rcc002/s2/test_schema.py",
+    "tests/rcc002/s2/test_segment.py",
+    "tests/rcc002/s2/test_validate.py",
+    "tests/rcc002/s3/test_compute.py",
+    "tests/rcc002/s3/test_formulas.py",
+    "tests/rcc002/s3/test_golden_fixtures.py",
+    "tests/rcc002/s3/test_schema.py",
+    "tests/rcc002/s3/test_segment.py",
+    "tests/rcc002/s3/test_state.py",
+    "tests/rcc002/s4/test_compute.py",
+    "tests/rcc002/s5/test_compute.py",
+    "tests/rcc002/s5/test_formulas.py",
+    "tests/rcc002/s5/test_golden_fixtures.py",
+    "tests/rcc002/s5/test_schema.py",
+    "tests/rcc002/s5/test_state.py",
+    "tests/rcc002/s6/test_compute.py",
+    "tests/rcc002/s6/test_formulas.py",
+    "tests/rcc002/s6/test_golden_fixtures.py",
+    "tests/rcc002/s6/test_reason_codes.py",
+    "tests/rcc002/s6/test_schema.py",
+    "tests/rcc002/s7/test_compute.py",
+    "tests/rcc002/s7/test_formulas.py",
+    "tests/rcc002/s7/test_golden_fixtures.py",
+    "tests/rcc002/s7/test_planning.py",
+    "tests/rcc002/s7/test_reason_codes.py",
+    "tests/rcc002/s7/test_schema.py",
+    "tests/rcc002/test_constants.py",
+    "tests/rcc002/test_reason_codes.py",
+    "tests/rcc002/test_s8bcp001_implementation_correction.py",
+    "tests/rcc002/test_s8candbcp_gate_scope.py",
+    "tests/rcc002/test_s8candbcp_rev2_normative_ledger.py",
+    "tests/rcc002/test_s8candbcp_rev2_track1_normative_scope.py"
+  ],
+  "historical_replay_adapter_modules": [
+    "tests/rcc002/test_s8rr002_manifest_correction_historical_replay.py",
+    "tests/rcc002/test_s8rr003_normative_ledger_historical_replay.py"
+  ],
+  "historical_audit_only_modules": [
+    "tests/rcc002/test_s8rr002_manifest_correction.py",
+    "tests/rcc002/test_s8rr003_normative_ledger.py"
+  ],
+  "excluded_track2_candidate_modules": [
+    "tests/rcc002/s8/test_artifact_class.py",
+    "tests/rcc002/s8/test_canonical.py",
+    "tests/rcc002/s8/test_field_registry.py",
+    "tests/rcc002/s8/test_identity.py",
+    "tests/rcc002/s8/test_manifests.py",
+    "tests/rcc002/s8/test_projection.py",
+    "tests/rcc002/s8/test_publication.py",
+    "tests/rcc002/s8/test_reconciliation.py",
+    "tests/rcc002/s8/test_states.py",
+    "tests/rcc002/s8/test_validation.py",
+    "tests/rcc002/s8/test_views.py"
+  ],
+  "consumed_by": [
+    "scripts/rcc002/verify_s8candbcp_gate_scope.py",
+    "scripts/rcc002/run_s8candbcp_gate.py",
+    "tests/rcc002/test_s8candbcp_gate_scope.py"
+  ]
+}

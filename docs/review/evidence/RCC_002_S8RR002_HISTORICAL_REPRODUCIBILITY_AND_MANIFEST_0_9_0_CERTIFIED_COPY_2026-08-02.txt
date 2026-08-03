@@ -8,12 +8,12 @@
 | Speicherort | `docs/specifications/` |
 | Dateiname | `RCC_002_REPRODUCIBILITY_AND_MANIFEST_2026-07-23.md` |
 | Dokument-ID | `RCC-002-RM` |
-| Version | `0.9.1` |
+| Version | `0.9.0` |
 | Datum | `2026-07-23` |
-| Status | RCC-002-S8-CAND-BCP-001-REV9 Track 1 Normative Correction Candidate – Independent Implementation Re-Review Pending |
+| Status | RCC-002-S8RR002-BCP-001-REV2 Corrected Candidate – Independent Review of Generated Artifacts Pending |
 | Geltungsbereich | RCC-002-Datenpipeline, Stufen S0–S8 |
 | Verbindlichkeit | Normativ für die RCC-002-Implementierung |
-| Primäre Abhängigkeit | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.9.0` |
+| Primäre Abhängigkeit | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.8.0` |
 | Fachliche Abhängigkeiten | `RCC_002_DATA_VALIDATION_2026-07-23.md`, Version `0.6.0`; `RCC_002_INDICATOR_SPECIFICATION_2026-07-23.md`, Version `0.4.3`; `RCC_002_SIGNAL_TRANSFORMATION_2026-07-23.md`, Version `0.4.2`; `RCC_002_REGIME_AND_GATE_SPECIFICATION_2026-07-23.md`, Version `0.5.1`; `RCC_002_LABEL_AND_FORWARD_RETURN_SPECIFICATION_2026-07-23.md`, Version `0.5.0` |
 | Referenziert durch | RCC-002-Implementierungsplan; RCC-002-Build- und Prüfwerkzeuge; RCC-002-Dataset-Release-Dokumentation |
 | Vorgesehene Reviews | Scientific Consistency Review; Architecture Integrity Review; Editorial Pass; Internal Certification; Claude Independent Architecture Review; Gemini Independent Scientific and Adversarial Audit; ChatGPT Final Consolidation; Baseline V1 Certified |
@@ -914,30 +914,6 @@ unverändert erhalten und bleibt für historische Verifikation zulässig. Es
 ist für prospektive S8-Produktion zurückgezogen: neuer Code DARF Dataset
 Manifest `1.0.0` NICHT ausgeben.
 
-Die Korrektur `RCC-002-S8-CAND-BCP-001-REV9` führt zusätzlich Dataset
-Manifest Schema `1.0.2` ein:
-
-| Manifesttyp | `schema_id` | `schema_version` | `schema_ref` |
-|---|---|---|---|
-| Dataset Manifest | `rcc002.dataset-manifest` | `1.0.2` | `rcc002.dataset-manifest/1.0.2` |
-
-Schema `1.0.2` übernimmt den geschlossenen, geordneten `views`- und
-`specification_profile`-Vertrag von Schema `1.0.1` und macht für jeden der
-sechs `views`-Einträge zusätzlich `schema_fingerprint_sha256` verpflichtend.
-Der Wert MUSS für den jeweiligen `schema_ref` dem in
-`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.9.0`,
-Abschnitt 7.9.5, normativ definierten und aus der dort festgelegten
-kanonischen Vorabbildung abgeleiteten SHA-256 entsprechen. Ein fehlender
-oder vom normativen View-Vertrag abweichender Fingerprint macht das Dataset
-Manifest ungültig.
-
-Dataset Manifest Schema `1.0.1` bleibt als unveränderliches historisches
-Artefakt samt seiner historischen Fixtures erhalten und bleibt für
-historische Verifikation zulässig. Es ist für prospektive S8-Produktion
-zurückgezogen: neuer Code DARF Dataset Manifest `1.0.1` NICHT ausgeben.
-Prospektive S8-Kandidaten MÜSSEN Schema `1.0.2` verwenden. Die historische
-und prospektive Disposition von Schema `1.0.0` bleibt unverändert.
-
 Die Schemaidentität MUSS:
 
 - eindeutig;
@@ -990,19 +966,9 @@ Einträge in `views` machen das gesamte Dataset Manifest ungültig.
 
 Die vollständig expandierten Listen und ihre kanonische Hashvorabbildung
 stehen autoritativ in
-`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.9.0`,
+`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.8.0`,
 Abschnitt 7.9. Die zugehörige Eigentums- und Leakage-Registry lautet
 `RCC002_S8_FIELD_OWNERSHIP_V1`, Version `1.0.0`.
-
-Die vollständige, hashbare Vorabbildung des in diesem Abschnitt
-referenzierten "logischen Schema-Fingerprints" (`schema_fingerprint_sha256`,
-SS13) ist ausschließlich in
-`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.9.0`,
-Abschnitt 7.9.5 ("Kanonische View-Schema-Fingerprint-Bildung") normativ
-definiert; dieses Dokument dupliziert die Vorabbildung nicht, sondern
-referenziert sie ausschließlich (SS8.8: Data Pipeline besitzt den
-logischen View-Vertrag, RM besitzt das Manifestfeld, das den
-resultierenden Hash trägt).
 
 Das Manifest referenziert für jede View:
 
@@ -1330,13 +1296,13 @@ referenzieren:
 
 | Dokument-ID | Version |
 |---|---:|
-| `RCC_002_DATA_PIPELINE_SPECIFICATION` | `0.9.0` |
+| `RCC_002_DATA_PIPELINE_SPECIFICATION` | `0.8.0` |
 | `RCC-002-DV` | `0.6.0` |
 | `RCC-002-IS` | `0.4.3` |
 | `RCC-002-ST` | `0.4.2` |
 | `RCC-002-RG` | `0.5.1` |
 | `RCC-002-LF` | `0.5.0` |
-| `RCC-002-RM` | `0.9.1` |
+| `RCC-002-RM` | `0.9.0` |
 
 Eine bloße Dateinennung ohne Dokument-ID und Version ist nicht ausreichend.
 
@@ -2667,36 +2633,3 @@ Nächste vorgeschriebene Schritte:
    `HEAD`;
 6. Wiederholung der S8-Implementation-Readiness-Review;
 7. Implementierungsfreigabe erst nach explizitem `READY`-Verdikt.
-
-Version `0.9.1` setzt die genehmigte Track-1-Architektur
-`RCC-002-S8-CAND-BCP-001-REV9` um und schließt den im unabhängigen
-Claude-Implementierungsreview als `F1` klassifizierten
-Spezifikationsvollständigkeitsbefund. Die Version bleibt bis zu einem
-erfolgreichen unabhängigen Implementierungs-Re-Review ein nicht
-zertifizierter Korrekturkandidat.
-
-Die primäre Abhängigkeit bleibt
-`RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md`, Version `0.9.0`.
-Deren Abschnitt 7.9.5 besitzt weiterhin ausschließlich die normative
-View-Schema-Fingerprint-Vorabbildung; dieses Dokument registriert und
-erzwingt deren resultierende Hashwerte im Dataset Manifest. Im Einzelnen:
-
-- Dokumentmetadaten: Statusreferenz von
-  `RCC-002-S8-CAND-BCP-001-REV5` auf
-  `RCC-002-S8-CAND-BCP-001-REV9` und auf
-  `Independent Implementation Re-Review Pending` aktualisiert;
-- §8.6: Dataset Manifest Schema `1.0.2` mit
-  `rcc002.dataset-manifest/1.0.2` als aktuelle prospektive Schemaidentität
-  registriert;
-- §8.6: `schema_fingerprint_sha256` für jeden der sechs geordneten
-  `views`-Einträge verpflichtend an den Vertrag aus Data Pipeline
-  Version `0.9.0`, Abschnitt 7.9.5, gebunden;
-- §8.6: Schema `1.0.1` als unveränderliches historisches Artefakt für
-  historische Verifikation erhalten und für prospektive S8-Produktion
-  zurückgezogen;
-- Claude-Finding `F1`: Dataset Manifest Schema `1.0.2` vollständig in den
-  normativen Text-of-record aufgenommen.
-
-Die zertifizierten historischen Kopien der Data Pipeline Specification
-Version `0.8.0` und der Reproducibility and Manifest Specification Version
-`0.9.0` werden durch diese Korrektur weder verändert noch normalisiert.

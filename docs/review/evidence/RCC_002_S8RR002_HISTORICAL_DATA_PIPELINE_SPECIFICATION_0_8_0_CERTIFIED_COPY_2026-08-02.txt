@@ -6,9 +6,9 @@
 |---|---|
 | Dokumentklasse | Wissenschaftliche und technische Kernspezifikation |
 | Dokument-ID | `RCC_002_DATA_PIPELINE_SPECIFICATION` |
-| Version | 0.9.0 |
+| Version | 0.8.0 |
 | Datum | 2026-07-23 |
-| Status | RCC-002-S8-CAND-BCP-001-REV9 Track 1 Normative Correction Candidate – Independent Implementation Re-Review Pending |
+| Status | S8BCP-001 Revision 2 Corrected Candidate – Re-Review Pending |
 | Speicherort im Repository | `docs/specifications/RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md` |
 | Dateiname | `RCC_002_DATA_PIPELINE_SPECIFICATION_2026-07-23.md` |
 | Geltungsbereich | Kanonische Forschungsdatenpipeline für BTCUSDT und spätere weitere Assets/Zeitebenen |
@@ -26,7 +26,6 @@
 | Scientific Consistency Re-Review 005 | `RCC-002-SCR-005` nicht bestanden; Korrektur eingearbeitet | Version 0.7.0 korrigiert `SCR-005-B01`, `SCR-005-B02`, `SCR-005-M01`, `SCR-005-M02`, `SCR-005-M03` und materialisiert `AIR-005-H01`; SCR-006 ausstehend |
 | C1 Patch Release | `RCC-002-C1-SCR` bestanden mit Minor Findings | Version 0.7.1: patch release: normative clarification of Canonical Row Preservation semantics (C1) via neue Untersektion 5.8. No intended behavioural change. |
 | S8 Blocker Correction | `RCC-002-S8BCP-001` Revision 2 umgesetzt | Version 0.8.0 korrigiert Source Ingest, Zeitstempel-Normalisierung, Source-Row-Identität, Audit View und Manifest-Verträge; wissenschaftlicher und architektonischer Re-Review ausstehend. |
-| S8 Implementation Candidate Blocker Correction, Track 1 | `RCC-002-S8-CAND-BCP-001-REV5` Track 1 Normative Correction Candidate erzeugt | Version 0.9.0 fügt SS7.9.5 (Kanonische View-Schema-Fingerprint-Bildung) hinzu und erweitert SS6.2 um einen Querverweis; korrigiert `S8-CAND-B02`, nur normativ, keine Implementierung. Unabhängiger wissenschaftlicher und architektonischer Review ausstehend; nicht zertifiziert. |
 | Editorial Pass | Ausstehend | Nach bestandenem Architecture Integrity Review |
 | Internal Certification | Ausstehend | Nach bestandenem Editorial Pass |
 | Claude Independent Architecture Review | Ausstehend | Erst nach Internal Certification |
@@ -491,11 +490,6 @@ Die Schema-ID umfasst:
 
 Eine Änderung dieser Eigenschaften benötigt mindestens eine neue
 Schemaversion.
-
-Für die View-Schemas aus SS7.9 ist die vollständige, kanonische
-Fingerprint-Vorabbildung -- als konkrete, hashbare Ausprägung der oben
-genannten Schema-ID-Bestandteile für den View-Fall -- in SS7.9.5
-("Kanonische View-Schema-Fingerprint-Bildung") normativ definiert.
 
 ### 6.3 Schemaeigentum und Erweiterungsfelder
 
@@ -2573,159 +2567,6 @@ ausschließlich über den kanonischen Primärschlüssel
 `(market_type, symbol, interval, open_time)` mit einer ausdrücklich
 ausgewählten Label-Research-View verbunden. Für noch nicht konsolidierte
 Multi-Provider-Daten enthält der Join-Schlüssel zusätzlich `provider`.
-
-#### 7.9.5 Kanonische View-Schema-Fingerprint-Bildung
-
-**Korrekturvermerk (`RCC-002-S8-CAND-BCP-001-REV5`, `2026-08-02`).** Diese
-Untersektion schließt `S8-CAND-B02` (`S8-CAND-BCP-B02`) normativ: sie
-definiert die vollständige, hashbare Vorabbildung für
-`schema_fingerprint_sha256` je View, getrennt vom in SS7.9.2 definierten
-Allowlist-Hash. Vor dieser Korrektur existierte keine normative
-Fingerprint-Vorabbildung; die im S8-Implementierungskandidaten beobachtete
-Kollision zweier Views mit unterschiedlichem logischem Vertrag aber
-identischem Fingerprint (`S8-CAND-B02`) war eine direkte Folge dieser
-Lücke.
-
-**Registry-Container (bereits geschlossen, `RCC-002-S8-CAND-BCP-001-REV3`
-Section 6.4, unverändert).** Die Speicherform ist im Registry-Artefakt
-`registries/rcc002/views/s8_view_schema_fingerprint_profile.v1.json`
-(`RCC002_S8_VIEW_SCHEMA_FINGERPRINT_PROFILE_V1`, Version `1.0.0`) exakt und
-geschlossen festgelegt: sieben Top-Level-Schlüssel
-(`registry_id`, `registry_version`, `project`, `status`,
-`owning_specification`, `canonicalization_profile_id`, `views`), ein
-dreischlüsseliges `owning_specification`-Objekt
-(`{"id": "RCC_002_DATA_PIPELINE_SPECIFICATION", "version": "0.9.0", "section": "7.9.5"}`)
-und genau sechs `views[]`-Einträge (SS8.7-Reihenfolge), jeder mit genau
-zwölf Schlüsseln, `additionalProperties: false`:
-
-| Schlüssel | Typ | Bedeutung |
-|---|---|---|
-| `view_id` | string | `research-features`/`backtest-inputs`/`paper`/`live`/`label-research`/`audit` |
-| `schema_id` | string | zertifizierte `rcc002.view.*`-ID (SS8.7) |
-| `schema_version` | string | zertifizierte Version (SS8.7) |
-| `schema_ref` | string | `<schema_id>/<schema_version>` |
-| `allowed_producer_stages` | array | geordnet, wie SS7.9.2/SS7.9.3 |
-| `stage_schema_refs` | array of strings | parallel zu `allowed_producer_stages`, je Eintrag der SS6.2-`schema_ref` der betreffenden Stufe -- die "per Referenz"-Kodierung von Feldtyp, Nullbarkeit und Enum-/Reason-Code-Register (SS6.2) |
-| `s7_eligible` | boolean | `false` für die vier Nicht-Label-Views; `true` für `label-research`/`audit` |
-| `field_contract` | array of objects | geordnet, `{"field_name", "field_owner_stage", "leakage_class"}` je Feld, identische Form wie SS7.9.2 `fields[]`; Länge 232 beziehungsweise 534 |
-| `primary_key_fields` | array of strings | `["market_type", "symbol", "interval", "open_time"]` (Einzelprovider-Geltungsbereich; SS7.3) |
-| `compatibility_profile_id` | string | `"RCC002_VIEW_SCHEMA_COMPATIBILITY_V1"` für alle sechs Views, bezeichnet das bereits normative SS6.4-Kompatibilitätsregelwerk |
-| `allowlist_sha256` | string | zertifiziertes Literal (SS8.7), kopiert, nicht neu berechnet |
-| `schema_fingerprint_sha256` | string | das Ergebnis dieser Untersektion |
-
-**Erfasste Dimensionen.** Die Vorabbildung ist vollständig sensitiv
-gegenüber jeder der zehn in SS6.2 geforderten Schemaidentitäts-Dimensionen:
-`schema_id`/`schema_version` (direkt); geordnete Feldnamen (direkt,
-`field_contract[].field_name`); geordnete erlaubte Erzeugerstufen (direkt,
-`allowed_producer_stages`); Eigentümerstufe je Feld (direkt,
-`field_contract[].field_owner_stage`); Leakage-Klasse je Feld (direkt,
-`field_contract[].leakage_class`); View-Allowlist-Identität (direkt,
-`allowlist_sha256`, SS7.9.2); Feldtypen und Nullbarkeit (per Referenz,
-`stage_schema_refs`); Primärschlüssel und Sortierungsvertrag (direkt,
-`primary_key_fields`); angewandtes Kompatibilitätsprofil (direkt,
-`compatibility_profile_id`); Enum- und Reason-Code-Register (per Referenz,
-`stage_schema_refs`, da jede SS6.4-pflichtige Änderung eines beteiligten
-Stufenschemas -- einschließlich Enum-/Reason-Code-Änderungen -- eine neue
-`stage_schema_refs`-Version und damit einen neuen Fingerprint erzwingt; und
-direkt, da jedes `*_reason_codes`-Feld selbst Teil von `field_contract`
-ist). Eine Änderung jeder dieser Dimensionen ändert den resultierenden
-Fingerprint; dies ist die normative Korrektur der in der kontrollierenden
-Review nachgewiesenen Kollision.
-
-**Kanonische Hashbildungsregel (Track-1-Entscheidung dieser Untersektion;
-der Registry-Container selbst legt nur die Speicherform fest, nicht den
-Algorithmus, `RCC-002-S8-CAND-BCP-001-REV3` Section 6.4).**
-`schema_fingerprint_sha256` einer View ist die RFC-8785/JCS-Kanonisierung
-(Unicode-NFC-Vorverarbeitung, Objektschlüssel in UTF-16-Code-Unit-
-Reihenfolge, kompakte Trennzeichen ohne Leerraum, wie SS7.9.2) und SHA-256
-des vollständigen `views[]`-Eintrags derselben View, **abzüglich exakt
-des Schlüssels `schema_fingerprint_sha256` selbst** (Selbstausschluss --
-ein Wert kann nicht Teil seiner eigenen Vorabbildung sein). Die
-verbleibenden elf Schlüssel (`view_id`, `schema_id`, `schema_version`,
-`schema_ref`, `allowed_producer_stages`, `stage_schema_refs`,
-`s7_eligible`, `field_contract`, `primary_key_fields`,
-`compatibility_profile_id`, `allowlist_sha256`) bilden die vollständige
-Vorabbildung; kein weiterer, außerhalb des geschlossenen Containers
-liegender Wert fließt ein. Für alle in dieser Spezifikation verwendeten
-Bezeichner (reines ASCII) ist die UTF-16-Reihenfolge byte-identisch mit
-einer einfachen Codepunkt-Sortierung.
-
-**`field_contract` ist byte-identisch, in Name und Reihenfolge, je View,
-zu der bereits unter SS7.9.3.1 bis SS7.9.3.6 vollständig materialisierten
-Liste**; `field_owner_stage` und `leakage_class` je Feldname sind aus
-`RCC002_S8_FIELD_OWNERSHIP_V1` (SS7.9.1) aufgelöst.
-
-**Worked micro-example (Mechanismus-Demonstration, kein Ersatz für die
-vollständige `field_contract`-Liste).** Die ersten beiden Einträge von
-`research-features` (Nicht-Label; identisches Präfix für jede
-Nicht-Label-View):
-
-```json
-[
-  {"field_name": "source_snapshot_id", "field_owner_stage": "S0_SOURCE", "leakage_class": "POINT_IN_TIME"},
-  {"field_name": "provider", "field_owner_stage": "S0_SOURCE", "leakage_class": "POINT_IN_TIME"}
-]
-```
-
-Der erste `S7_LABELS`-Eintrag, nur in den beiden labelfähigen Views
-(`label-research`, `audit`) vorhanden:
-
-```json
-{"field_name": "label_profile_id", "field_owner_stage": "S7_LABELS", "leakage_class": "FUTURE_OUTCOME"}
-```
-
-`stage_schema_refs` für `research-features` (sieben Einträge, parallel zu
-`allowed_producer_stages`):
-
-```json
-["rcc002.stage.s0-source/1.0.0", "rcc002.stage.s1-normalized/1.0.0", "rcc002.stage.s2-validated/1.0.0", "rcc002.stage.s3-indicators/1.0.0", "rcc002.stage.s4-signals/1.0.0", "rcc002.stage.s5-regimes/1.0.0", "rcc002.stage.s6-gates/1.0.0"]
-```
-
-`label-research`/`audit` extend this array with an eighth entry,
-`"rcc002.stage.s7-labels/1.0.0"`, last.
-
-**Sechs literale `schema_fingerprint_sha256`-Werte**, in SS8.7-Reihenfolge,
-unabhängig mechanisch re-derivierbar aus dem obigen Container kombiniert
-mit SS7.9.1 und SS7.9.3:
-
-| `schema_ref` | `schema_fingerprint_sha256` |
-|---|---|
-| `rcc002.view.research-features/1.0.0` | `1e2bd4af73e8cc508a5a21966245fc3db9f0b0c2c71de60d7e4add713a969459` |
-| `rcc002.view.backtest-inputs/1.0.0` | `28892062a428a93fba75428729c63a72bc0b44a6d39687ba953c106a78ffeb2d` |
-| `rcc002.view.paper/1.0.0` | `901aa6b4b3f67d96d087c2a917494566f7d8779fb520e71c49fb2dac47c4c50c` |
-| `rcc002.view.live/1.0.0` | `49966dcc82cae5e9b2c4f1a80a5f0523ef856637f247b939aca296c495491ebe` |
-| `rcc002.view.label-research/1.0.0` | `97becbeee9575bce31e3a8c215f5dd0a549c469abe38174d96967999ffce206a` |
-| `rcc002.view.audit/2.0.0` | `6995e0cb3e2e624e34a4f842fc888115bc75bd28c84826759ce42391bb869397` |
-
-**Negative-evidence case.** `research-features` und `label-research`
-unterscheiden sich ausschließlich in `allowed_producer_stages`,
-`stage_schema_refs`, `s7_eligible`, `field_contract` und
-`allowlist_sha256`; ihre `schema_fingerprint_sha256`-Werte oben sind
-nachweislich verschieden. `label-research` (`1.0.0`) und `audit` (`2.0.0`)
-unterscheiden sich ausschließlich in `schema_id`/`schema_version`/
-`schema_ref` (identisches `allowlist_sha256`, identisches
-`field_contract`, per SS8.7); ihre `schema_fingerprint_sha256`-Werte oben
-sind ebenfalls nachweislich verschieden -- dies schließt exakt die von der
-kontrollierenden Review gegen die vorherige Platzhalterformel nachgewiesene
-Kollision.
-
-**Registry-Artefakt.** Die vollständige, maschinenlesbare Form dieser
-Vorabbildung (alle sechs Views, vollständig) ist zusätzlich unter
-`registries/rcc002/views/s8_view_schema_fingerprint_profile.v1.json`
-veröffentlicht, Option (b) aus Section 5.4 der kontrollierenden
-Korrekturvorschlagskette, konsistent mit dem bestehenden
-`registries/rcc002/`-Layout. Ihr `status`-Feld ist permanent auf
-`"candidate_for_normative_review"` fixiert und wird niemals auf
-`"certified"` geändert; die Zertifizierung wird außerhalb der Registry
-festgehalten, in den unabhängigen Review- und Zertifizierungsunterlagen
-dieser Korrektur, niemals in der Registry-Datei selbst.
-
-**Versionsfolge (SS6.4).** Das Hinzufügen dieser Vorabbildung ändert den
-Fingerprint-*Wert* aller sechs Views, ändert jedoch keinen Feldnamen,
-keinen Typ, keine Nullbarkeit und keine Semantik, und lässt alle sechs
-zertifizierten `schema_id`/`schema_version`/`allowlist_sha256`-Tripel
-unverändert; dies ist eine additive Minor-Ergänzung neuer
-maschinenlesbarer Evidenz, keine schemabrechende Änderung, per SS6.4.
 
 ## 8. Datenformate
 
