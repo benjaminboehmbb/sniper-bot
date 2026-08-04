@@ -1,0 +1,35 @@
+{
+  "artifact_class": "rcc002.s8.track2-readonly-inventory-summary",
+  "artifact_date": "2026-08-04",
+  "authorization": {
+    "proposal_id": "RCC-002-S8-TRACK2-IAP-001",
+    "proposal_sha256": "bd46f00fe65bbeb0dc57d0c88c8ca6a10f2095ef9eeeab0ee69adb6b7b9cfb65",
+    "review_sha256": "f1a259862d7c914162ed346b929826047d4e5266643cff796f4c92e79ba83c2b",
+    "verdict": "APPROVE"
+  },
+  "inspection_boundaries": {
+    "authorized_roots": [
+      "rcc002/s8/",
+      "tests/rcc002/s8/"
+    ],
+    "builder_access_authorized": false,
+    "commit_authorized": false,
+    "execution_authorized": false,
+    "import_authorized": false,
+    "mutation_authorized": false,
+    "push_authorized": false,
+    "staging_authorized": false
+  },
+  "inventory": {
+    "inventory_path": "docs/review/evidence/RCC_002_S8_TRACK2_READONLY_INVENTORY_2026-08-04.txt",
+    "inventory_sha256": "c5925ad40fb6609f60fb98a6afcf482b31463a3e65858e4e1c3e22adb7b9b885",
+    "ordering": "LC_ALL=C",
+    "sha256_ledger_path": "docs/review/evidence/RCC_002_S8_TRACK2_READONLY_SHA256_LEDGER_2026-08-04.txt",
+    "sha256_ledger_sha256": "47ef3f5aa9cd573cb9c7188192e2cb5755022c38e0c1d5730c1417be1e014d27",
+    "source_file_count": 21,
+    "test_file_count": 12,
+    "total_file_count": 33
+  },
+  "repository_baseline": "7ab00e06e91c35e5738698c25fa941fa50516fa0",
+  "status": "READ_ONLY_INVENTORY_CAPTURED"
+}
