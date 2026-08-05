@@ -1,0 +1,245 @@
+{
+  "artifact_class": "rcc002.s8.track2-correction-authorized-scope",
+  "artifact_date": "2026-08-04",
+  "artifact_version": 1,
+  "authorization": {
+    "activation_status": "ACTIVE",
+    "decision_id": "RCC-002-S8-TRACK2-IAD-001",
+    "decision_sha256": "f712e64c6da1eacf2d006cf2f38248f763996d78262c03fdf20de86a6517261b",
+    "proposal_id": "RCC-002-S8-TRACK2-CAP-001",
+    "proposal_review_sha256": "b26f2e037a7df59aeef405f7874350cfae014ad03082b2d15d85dad22cb35da5",
+    "proposal_sha256": "c4c93a48dfac32098d30af88b60f389a81c1fb3f6059f1327f8c02dd38218588"
+  },
+  "authorized_evidence_paths": [
+    "docs/review/evidence/RCC_002_S8_TRACK2_CORRECTION_AUTHORIZED_SCOPE_V1.json",
+    "docs/review/evidence/RCC_002_S8_TRACK2_CORRECTION_PRE_IMPLEMENTATION_LEDGER_2026-08-04.txt",
+    "docs/review/evidence/RCC_002_S8_TRACK2_CORRECTION_GATE_RESULTS_2026-08-04.txt",
+    "docs/review/evidence/RCC_002_S8_TRACK2_CORRECTION_FINAL_INVENTORY_2026-08-04.txt",
+    "docs/review/evidence/RCC_002_S8_TRACK2_CORRECTION_FINAL_SHA256_LEDGER_2026-08-04.txt",
+    "docs/review/RCC_002_S8_TRACK2_CORRECTION_IMPLEMENTATION_REPORT_2026-08-04.md"
+  ],
+  "authorized_mutation_paths": [
+    {
+      "bytes": 5232,
+      "mode": "644",
+      "path": "rcc002/s8/manifests/common.py",
+      "pre_correction_sha256": "412d08de7683b87c9c433f09e0dcbdfe4f8e1126db908a3288fd7dc42bf35fdd"
+    },
+    {
+      "bytes": 8295,
+      "mode": "644",
+      "path": "rcc002/s8/manifests/dataset.py",
+      "pre_correction_sha256": "1d9ee6b4e61002da03449abaf85f4b667f0f55badc5ddd1af5c31d18c0b26c02"
+    },
+    {
+      "bytes": 4715,
+      "mode": "644",
+      "path": "rcc002/s8/reconciliation.py",
+      "pre_correction_sha256": "08ea39d0570db5d384b7fb5254ca4c119330b54121344e5d9dac7b90c02bac23"
+    },
+    {
+      "bytes": 2639,
+      "mode": "644",
+      "path": "rcc002/s8/specification_profile.py",
+      "pre_correction_sha256": "c36d641936d64a6e4f9e75d26d93038d1f69f46e780bb3fbcf0ddcc16e548904"
+    },
+    {
+      "bytes": 7957,
+      "mode": "644",
+      "path": "rcc002/s8/views.py",
+      "pre_correction_sha256": "958f60cfab1be1a1a37266d4c2332e62ba86647f4a889b8c7e41115db5d6e87c"
+    },
+    {
+      "bytes": 19760,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_manifests.py",
+      "pre_correction_sha256": "cc155ef43301eda9b5c28be0c140a4d5f6c0cdf347d1050af260ae0529d17e46"
+    },
+    {
+      "bytes": 5495,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_reconciliation.py",
+      "pre_correction_sha256": "66af42ec4c98f47b099030747b2b7a9104e7370bcb78d21f8eb60f561819da28"
+    },
+    {
+      "bytes": 7375,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_views.py",
+      "pre_correction_sha256": "95d28f4a1fe27cecd940ef4a29e0df5ff74a39d57de52172f72ea3db6971e3f5"
+    }
+  ],
+  "controls": {
+    "commit_authorized": false,
+    "dataset_activity_authorized": false,
+    "deployment_authorized": false,
+    "protected_builder_access_authorized": false,
+    "push_authorized": false,
+    "staging_authorized": false,
+    "unrelated_refactoring_authorized": false
+  },
+  "original_candidate": {
+    "inventory_sha256": "c5925ad40fb6609f60fb98a6afcf482b31463a3e65858e4e1c3e22adb7b9b885",
+    "sha256_ledger_sha256": "47ef3f5aa9cd573cb9c7188192e2cb5755022c38e0c1d5730c1417be1e014d27",
+    "source_file_count": 21,
+    "summary_sha256": "47caaf9d74530e89d3e3d1eeda595a4f9a15e1379329dcd43169aa76e2c7311c",
+    "test_file_count": 12,
+    "total_file_count": 33
+  },
+  "protected_builder": "scripts/build_rcc002_spec_bundle.py",
+  "repository_baseline": "a6608a4ad7fa0acbd08ed8bee00211b9d14cff25",
+  "review_evidence": {
+    "inspection_report_sha256": "b6df563815d1fc077f585511f9a9e779793e9869acb9ca8830d426d1a23b1ec1"
+  },
+  "unchanged_track2_paths": [
+    {
+      "bytes": 1610,
+      "mode": "644",
+      "path": "rcc002/s8/__init__.py",
+      "required_sha256": "2a325b35a31436e1853d05e3a9d399d1e8beddd6778c4781c1b60ffcb69cd93f"
+    },
+    {
+      "bytes": 3926,
+      "mode": "644",
+      "path": "rcc002/s8/artifact_class.py",
+      "required_sha256": "be9acaa776ebe97ea1460a4168d77cea9e04f556291749b0cf097b42c7a3839a"
+    },
+    {
+      "bytes": 4724,
+      "mode": "644",
+      "path": "rcc002/s8/canonical.py",
+      "required_sha256": "0555077499e63d5be864de5e623c846cae70b55832fc6a5ece2ea513b53b56a9"
+    },
+    {
+      "bytes": 23649,
+      "mode": "644",
+      "path": "rcc002/s8/field_registry.py",
+      "required_sha256": "8f3aa92fcb71444e5a2af2269fc11bd4d6a03f87b34dcb4aab0245cef5a44207"
+    },
+    {
+      "bytes": 15777,
+      "mode": "644",
+      "path": "rcc002/s8/identity.py",
+      "required_sha256": "b104f40a0f30fd15a41af1c5234c6851b9ca95e005d6c99e97f95542f9ee5632"
+    },
+    {
+      "bytes": 708,
+      "mode": "644",
+      "path": "rcc002/s8/manifests/__init__.py",
+      "required_sha256": "7a2c8c46ea2862880fe0b8480e86ef8d08c767f47b003e0b0bbc69d0d62a4154"
+    },
+    {
+      "bytes": 3818,
+      "mode": "644",
+      "path": "rcc002/s8/manifests/reproduction.py",
+      "required_sha256": "c212598e7b0859b3e3ee490ed36619929cfa8afad2ed13d0f93d3b58be3d887a"
+    },
+    {
+      "bytes": 4919,
+      "mode": "644",
+      "path": "rcc002/s8/manifests/review.py",
+      "required_sha256": "8601132b6b7d0a936c4c2e2521471da576329ef785f582f8af180f77d1e33f26"
+    },
+    {
+      "bytes": 3950,
+      "mode": "644",
+      "path": "rcc002/s8/manifests/run.py",
+      "required_sha256": "224978e0e647ba800520ceb5982905de32841d0d20dde0b4dcd7d5d2f4c94994"
+    },
+    {
+      "bytes": 3383,
+      "mode": "644",
+      "path": "rcc002/s8/manifests/source.py",
+      "required_sha256": "6f3c2b25e8b497d8d6dc8e6b026770bce8040034c373e355427ccfb4994e03ed"
+    },
+    {
+      "bytes": 5110,
+      "mode": "644",
+      "path": "rcc002/s8/manifests/stage.py",
+      "required_sha256": "1f9ce67af52c32f08627277d21ac230e4c73abbf1ce33716675fb1717c9ba608"
+    },
+    {
+      "bytes": 5196,
+      "mode": "644",
+      "path": "rcc002/s8/projection.py",
+      "required_sha256": "26c0703f4ee480429e5aab1c64c2fcb2d3415f4e2faeb52f542596b598723b14"
+    },
+    {
+      "bytes": 5219,
+      "mode": "644",
+      "path": "rcc002/s8/publication.py",
+      "required_sha256": "328b8416628617d66dab3362ff3970717e13ce0e55c3acc505011c5616dab8da"
+    },
+    {
+      "bytes": 1753,
+      "mode": "644",
+      "path": "rcc002/s8/reason_codes.py",
+      "required_sha256": "174122a2773ec46f78754f807b2b65384d25972d7e7306db632f1ba1d5bceb6e"
+    },
+    {
+      "bytes": 4544,
+      "mode": "644",
+      "path": "rcc002/s8/states.py",
+      "required_sha256": "99b8c804609414d0d8a5edee8dca0622f2ee3737997ea4ec754ef5776e4e6661"
+    },
+    {
+      "bytes": 7583,
+      "mode": "644",
+      "path": "rcc002/s8/validation.py",
+      "required_sha256": "d7a98bd2111929c961854863261f2b019f4be6c0d845bcfec37c84fb04892de2"
+    },
+    {
+      "bytes": 0,
+      "mode": "644",
+      "path": "tests/rcc002/s8/__init__.py",
+      "required_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 3037,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_artifact_class.py",
+      "required_sha256": "fbfbf6a16cebf170992bbd277da713f22865511c4d9041598a96ff7b7d4d4eb6"
+    },
+    {
+      "bytes": 9085,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_canonical.py",
+      "required_sha256": "4a3ad835aa21aa4dd2ff722d34a3a92a6220e006b64f18993e5b5d90103332fc"
+    },
+    {
+      "bytes": 5767,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_field_registry.py",
+      "required_sha256": "f6d18216d707e8857bb4d8243e1b5b1e1bcb16eccb9019bb08e99c4efdfc922b"
+    },
+    {
+      "bytes": 10795,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_identity.py",
+      "required_sha256": "8a3aa755c621178ae07d274eddcb7eda0aab3dbaae46e9b944c1bb94d1319060"
+    },
+    {
+      "bytes": 6075,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_projection.py",
+      "required_sha256": "85f54aeccf9807cf2b803d2cf93f11fd8c7209c6f49e3bc9a610709318eec4bc"
+    },
+    {
+      "bytes": 7965,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_publication.py",
+      "required_sha256": "0766235dce20f439d5f97132653456c0b1892f2baf17b3d2ad67002382dca6a3"
+    },
+    {
+      "bytes": 3433,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_states.py",
+      "required_sha256": "2e117d06f1a976907503ef0e01ec6705cb18db3a2677d4db2639302c0d0d3bc5"
+    },
+    {
+      "bytes": 7027,
+      "mode": "644",
+      "path": "tests/rcc002/s8/test_validation.py",
+      "required_sha256": "3e20114553729555aba07631bacea2f89b13dd48aabd858754e5f267562dd0b4"
+    }
+  ]
+}
