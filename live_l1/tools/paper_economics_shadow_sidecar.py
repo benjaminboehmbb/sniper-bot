@@ -200,12 +200,21 @@ def _canonical_sha256(payload: Mapping[str, Any]) -> str:
 def parse_l1_log_line(raw_line: str, line_number: int) -> ParsedLogEvent:
     tokens = raw_line.strip().split()
     values: dict[str, str] = {}
+    event_timestamp_utc: Optional[str] = None
     for token in tokens:
         key, separator, value = token.partition("=")
-        if not separator or not key or key in values:
+        if not separator or not key:
             raise PaperEconomicsSidecarError(
                 SidecarReasonCode.LOG_LINE_MALFORMED,
-                f"line {line_number} contains a malformed or duplicate key token",
+                f"line {line_number} contains a malformed key token",
+            )
+        if key in values:
+            if key == "timestamp_utc" and event_timestamp_utc is None:
+                event_timestamp_utc = value
+                continue
+            raise PaperEconomicsSidecarError(
+                SidecarReasonCode.LOG_LINE_MALFORMED,
+                f"line {line_number} contains a duplicate key token",
             )
         values[key] = value
 
@@ -238,6 +247,8 @@ def parse_l1_log_line(raw_line: str, line_number: int) -> ParsedLogEvent:
 
     core_keys = set(required) | {"intent_id"}
     fields = {key: value for key, value in values.items() if key not in core_keys}
+    if event_timestamp_utc is not None:
+        fields["timestamp_utc"] = event_timestamp_utc
     return ParsedLogEvent(
         line_number=line_number,
         timestamp_utc=values["timestamp_utc"],
