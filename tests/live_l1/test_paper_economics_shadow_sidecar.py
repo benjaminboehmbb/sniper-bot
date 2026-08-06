@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -12,6 +13,7 @@ from live_l1.tools.paper_economics_shadow_sidecar import (
     PaperEconomicsSidecarError,
     analyze_l1_log_path,
     analyze_l1_log_text,
+    main,
     parse_l1_log_line,
 )
 
@@ -42,6 +44,52 @@ def shadow_environment() -> dict[str, str]:
 
 def log_line(*tokens: str) -> str:
     return " ".join(tokens)
+
+
+def write_original_logger_sequence(log_path: Path) -> None:
+    logger = L1Logger(str(log_path))
+    try:
+        with redirect_stdout(io.StringIO()):
+            logger.log(
+                category="L2",
+                event="market_snapshot",
+                severity="INFO",
+                system_state_id="STATE-LOGGER",
+                fields={
+                    "tick": 11,
+                    "snapshot_id": "SNAP-11",
+                    "timestamp_utc": "2026-08-06T11:00:00Z",
+                    "price": 101,
+                },
+            )
+            logger.log(
+                category="L3",
+                event="intent_fused",
+                severity="INFO",
+                system_state_id="STATE-LOGGER",
+                intent_id="INTENT-11",
+                fields={
+                    "tick": 11,
+                    "current_position": "FLAT",
+                    "intent_final": "SELL",
+                },
+            )
+            logger.log(
+                category="L5",
+                event="execution",
+                severity="INFO",
+                system_state_id="STATE-LOGGER",
+                intent_id="INTENT-11",
+                fields={
+                    "tick": 11,
+                    "action": "OPEN_SHORT",
+                    "executed": 1,
+                    "position_before": "FLAT",
+                    "position_after": "SHORT",
+                },
+            )
+    finally:
+        logger.close()
 
 
 class LogParserTests(unittest.TestCase):
@@ -191,49 +239,7 @@ class SidecarAnalysisTests(unittest.TestCase):
     def test_original_l1_logger_output_is_analyzed_end_to_end(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             log_path = Path(directory) / "l1.log"
-            logger = L1Logger(str(log_path))
-            try:
-                with redirect_stdout(io.StringIO()):
-                    logger.log(
-                        category="L2",
-                        event="market_snapshot",
-                        severity="INFO",
-                        system_state_id="STATE-LOGGER",
-                        fields={
-                            "tick": 11,
-                            "snapshot_id": "SNAP-11",
-                            "timestamp_utc": "2026-08-06T11:00:00Z",
-                            "price": 101,
-                        },
-                    )
-                    logger.log(
-                        category="L3",
-                        event="intent_fused",
-                        severity="INFO",
-                        system_state_id="STATE-LOGGER",
-                        intent_id="INTENT-11",
-                        fields={
-                            "tick": 11,
-                            "current_position": "FLAT",
-                            "intent_final": "SELL",
-                        },
-                    )
-                    logger.log(
-                        category="L5",
-                        event="execution",
-                        severity="INFO",
-                        system_state_id="STATE-LOGGER",
-                        intent_id="INTENT-11",
-                        fields={
-                            "tick": 11,
-                            "action": "OPEN_SHORT",
-                            "executed": 1,
-                            "position_before": "FLAT",
-                            "position_after": "SHORT",
-                        },
-                    )
-            finally:
-                logger.close()
+            write_original_logger_sequence(log_path)
 
             report = analyze_l1_log_path(
                 log_path,
@@ -249,6 +255,79 @@ class SidecarAnalysisTests(unittest.TestCase):
             "2026-08-06T11:00:00Z",
         )
         self.assertEqual(report.observations[0].fields["side"], "SHORT")
+
+
+class SidecarCommandTests(unittest.TestCase):
+    def test_cli_writes_repeatable_atomic_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log_path = root / "l1.log"
+            config_path = root / "pee.json"
+            first_output = root / "first-report.json"
+            second_output = root / "second-report.json"
+            write_original_logger_sequence(log_path)
+            config_path.write_text(
+                json.dumps(shadow_environment()),
+                encoding="utf-8",
+            )
+
+            with redirect_stdout(io.StringIO()):
+                first_status = main(
+                    (
+                        "--input-log",
+                        str(log_path),
+                        "--config-json",
+                        str(config_path),
+                        "--output-report",
+                        str(first_output),
+                    )
+                )
+                second_status = main(
+                    (
+                        "--input-log",
+                        str(log_path),
+                        "--config-json",
+                        str(config_path),
+                        "--output-report",
+                        str(second_output),
+                    )
+                )
+
+            first_bytes = first_output.read_bytes()
+            payload = json.loads(first_bytes)
+            self.assertEqual(first_status, 0)
+            self.assertEqual(second_status, 0)
+            self.assertEqual(first_bytes, second_output.read_bytes())
+            self.assertEqual(payload["statistics"]["observations"], 1)
+            self.assertEqual(len(payload["report_id"]), 64)
+            self.assertEqual(list(root.glob(".*.tmp")), [])
+
+    def test_cli_refuses_to_overwrite_source_log(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            log_path = root / "l1.log"
+            config_path = root / "pee.json"
+            write_original_logger_sequence(log_path)
+            original_bytes = log_path.read_bytes()
+            config_path.write_text(
+                json.dumps(shadow_environment()),
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(PaperEconomicsSidecarError):
+                with redirect_stdout(io.StringIO()):
+                    main(
+                        (
+                            "--input-log",
+                            str(log_path),
+                            "--config-json",
+                            str(config_path),
+                            "--output-report",
+                            str(log_path),
+                        )
+                    )
+
+            self.assertEqual(log_path.read_bytes(), original_bytes)
 
 
 if __name__ == "__main__":
