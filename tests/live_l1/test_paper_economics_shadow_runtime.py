@@ -243,15 +243,20 @@ class RuntimeShadowBridgeTests(unittest.TestCase):
                 .read_text(encoding="utf-8")
                 .splitlines()[-1]
             )
-            return events, state_record
+            risk_record = json.loads(
+                (root / "live_state" / "s4_risk.jsonl")
+                .read_text(encoding="utf-8")
+                .splitlines()[-1]
+            )
+            return events, state_record, risk_record
 
         with tempfile.TemporaryDirectory(prefix="pee-loop-off-") as off_root_text:
-            off_events, off_state = run_once(
+            off_events, off_state, off_risk = run_once(
                 Path(off_root_text),
                 {"PEE_MODE": "OFF"},
             )
         with tempfile.TemporaryDirectory(prefix="pee-loop-shadow-") as shadow_root_text:
-            shadow_events, shadow_state = run_once(
+            shadow_events, shadow_state, shadow_risk = run_once(
                 Path(shadow_root_text),
                 accepted_environment(),
             )
@@ -282,6 +287,17 @@ class RuntimeShadowBridgeTests(unittest.TestCase):
         self.assertEqual(
             {name: shadow_state[name] for name in state_fields},
             {name: off_state[name] for name in state_fields},
+        )
+        risk_fields = (
+            "kill_level",
+            "cooldown_until_utc",
+            "trades_6h",
+            "trades_today",
+            "last_trade_timestamp_utc",
+        )
+        self.assertEqual(
+            {name: shadow_risk[name] for name in risk_fields},
+            {name: off_risk[name] for name in risk_fields},
         )
 
         off_intents = [event for event in off_events if event.event == "intent_fused"]
