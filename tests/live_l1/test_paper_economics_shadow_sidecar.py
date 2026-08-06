@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import io
+import tempfile
 import unittest
+from contextlib import redirect_stdout
+from pathlib import Path
 
 from live_l1.core.paper_economics_shadow import load_shadow_settings
+from live_l1.logs.logger import L1Logger
 from live_l1.tools.paper_economics_shadow_sidecar import (
     PaperEconomicsSidecarError,
+    analyze_l1_log_path,
     analyze_l1_log_text,
     parse_l1_log_line,
 )
@@ -181,6 +187,68 @@ class SidecarAnalysisTests(unittest.TestCase):
             report.observations[0].fields["timestamp_utc"],
             "2026-08-06T10:00:01Z",
         )
+
+    def test_original_l1_logger_output_is_analyzed_end_to_end(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            log_path = Path(directory) / "l1.log"
+            logger = L1Logger(str(log_path))
+            try:
+                with redirect_stdout(io.StringIO()):
+                    logger.log(
+                        category="L2",
+                        event="market_snapshot",
+                        severity="INFO",
+                        system_state_id="STATE-LOGGER",
+                        fields={
+                            "tick": 11,
+                            "snapshot_id": "SNAP-11",
+                            "timestamp_utc": "2026-08-06T11:00:00Z",
+                            "price": 101,
+                        },
+                    )
+                    logger.log(
+                        category="L3",
+                        event="intent_fused",
+                        severity="INFO",
+                        system_state_id="STATE-LOGGER",
+                        intent_id="INTENT-11",
+                        fields={
+                            "tick": 11,
+                            "current_position": "FLAT",
+                            "intent_final": "SELL",
+                        },
+                    )
+                    logger.log(
+                        category="L5",
+                        event="execution",
+                        severity="INFO",
+                        system_state_id="STATE-LOGGER",
+                        intent_id="INTENT-11",
+                        fields={
+                            "tick": 11,
+                            "action": "OPEN_SHORT",
+                            "executed": 1,
+                            "position_before": "FLAT",
+                            "position_after": "SHORT",
+                        },
+                    )
+            finally:
+                logger.close()
+
+            report = analyze_l1_log_path(
+                log_path,
+                settings=self.settings,
+                source_id="original-l1-logger",
+            )
+
+        self.assertEqual(report.statistics.malformed_lines, 0)
+        self.assertEqual(report.statistics.observations, 1)
+        self.assertEqual(report.statistics.issues, 0)
+        self.assertEqual(
+            report.observations[0].fields["timestamp_utc"],
+            "2026-08-06T11:00:00Z",
+        )
+        self.assertEqual(report.observations[0].fields["side"], "SHORT")
 
 
 if __name__ == "__main__":
