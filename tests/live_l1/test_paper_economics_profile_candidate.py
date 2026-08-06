@@ -12,6 +12,11 @@ from live_l1.core.paper_economics import (
     settle_trade,
 )
 from live_l1.core.paper_economics_shadow import MODE_SHADOW
+from live_l1.state.paper_artifacts import (
+    AccountGuardReasonCode,
+    PaperAccountState,
+    evaluate_account_entry_guard,
+)
 from live_l1.tools.paper_economics_shadow_sidecar import load_settings_json
 
 
@@ -33,6 +38,18 @@ def load_candidate_config() -> PaperEconomicsConfig:
     if settings.config is None:
         raise AssertionError("candidate profile did not load a configuration")
     return settings.config
+
+
+def initial_candidate_account(config: PaperEconomicsConfig) -> PaperAccountState:
+    return PaperAccountState.initial(
+        account_id="PAPER-BTCUSDT-CANDIDATE-001",
+        quote_currency=config.quote_currency,
+        starting_equity_quote=config.starting_equity_quote,
+        utc_day="2026-08-06",
+        economics_profile_id=config.economics_profile_id,
+        economics_model_version=config.economics_model_version,
+        config_fingerprint=config.config_fingerprint,
+    )
 
 
 class PaperEconomicsProfileCandidateTests(unittest.TestCase):
@@ -172,6 +189,55 @@ class PaperEconomicsProfileCandidateTests(unittest.TestCase):
         self.assertGreater(settlement.total_fees_quote, D("0"))
         self.assertGreater(settlement.slippage_cost_quote, D("0"))
         self.assertLess(settlement.net_pnl_quote, D("0"))
+
+    def test_candidate_account_limits_block_entries_but_not_exits(self) -> None:
+        config = load_candidate_config()
+        initial = initial_candidate_account(config)
+        cases = (
+            (
+                replace(
+                    initial,
+                    realized_equity_quote=D("9900"),
+                    cumulative_net_pnl_quote=D("-100"),
+                    realized_drawdown_quote=D("100"),
+                    realized_drawdown_rate=D("0.01"),
+                    daily_net_pnl_quote=D("-100"),
+                ),
+                AccountGuardReasonCode.DAILY_LOSS_LIMIT,
+            ),
+            (
+                replace(initial, daily_fees_quote=D("25")),
+                AccountGuardReasonCode.DAILY_FEE_LIMIT,
+            ),
+            (
+                replace(
+                    initial,
+                    realized_equity_quote=D("9500"),
+                    cumulative_net_pnl_quote=D("-500"),
+                    realized_drawdown_quote=D("500"),
+                    realized_drawdown_rate=D("0.05"),
+                ),
+                AccountGuardReasonCode.REALIZED_DRAWDOWN_LIMIT,
+            ),
+        )
+
+        for account, expected_reason in cases:
+            with self.subTest(expected_reason=expected_reason):
+                decision = evaluate_account_entry_guard(account, config)
+                self.assertFalse(decision.entry_allowed)
+                self.assertTrue(decision.exit_allowed)
+                self.assertEqual(decision.reason_codes, (expected_reason,))
+
+    def test_candidate_account_below_limits_allows_entry_and_exit(self) -> None:
+        config = load_candidate_config()
+        decision = evaluate_account_entry_guard(
+            initial_candidate_account(config),
+            config,
+        )
+
+        self.assertTrue(decision.entry_allowed)
+        self.assertTrue(decision.exit_allowed)
+        self.assertEqual(decision.reason_codes, ())
 
 
 if __name__ == "__main__":

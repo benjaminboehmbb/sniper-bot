@@ -14,7 +14,11 @@ from dataclasses import dataclass
 from decimal import Context, Decimal, InvalidOperation, ROUND_HALF_EVEN
 from typing import Any, Mapping, Union
 
-from live_l1.core.paper_economics import EntryEconomicsQuote, TradeSettlement
+from live_l1.core.paper_economics import (
+    EntryEconomicsQuote,
+    PaperEconomicsConfig,
+    TradeSettlement,
+)
 
 
 ZERO = Decimal("0")
@@ -47,6 +51,13 @@ class ArtifactReasonCode:
     CONFIG_MISMATCH = "PEE_RECONCILIATION_CONFIG_MISMATCH"
     ACCOUNT_MISMATCH = "PEE_RECONCILIATION_ACCOUNT_MISMATCH"
     SEQUENCE_MISMATCH = "PEE_RECONCILIATION_SEQUENCE_MISMATCH"
+
+
+class AccountGuardReasonCode:
+    EQUITY_NON_POSITIVE = "PEE_ACCOUNT_EQUITY_NON_POSITIVE"
+    DAILY_LOSS_LIMIT = "PEE_RISK_DAILY_LOSS_LIMIT"
+    REALIZED_DRAWDOWN_LIMIT = "PEE_RISK_REALIZED_DRAWDOWN_LIMIT"
+    DAILY_FEE_LIMIT = "PEE_COST_DAILY_FEE_LIMIT"
 
 
 class PaperArtifactError(ValueError):
@@ -749,6 +760,73 @@ class PaperAccountState:
         return canonical_json_sha256(self.to_record())
 
 
+@dataclass(frozen=True)
+class AccountEntryGuardDecision:
+    entry_allowed: bool
+    exit_allowed: bool
+    reason_codes: tuple[str, ...]
+    day_start_equity_quote: Decimal
+    daily_loss_rate: Decimal
+    daily_fee_rate: Decimal
+
+
+def evaluate_account_entry_guard(
+    account: PaperAccountState,
+    config: PaperEconomicsConfig,
+) -> AccountEntryGuardDecision:
+    """Evaluate account limits without ever blocking an exit."""
+
+    if (
+        account.quote_currency != config.quote_currency
+        or account.economics_profile_id != config.economics_profile_id
+        or account.economics_model_version != config.economics_model_version
+        or account.config_fingerprint != config.config_fingerprint
+    ):
+        return AccountEntryGuardDecision(
+            entry_allowed=False,
+            exit_allowed=True,
+            reason_codes=(ArtifactReasonCode.CONFIG_MISMATCH,),
+            day_start_equity_quote=ZERO,
+            daily_loss_rate=ZERO,
+            daily_fee_rate=ZERO,
+        )
+
+    day_start_equity = _dsub(
+        account.realized_equity_quote,
+        account.daily_net_pnl_quote,
+    )
+    if account.realized_equity_quote <= ZERO or day_start_equity <= ZERO:
+        return AccountEntryGuardDecision(
+            entry_allowed=False,
+            exit_allowed=True,
+            reason_codes=(AccountGuardReasonCode.EQUITY_NON_POSITIVE,),
+            day_start_equity_quote=day_start_equity,
+            daily_loss_rate=ZERO,
+            daily_fee_rate=ZERO,
+        )
+
+    daily_loss = max(ZERO, -account.daily_net_pnl_quote)
+    daily_loss_rate = _ddiv(daily_loss, day_start_equity)
+    daily_fee_rate = _ddiv(account.daily_fees_quote, day_start_equity)
+    reasons: list[str] = []
+
+    if daily_loss_rate >= config.max_daily_loss_rate:
+        reasons.append(AccountGuardReasonCode.DAILY_LOSS_LIMIT)
+    if account.realized_drawdown_rate >= config.max_realized_drawdown_rate:
+        reasons.append(AccountGuardReasonCode.REALIZED_DRAWDOWN_LIMIT)
+    if daily_fee_rate >= config.max_daily_fee_rate:
+        reasons.append(AccountGuardReasonCode.DAILY_FEE_LIMIT)
+
+    return AccountEntryGuardDecision(
+        entry_allowed=not reasons,
+        exit_allowed=True,
+        reason_codes=tuple(reasons),
+        day_start_equity_quote=day_start_equity,
+        daily_loss_rate=daily_loss_rate,
+        daily_fee_rate=daily_fee_rate,
+    )
+
+
 def apply_trade_to_account(
     account: PaperAccountState,
     trade: TradeRecordV2,
@@ -863,6 +941,8 @@ def parse_trade_artifact(record: Mapping[str, Any]) -> TradeArtifact:
 
 
 __all__ = [
+    "AccountEntryGuardDecision",
+    "AccountGuardReasonCode",
     "ARTIFACT_PAPER_ACCOUNT",
     "ARTIFACT_S2_POSITION",
     "ARTIFACT_SETTLEMENT",
@@ -877,6 +957,7 @@ __all__ = [
     "apply_trade_to_account",
     "artifact_schema_version",
     "canonical_json_sha256",
+    "evaluate_account_entry_guard",
     "parse_position_artifact",
     "parse_trade_artifact",
 ]

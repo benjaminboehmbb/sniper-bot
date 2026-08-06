@@ -21,6 +21,7 @@ from live_l1.state.paper_account import (
     SimulatedSettlementInterruption,
 )
 from live_l1.state.paper_artifacts import (
+    AccountGuardReasonCode,
     ArtifactReasonCode,
     LegacyArtifact,
     PaperAccountState,
@@ -28,6 +29,7 @@ from live_l1.state.paper_artifacts import (
     PositionStateS2V2,
     TradeRecordV2,
     apply_trade_to_account,
+    evaluate_account_entry_guard,
     parse_position_artifact,
     parse_trade_artifact,
 )
@@ -122,6 +124,46 @@ def make_trade(
         entry_quote=decision.quote,
         settlement=settlement,
     )
+
+
+class AccountEntryGuardTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.config = make_config()
+        self.account = make_initial_account(self.config)
+
+    def test_config_mismatch_fails_closed_for_entry_only(self) -> None:
+        changed_config = replace(
+            self.config,
+            max_daily_loss_rate=D("0.04"),
+        )
+
+        decision = evaluate_account_entry_guard(self.account, changed_config)
+
+        self.assertFalse(decision.entry_allowed)
+        self.assertTrue(decision.exit_allowed)
+        self.assertEqual(
+            decision.reason_codes,
+            (ArtifactReasonCode.CONFIG_MISMATCH,),
+        )
+
+    def test_non_positive_equity_fails_closed_for_entry_only(self) -> None:
+        depleted = replace(
+            self.account,
+            realized_equity_quote=D("0"),
+            cumulative_net_pnl_quote=D("-10000"),
+            realized_drawdown_quote=D("10000"),
+            realized_drawdown_rate=D("1"),
+            daily_net_pnl_quote=D("-10000"),
+        )
+
+        decision = evaluate_account_entry_guard(depleted, self.config)
+
+        self.assertFalse(decision.entry_allowed)
+        self.assertTrue(decision.exit_allowed)
+        self.assertEqual(
+            decision.reason_codes,
+            (AccountGuardReasonCode.EQUITY_NON_POSITIVE,),
+        )
 
 
 class ArtifactSchemaTests(unittest.TestCase):
