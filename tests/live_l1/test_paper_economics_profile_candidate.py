@@ -208,17 +208,26 @@ class PaperEconomicsProfileCandidateTests(unittest.TestCase):
             baseline_settlement.net_pnl_quote,
         )
 
-    def test_candidate_rejects_tiny_equity_below_quantity_step(self) -> None:
-        decision = authorize_entry(
-            side="LONG",
-            realized_equity_quote=D("1"),
-            reference_entry_price=D("100000"),
-            reference_stop_price=D("98500"),
-            config=load_candidate_config(),
+    def test_candidate_rejects_each_minimum_size_boundary(self) -> None:
+        config = load_candidate_config()
+        cases = (
+            (D("1"), ReasonCode.QUANTITY_ZERO),
+            (D("5"), ReasonCode.QUANTITY_BELOW_MIN),
+            (D("50"), ReasonCode.NOTIONAL_BELOW_MIN),
         )
 
-        self.assertFalse(decision.allowed)
-        self.assertEqual(decision.reason_code, ReasonCode.QUANTITY_ZERO)
+        for equity, expected_reason in cases:
+            with self.subTest(equity=equity, expected_reason=expected_reason):
+                decision = authorize_entry(
+                    side="LONG",
+                    realized_equity_quote=equity,
+                    reference_entry_price=D("100000"),
+                    reference_stop_price=D("98500"),
+                    config=config,
+                )
+
+                self.assertFalse(decision.allowed)
+                self.assertEqual(decision.reason_code, expected_reason)
 
     def test_candidate_flat_exit_is_negative_after_costs(self) -> None:
         config = load_candidate_config()
