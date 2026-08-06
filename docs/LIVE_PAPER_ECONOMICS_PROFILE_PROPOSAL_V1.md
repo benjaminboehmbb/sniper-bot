@@ -1,10 +1,10 @@
 # LIVE PAPER ECONOMICS PROFILE PROPOSAL V1
 
-**Profil-ID:** `PEE_V1_PAPER_CONSERVATIVE_CANDIDATE_001`  
-**Status:** KANDIDAT — fachliche Freigabe ausstehend  
-**Betriebsmodus:** ausschließlich `SHADOW`  
-**Live-/Produktionsfreigabe:** NEIN  
-**Ziel:** konservative, reproduzierbare Paper-Baseline für BTCUSDT
+- **Profil-ID:** `PEE_V1_PAPER_CONSERVATIVE_CANDIDATE_001`
+- **Status:** ANGENOMMEN am 2026-08-06 als fachliche SHADOW-Paper-Baseline
+- **Betriebsmodus:** ausschließlich `SHADOW`
+- **Live-/Produktionsfreigabe:** NEIN
+- **Ziel:** konservative, reproduzierbare Paper-Baseline für BTCUSDT
 
 **Kanonischer Konfigurations-Fingerprint:**
 `ac4cc746b57c2b802cf765c9c102f9921858c4d3cde2040f452b69ba1e6b14e1`
@@ -97,5 +97,11 @@ Dieser Vorschlag darf nach bestandener technischer Prüfung entweder:
 - mit exakt benannten Zahlen korrigiert oder
 - vollständig verworfen werden.
 
-Ohne ausdrückliche Annahme bleibt `PEE_MODE=SHADOW`. Das Profil autorisiert
-weder IU-4-Enforcement noch Live-Trading.
+Das Profil wurde am 2026-08-06 nach bestandener technischer Prüfung als
+SHADOW-Paper-Baseline angenommen. `PEE_MODE` bleibt `SHADOW`. Diese Annahme
+autorisiert weder IU-4-Enforcement noch Live-Trading.
+
+Profil-ID und Fingerprint bleiben unverändert, damit die angenommene Identität
+exakt der technisch geprüften Identität entspricht. Der Bestandteil
+`CANDIDATE_001` ist damit ein unveränderlicher Identifier und kein offener
+Freigabestatus mehr.

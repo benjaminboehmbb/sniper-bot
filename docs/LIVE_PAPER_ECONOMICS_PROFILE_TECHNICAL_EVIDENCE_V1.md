@@ -6,6 +6,7 @@
 - **Profil:** `PEE_V1_PAPER_CONSERVATIVE_CANDIDATE_001`
 - **Fingerprint:** `ac4cc746b57c2b802cf765c9c102f9921858c4d3cde2040f452b69ba1e6b14e1`
 - **Ergebnis:** technische Pflichtprüfungen 1–7 bestanden; Punkt 8 bleibt vor einer Exchange- oder Live-Nutzung offen.
+- **Fachliche Entscheidung:** am 2026-08-06 als SHADOW-Paper-Baseline angenommen
 
 ## Ausgeführte Prüfungen
 
@@ -40,7 +41,7 @@ Ergebnis: 70 Tests, OK
 
 ## Aussagegrenzen
 
-- Das Profil bleibt ein fachlich noch nicht angenommenes `SHADOW`-Profil.
+- Das Profil ist fachlich ausschließlich als `SHADOW`-Paper-Baseline angenommen.
 - Der aktive L1-Loop wurde nicht verändert.
 - Es gab keine Exchange-Anbindung, keine echten Orders und keine Live-Freigabe.
-- Die technische Prüfung ersetzt weder die menschliche Profilentscheidung noch die getrennte Freigabe späterer Integrationsstufen.
+- Die Annahme ersetzt keine getrennte Freigabe späterer Integrationsstufen.
