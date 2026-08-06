@@ -1,8 +1,7 @@
 """RCC-002 S8_EXPORT: consumer view projection, manifest, and publication
 package.
 
-Authorized implementation boundary (S8 Implementation Readiness Review
-RR-004 SS9): exact projections for the six registered views; S7 row/key/
+Implementation boundary: exact projections for the six registered views; S7 row/key/
 order/value/count reconciliation; stage- and prefix-based leakage
 rejection; canonicalization and deterministic identity builders; Source,
 Stage, Run, Dataset, Review, and Reproduction Manifest builders;
