@@ -26,6 +26,12 @@ from live_l1.core.intent import compute_1m_intent_raw
 from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
 from live_l1.core.execution import apply_paper_execution
+from live_l1.core.paper_economics_shadow_runtime import (
+    build_runtime_shadow_log_fields,
+    load_runtime_shadow_settings,
+    observe_runtime_shadow,
+    shadow_startup_log_fields,
+)
 from live_l1.tools.recover_runtime_state import recover_runtime_state
 from live_l1.tools.reconcile_runtime_state import run_reconciliation
 from live_l1.tools.startup_validator import validate_startup
@@ -219,6 +225,51 @@ def _warnings_to_text(warnings: list[str]) -> str:
     if not warnings:
         return ""
     return ",".join(str(w).strip() for w in warnings if str(w).strip() != "")
+
+
+def _observe_pee_shadow_fail_safe(**kwargs):
+    try:
+        return observe_runtime_shadow(**kwargs)
+    except Exception:
+        return None
+
+
+def _log_pee_shadow_fail_safe(
+    *,
+    log,
+    attempt,
+    settings,
+    system_state_id: str,
+    intent_id: str,
+    legacy_action: str,
+    legacy_executed: bool,
+    legacy_position_before: str,
+    legacy_position_after: str,
+) -> None:
+    if attempt is None:
+        return
+    try:
+        fields = build_runtime_shadow_log_fields(
+            attempt,
+            settings=settings,
+            legacy_action=legacy_action,
+            legacy_executed=legacy_executed,
+            legacy_position_before=legacy_position_before,
+            legacy_position_after=legacy_position_after,
+        )
+        if fields is not None:
+            log.log(
+                category="PEE",
+                event="paper_economics_shadow",
+                severity="INFO",
+                system_state_id=system_state_id,
+                intent_id=intent_id,
+                fields=fields,
+            )
+    except Exception:
+        # SHADOW observability must never change legacy execution.
+        return
+
 
 def _safe_float_lifecycle(value: object, default: float = 0.0) -> float:
     if value is None:
@@ -741,6 +792,7 @@ def run_l1_loop_step1234567(
 
     cfg = load_runtime_config(repo_root)
     log = L1Logger(cfg.log_path)
+    pee_shadow_settings = load_runtime_shadow_settings(os.environ)
 
     startup_validation = validate_startup(
         repo_root=Path(cfg.repo_root),
@@ -836,6 +888,7 @@ def run_l1_loop_step1234567(
                 "startup_recovery_applied": int(startup_recovery.get("applied", 0)),
                 "startup_recovery_reason": str(startup_recovery.get("reason", "")),
                 "startup_recovery_position": str(startup_recovery.get("position", "")),
+                **shadow_startup_log_fields(pee_shadow_settings),
             },
         )
 
@@ -997,6 +1050,17 @@ def run_l1_loop_step1234567(
                 regime=regime,
             )
 
+            pee_shadow_attempt = _observe_pee_shadow_fail_safe(
+                settings=pee_shadow_settings,
+                current_position=current_position,
+                intent_final=fused.intent_final,
+                reference_entry_price=str(features.price),
+                tick_id=tick.tick_id,
+                snapshot_id=str(features.snapshot_id),
+                timestamp_utc=str(features.timestamp_utc),
+                intent_id=str(fused.intent_id),
+            )
+
             exec_decision = apply_paper_execution(
                 state=state,
                 intent_final=fused.intent_final,
@@ -1039,6 +1103,18 @@ def run_l1_loop_step1234567(
                     "entry_timestamp_utc": exec_decision.entry_timestamp_utc,
                     "reason": exec_decision.reason,
                 },
+            )
+
+            _log_pee_shadow_fail_safe(
+                log=log,
+                attempt=pee_shadow_attempt,
+                settings=pee_shadow_settings,
+                system_state_id=state.system_state_id,
+                intent_id=fused.intent_id,
+                legacy_action=exec_decision.action,
+                legacy_executed=exec_decision.executed,
+                legacy_position_before=exec_decision.position_before,
+                legacy_position_after=exec_decision.position_after,
             )
 
             guard_reason, s4_kill_level = evaluate_guards(cfg=cfg, state=state)
