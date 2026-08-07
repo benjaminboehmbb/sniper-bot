@@ -1,4 +1,4 @@
-# LIVE PAPER ECONOMICS — IU-3 WORKSTATION OFFSET/RESTART EVIDENCE V1
+# LIVE PAPER ECONOMICS — IU-3 WORKSTATION OFFSET/RESTART/FULL-HISTORY EVIDENCE V1
 
 - **Prüfdatum:** 2026-08-07
 - **Branch:** `codex/pee-wip-recovery-2026-08-06`
@@ -85,13 +85,48 @@ fortgesetzt.
 - **Sidecar-Report-SHA-256:**
   `3ee1ce77b5e8951dbb9763df50da7536606fcf19e0ec030edab0d006fbe4e5e0`
 
+## Vollständiger Historienlauf
+
+Der abschließende Einzelprozess deckt alle `1042658` gültigen Datensätze in
+einem zusammenhängenden L1-SHADOW-Lauf ab.
+
+| Kriterium | Ergebnis |
+|---|---|
+| Source-ID | `PEE-IU3-WS-FULL-HISTORY-1042658-20260807` |
+| Git-Commit | `ab060bd50670786a228b69418b96c9a580313d9a` |
+| Laufzeit (UTC) | 2026-08-07 08:16:47 – 11:48:00 |
+| Return Code | 0 |
+| Zeitraum der Marktdaten (UTC) | 2017-08-17 04:00 – 2019-08-15 01:59 |
+| Gescannte / gültige / ungültige Zeilen | 1.048.200 / 1.042.658 / 5.542 |
+| Execution-Events / Transitions | 1.042.658 / 222 |
+| OPEN_LONG / CLOSE_LONG | 111 / 111 |
+| L1-Logzeilen | 7.299.006 |
+| Sidecar Observations / Issues | 397 / 0 |
+| Aktive IDs = Sidecar-IDs | JA |
+
+- **Market-SHA-256:**
+  `902d10b1d7678777bd23140ff459b9c5eaa9ef7d968bab7ab6e09926bfbfba8a`
+- **L1-/Stdout-SHA-256:**
+  `2fb2a5c5dd62a697dbb35247916aad86b2fe61243b17d9b084bbaa0d94d45ccd`
+- **S2-SHA-256:**
+  `9561db973fba378760a41972cb2ba21fd9629dfccdeb019d00468dec0a1d304c`
+- **S4-SHA-256:**
+  `76313f0a6f6bc3db0a98ebf3e3c1c689f36849d735cf7e35ade9a028247b1ad7`
+- **Sidecar Report-ID:**
+  `99b89db1ac43c866d229f0e877fd4e7a61b556818a3ba91116fc30a55798112b`
+- **Sidecar-Report-SHA-256:**
+  `cffa36672c049c4d5a9faa654963416c6800d6070bf3c894e7c82dbf424e327b`
+
+Alle sechs Ausgabedateien wurden nach Laufende unabhängig erneut gehasht und
+stimmten exakt mit den Manifestwerten überein.
+
 ## Ablage und Aufräumregel
 
 Die Workstation-Manifeste und Sidecar-Reports bleiben unter
 `/home/workstation/runs/sniper-bot/` erhalten. Große Rohartefakte wie der
 normalisierte Marktslice, L1-/Stdout-Logs sowie S2-/S4-Zeilen wurden nach der
 SHA-256-Dokumentation entfernt, weil sie vollständig reproduzierbar sind. Alle
-sechs Manifeste und Sidecar-Reports blieben erhalten. Der gebundene
+sieben Manifeste und Sidecar-Reports blieben erhalten. Der gebundene
 Quelldatensatz bleibt im separaten Dataset-Verzeichnis erhalten.
 
 Das Workstation-Hauptprojekt wurde auf den geprüften Restart-Commit
@@ -103,8 +138,11 @@ Kampagnen-Starter wurden anschließend entfernt.
 
 - **Offset-Gate:** PASS
 - **Restart-/Resume-Gate:** PASS
-- **Gesamtumfang:** 1.200.000 Execution-Events
-- **Sidecar Issues:** 0 in allen sechs Läufen
+- **Full-History-Gate:** PASS
+- **Vollständige historische Abdeckung:** 1.042.658 gültige Datensätze
+- **Kumuliertes Validierungsvolumen:** 2.242.658 Execution-Events einschließlich
+  überlappender Restart- und Offset-Prüfungen
+- **Sidecar Issues:** 0 in allen sieben Läufen
 - Die Ergebnisse autorisieren ausschließlich IU-3 SHADOW.
 - Es gibt kein IU-4-Enforcement, keine Exchange-Anbindung und keine echten
   Orders.
