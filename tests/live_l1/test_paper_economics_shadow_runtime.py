@@ -359,6 +359,72 @@ class RuntimeShadowBridgeTests(unittest.TestCase):
             EXPECTED_FINGERPRINT,
         )
 
+    def test_restart_uses_new_system_state_id_and_resumes_next_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="pee-loop-restart-") as root_text:
+            root = Path(root_text)
+            (root / "data").mkdir()
+            (root / "seeds" / "5m").mkdir(parents=True)
+            (root / "live_state").mkdir()
+            (root / "live_logs").mkdir()
+            (root / "data" / "market.csv").write_text(
+                "timestamp_utc,open,high,low,close,volume\n"
+                "2026-08-06T10:00:00Z,100000,100000,100000,100000,1\n"
+                "2026-08-06T10:01:00Z,100100,100100,100100,100100,1\n",
+                encoding="utf-8",
+            )
+            (root / "seeds" / "5m" / "seeds.csv").write_text(
+                "seed_id,comb_json,direction\n",
+                encoding="utf-8",
+            )
+            log_path = root / "live_logs" / "l1.log"
+            environment = {
+                "L1_LOG_PATH": str(log_path),
+                "L1_MARKET_CSV_PATH": "data/market.csv",
+                "SEEDS_5M_CSV": "seeds/5m/seeds.csv",
+                "L1_DECISION_TICK_SECONDS": "0",
+                "L1_REQUIRE_WSL": "0",
+                "L1_AUDIT_LOG_PATH": str(root / "live_logs" / "execution.jsonl"),
+                "L1_TRADE_LOG_PATH": str(root / "live_logs" / "trades.jsonl"),
+                "L1_LOSS_CLUSTER_STATE_PATH": str(
+                    root / "live_state" / "loss_cluster.json"
+                ),
+                **accepted_environment(),
+            }
+
+            with mock.patch.dict(os.environ, environment, clear=True):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    first_rc = loop.run_l1_loop_step1234567(
+                        str(root),
+                        max_ticks=1,
+                    )
+                    second_rc = loop.run_l1_loop_step1234567(
+                        str(root),
+                        max_ticks=1,
+                    )
+
+            self.assertEqual((first_rc, second_rc), (0, 0))
+            events = [
+                parse_l1_log_line(line, number)
+                for number, line in enumerate(
+                    log_path.read_text(encoding="utf-8").splitlines(),
+                    start=1,
+                )
+            ]
+            starts = [event for event in events if event.event == "system_start"]
+            markets = [event for event in events if event.event == "market_snapshot"]
+
+            self.assertEqual(len(starts), 2)
+            self.assertNotEqual(starts[0].system_state_id, starts[1].system_state_id)
+            self.assertEqual(starts[0].fields["resume_after_snapshot_id"], "")
+            self.assertEqual(
+                starts[1].fields["resume_after_snapshot_id"],
+                "CSV-00000001",
+            )
+            self.assertEqual(
+                [event.fields["snapshot_id"] for event in markets],
+                ["CSV-00000001", "CSV-00000002"],
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

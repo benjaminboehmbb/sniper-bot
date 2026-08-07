@@ -818,6 +818,7 @@ def run_l1_loop_step1234567(
 
     state = load_or_init_state(cfg.state_dir, system_state_id=system_state_id)
     validation = validate_loaded_state(state)
+    state.system_state_id = system_state_id
     startup_recovery = _apply_startup_recovery_to_state(cfg, state)
 
     if int(startup_recovery.get("hard_fail", 0)) == 1:
