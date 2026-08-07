@@ -206,6 +206,98 @@ def _execution_statistics(log_path: Path) -> dict[str, Any]:
     }
 
 
+def _restart_statistics(
+    log_path: Path,
+    *,
+    restart_after_ticks: int,
+) -> dict[str, Any]:
+    starts = []
+    stops = []
+    with log_path.open("r", encoding="utf-8") as handle:
+        for line_number, raw_line in enumerate(handle, start=1):
+            if not raw_line.strip():
+                continue
+            event = parse_l1_log_line(raw_line, line_number)
+            if event.event == "system_start":
+                starts.append(event)
+            elif event.event == "system_stop":
+                stops.append(event)
+
+    expected_resume_snapshot_id = f"CSV-{restart_after_ticks:08d}"
+    if len(starts) != 2:
+        raise RuntimeError(
+            f"restart validation requires 2 system_start events, got {len(starts)}"
+        )
+    if len(stops) != 2:
+        raise RuntimeError(
+            f"restart validation requires 2 system_stop events, got {len(stops)}"
+        )
+    system_state_ids = [event.system_state_id for event in starts]
+    if len(set(system_state_ids)) != 2:
+        raise RuntimeError("restart reused the previous system_state_id")
+    if starts[1].fields.get("resume_after_snapshot_id") != expected_resume_snapshot_id:
+        raise RuntimeError(
+            "restart resume snapshot mismatch: expected "
+            f"{expected_resume_snapshot_id}, got "
+            f"{starts[1].fields.get('resume_after_snapshot_id', '')}"
+        )
+    if starts[1].fields.get("recovery_mode") != "resume":
+        raise RuntimeError("restart did not enter recovery_mode=resume")
+    if starts[1].fields.get("startup_recovery_enabled") != "1":
+        raise RuntimeError("restart did not enable startup recovery")
+    if starts[1].fields.get("startup_recovery_applied") != "1":
+        raise RuntimeError("restart did not apply startup recovery")
+    if any(event.fields.get("reason") != "max_ticks_reached" for event in stops):
+        raise RuntimeError("restart segments did not stop at max_ticks_reached")
+
+    return {
+        "enabled": True,
+        "restart_after_ticks": restart_after_ticks,
+        "expected_resume_snapshot_id": expected_resume_snapshot_id,
+        "observed_resume_snapshot_id": starts[1].fields.get(
+            "resume_after_snapshot_id",
+            "",
+        ),
+        "system_state_ids": system_state_ids,
+        "system_state_ids_are_distinct": True,
+        "recovery_mode": starts[1].fields.get("recovery_mode", ""),
+        "startup_recovery_enabled": int(
+            starts[1].fields.get("startup_recovery_enabled", "0")
+        ),
+        "startup_recovery_applied": int(
+            starts[1].fields.get("startup_recovery_applied", "0")
+        ),
+        "startup_reconciliation_gate_enabled": True,
+        "segment_stop_reasons": [
+            event.fields.get("reason", "") for event in stops
+        ],
+    }
+
+
+def _jsonl_state_statistics(path: Path) -> dict[str, Any]:
+    records = bad_lines = 0
+    last_record: dict[str, Any] = {}
+    with path.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            if not raw_line.strip():
+                continue
+            try:
+                value = json.loads(raw_line)
+            except json.JSONDecodeError:
+                bad_lines += 1
+                continue
+            if not isinstance(value, dict):
+                bad_lines += 1
+                continue
+            records += 1
+            last_record = value
+    return {
+        "records": records,
+        "bad_lines": bad_lines,
+        "last_record": last_record,
+    }
+
+
 def _write_json_atomic(path: Path, payload: Mapping[str, Any]) -> None:
     temporary_path = path.with_name(f".{path.name}.tmp")
     encoded = json.dumps(
@@ -235,10 +327,15 @@ def run_validation(
     max_ticks: int,
     valid_row_offset: int,
     source_id: str,
+    restart_after_ticks: Optional[int] = None,
 ) -> dict[str, Any]:
     expected_hash = expected_source_sha256.strip().lower()
     if len(expected_hash) != 64:
         raise ValueError("expected_source_sha256 must contain 64 hex characters")
+    if restart_after_ticks is not None and not (
+        1 <= restart_after_ticks < max_ticks
+    ):
+        raise ValueError("restart_after_ticks must be between 1 and max_ticks - 1")
     if output_directory.exists():
         raise FileExistsError(f"output directory already exists: {output_directory}")
 
@@ -289,17 +386,48 @@ def run_validation(
             "L1_LOSS_CLUSTER_STATE_PATH": str(
                 state_directory / "loss_cluster.json"
             ),
+            "L1_S2_POSITION_PATH": str(
+                state_directory / "s2_position.jsonl"
+            ),
+            "L1_STARTUP_RECOVERY": "0",
+            "L1_STARTUP_RECONCILIATION_GATE": "0",
         }
     )
     previous_environment = os.environ.copy()
+    runtime_segments: list[dict[str, Any]] = []
     try:
         os.environ.update(environment)
         with stdout_path.open("w", encoding="utf-8") as stdout_handle:
             with contextlib.redirect_stdout(stdout_handle):
-                runtime_rc = run_l1_loop_step1234567(
-                    str(output_directory),
-                    max_ticks=max_ticks,
-                )
+                segment_ticks = [max_ticks]
+                if restart_after_ticks is not None:
+                    segment_ticks = [
+                        restart_after_ticks,
+                        max_ticks - restart_after_ticks,
+                    ]
+                runtime_rc = 0
+                for segment_index, ticks in enumerate(segment_ticks, start=1):
+                    if segment_index == 2:
+                        os.environ["L1_STARTUP_RECOVERY"] = "1"
+                        os.environ["L1_STARTUP_RECONCILIATION_GATE"] = "1"
+                    segment_rc = run_l1_loop_step1234567(
+                        str(output_directory),
+                        max_ticks=ticks,
+                    )
+                    runtime_segments.append(
+                        {
+                            "segment_index": segment_index,
+                            "max_ticks": ticks,
+                            "return_code": segment_rc,
+                            "startup_recovery": int(segment_index == 2),
+                            "startup_reconciliation_gate": int(
+                                segment_index == 2
+                            ),
+                        }
+                    )
+                    if segment_rc != 0:
+                        runtime_rc = segment_rc
+                        break
     finally:
         os.environ.clear()
         os.environ.update(previous_environment)
@@ -318,12 +446,56 @@ def run_validation(
         source_path=log_path,
     )
     execution = _execution_statistics(log_path)
+    if execution["execution_events"] != max_ticks:
+        raise RuntimeError(
+            "execution event count mismatch: expected "
+            f"{max_ticks}, got {execution['execution_events']}"
+        )
     sidecar_ids = [item.observation_id for item in sidecar_report.observations]
     if execution["integrated_observation_ids"] != sidecar_ids:
         raise RuntimeError("integrated and sidecar observation IDs differ")
     if sidecar_report.statistics.issues != 0:
         raise RuntimeError(
             f"sidecar reported {sidecar_report.statistics.issues} issues"
+        )
+
+    restart_statistics: Optional[dict[str, Any]] = None
+    if restart_after_ticks is not None:
+        restart_statistics = _restart_statistics(
+            log_path,
+            restart_after_ticks=restart_after_ticks,
+        )
+        s2_statistics = _jsonl_state_statistics(
+            state_directory / "s2_position.jsonl"
+        )
+        s4_statistics = _jsonl_state_statistics(
+            state_directory / "s4_risk.jsonl"
+        )
+        expected_final_snapshot_id = f"CSV-{max_ticks:08d}"
+        if s2_statistics["records"] != max_ticks:
+            raise RuntimeError("restart S2 record count does not equal max_ticks")
+        if s4_statistics["records"] != max_ticks:
+            raise RuntimeError("restart S4 record count does not equal max_ticks")
+        if s2_statistics["bad_lines"] != 0 or s4_statistics["bad_lines"] != 0:
+            raise RuntimeError("restart state JSONL contains malformed records")
+        if (
+            s2_statistics["last_record"].get("last_snapshot_id")
+            != expected_final_snapshot_id
+        ):
+            raise RuntimeError("restart final snapshot id does not equal max_ticks")
+        restart_statistics.update(
+            {
+                "expected_final_snapshot_id": expected_final_snapshot_id,
+                "observed_final_snapshot_id": s2_statistics["last_record"].get(
+                    "last_snapshot_id",
+                    "",
+                ),
+                "s2_records": s2_statistics["records"],
+                "s4_records": s4_statistics["records"],
+                "state_bad_lines": (
+                    s2_statistics["bad_lines"] + s4_statistics["bad_lines"]
+                ),
+            }
         )
 
     output_hashes = {
@@ -368,6 +540,7 @@ def run_validation(
         "runtime": {
             "return_code": runtime_rc,
             "max_ticks": max_ticks,
+            "segments": runtime_segments,
             **execution,
         },
         "sidecar": {
@@ -378,6 +551,8 @@ def run_validation(
         },
         "output_hashes": output_hashes,
     }
+    if restart_statistics is not None:
+        manifest["restart"] = restart_statistics
     manifest_path = output_directory / "run_manifest.json"
     _write_json_atomic(manifest_path, manifest)
     return manifest
@@ -395,6 +570,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-ticks", required=True, type=int)
     parser.add_argument("--valid-row-offset", type=int, default=0)
     parser.add_argument("--source-id", required=True)
+    parser.add_argument("--restart-after-ticks", type=int)
     return parser
 
 
@@ -409,12 +585,16 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         max_ticks=args.max_ticks,
         valid_row_offset=args.valid_row_offset,
         source_id=args.source_id,
+        restart_after_ticks=args.restart_after_ticks,
     )
     print("PEE IU-3 SHADOW VALIDATION")
     print("git_commit:", manifest["git_commit"])
     print("max_ticks:", manifest["runtime"]["max_ticks"])
     print("observations:", manifest["sidecar"]["observations"])
     print("issues:", manifest["sidecar"]["issues"])
+    if "restart" in manifest:
+        print("restart_after_ticks:", manifest["restart"]["restart_after_ticks"])
+        print("restart_gate: PASS")
     print("output_directory:", args.output_directory)
     return 0
 

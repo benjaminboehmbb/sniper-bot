@@ -110,6 +110,49 @@ class PeeShadowValidationRunnerTests(unittest.TestCase):
             self.assertTrue((output / "run_manifest.json").is_file())
             self.assertTrue((output / "live_logs" / "sidecar_report.json").is_file())
 
+    def test_four_tick_restart_validation_proves_resume_invariants(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="pee-runner-restart-") as directory:
+            root = Path(directory)
+            source = root / "source.csv"
+            output = root / "run"
+            source.write_text(
+                "timestamp_utc,open,high,low,close,volume\n"
+                "2026-08-06T00:00:00Z,100,100,100,100,1\n"
+                "2026-08-06T00:01:00Z,101,101,101,101,1\n"
+                "2026-08-06T00:02:00Z,102,102,102,102,1\n"
+                "2026-08-06T00:03:00Z,103,103,103,103,1\n",
+                encoding="utf-8",
+            )
+            source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+
+            manifest = run_validation(
+                source_csv=source,
+                expected_source_sha256=source_hash,
+                profile_json=PROFILE_PATH,
+                seed_csv=SEED_PATH,
+                output_directory=output,
+                max_ticks=4,
+                valid_row_offset=0,
+                source_id="TEST-FOUR-TICK-RESTART",
+                restart_after_ticks=2,
+            )
+
+            self.assertEqual(manifest["runtime"]["execution_events"], 4)
+            self.assertEqual(len(manifest["runtime"]["segments"]), 2)
+            self.assertEqual(manifest["sidecar"]["issues"], 0)
+            self.assertTrue(manifest["restart"]["system_state_ids_are_distinct"])
+            self.assertEqual(
+                manifest["restart"]["observed_resume_snapshot_id"],
+                "CSV-00000002",
+            )
+            self.assertEqual(
+                manifest["restart"]["observed_final_snapshot_id"],
+                "CSV-00000004",
+            )
+            self.assertEqual(manifest["restart"]["s2_records"], 4)
+            self.assertEqual(manifest["restart"]["s4_records"], 4)
+            self.assertEqual(manifest["restart"]["state_bad_lines"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
