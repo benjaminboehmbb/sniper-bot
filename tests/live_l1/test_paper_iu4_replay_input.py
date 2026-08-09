@@ -77,6 +77,33 @@ class PaperIU4ReplayInputBuilderTests(unittest.TestCase):
             )
         )
 
+    @staticmethod
+    def _execution(
+        *,
+        sequence: int,
+        state: str,
+        tick: int,
+        intent_id: str,
+        action: str,
+        executed: int,
+        reason: str,
+    ) -> str:
+        return " ".join(
+            (
+                f"timestamp_utc=2026-08-09T09:02:{sequence:02d}Z",
+                f"seq={sequence}",
+                "category=L5",
+                "event=execution",
+                "severity=INFO",
+                f"system_state_id={state}",
+                f"intent_id={intent_id}",
+                f"action={action}",
+                f"executed={executed}",
+                f"reason={reason}",
+                f"tick={tick}",
+            )
+        )
+
     def _valid_source(self) -> bytes:
         lines = (
             self._market(
@@ -184,6 +211,145 @@ class PaperIU4ReplayInputBuilderTests(unittest.TestCase):
             manifest["builder"]["price_authority"],
             "market_snapshot.reference_price_text",
         )
+
+    def test_autonomous_close_execution_overrides_only_its_joined_hold(self) -> None:
+        lines = (
+            self._market(
+                sequence=1,
+                state="STATE-A",
+                tick=1,
+                timestamp="2026-08-09T10:00:00Z",
+                price_text="100",
+            ),
+            self._intent(
+                sequence=2,
+                state="STATE-A",
+                tick=1,
+                intent="BUY",
+                intent_id="INTENT-1",
+            ),
+            self._execution(
+                sequence=3,
+                state="STATE-A",
+                tick=1,
+                intent_id="INTENT-1",
+                action="OPEN_LONG",
+                executed=1,
+                reason="BUY_FROM_FLAT",
+            ),
+            self._market(
+                sequence=4,
+                state="STATE-A",
+                tick=2,
+                timestamp="2026-08-09T10:01:00Z",
+                price_text="101",
+            ),
+            self._intent(
+                sequence=5,
+                state="STATE-A",
+                tick=2,
+                intent="HOLD",
+                intent_id="INTENT-2",
+                reason="HOLD_RAW",
+            ),
+            self._execution(
+                sequence=6,
+                state="STATE-A",
+                tick=2,
+                intent_id="INTENT-2",
+                action="NOOP",
+                executed=0,
+                reason="HOLD_NO_EXECUTION",
+            ),
+            self._market(
+                sequence=7,
+                state="STATE-A",
+                tick=3,
+                timestamp="2026-08-09T10:02:00Z",
+                price_text="102",
+            ),
+            self._intent(
+                sequence=8,
+                state="STATE-A",
+                tick=3,
+                intent="HOLD",
+                intent_id="INTENT-3",
+                reason="HOLD_RAW",
+            ),
+            self._execution(
+                sequence=9,
+                state="STATE-A",
+                tick=3,
+                intent_id="INTENT-3",
+                action="CLOSE_LONG",
+                executed=1,
+                reason="LONG_TIME_STOP_HIT",
+            ),
+        )
+        self.source.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        result = self._build()
+        replay = load_iu4_replay_jsonl(self.output)
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.execution_event_count, 3)
+        self.assertEqual(result.executed_exit_event_count, 1)
+        self.assertEqual(result.autonomous_exit_event_count, 1)
+        self.assertEqual(
+            [step.intent_final for step in replay.steps],
+            ["BUY", "HOLD", "SELL"],
+        )
+        self.assertEqual(replay.steps[1].source_event_kind, "INTENT")
+        autonomous = replay.steps[2]
+        self.assertEqual(autonomous.schema_version, 2)
+        self.assertEqual(
+            autonomous.source_event_kind,
+            "AUTONOMOUS_EXIT_EXECUTION",
+        )
+        self.assertEqual(autonomous.source_intent_final, "HOLD")
+        self.assertEqual(autonomous.source_execution_action, "CLOSE_LONG")
+        self.assertEqual(autonomous.source_execution_sequence, 9)
+        self.assertEqual(autonomous.intent_reason_code, "LONG_TIME_STOP_HIT")
+        self.assertIsNone(autonomous.reference_stop_price)
+        self.assertEqual(autonomous.trade_id, "")
+        self.assertEqual(manifest["schema_version"], 2)
+        self.assertEqual(manifest["source"]["autonomous_exit_event_count"], 1)
+
+    def test_mismatched_autonomous_execution_fails_closed(self) -> None:
+        lines = (
+            self._market(
+                sequence=1,
+                state="STATE-A",
+                tick=1,
+                timestamp="2026-08-09T10:00:00Z",
+                price_text="100",
+            ),
+            self._intent(
+                sequence=2,
+                state="STATE-A",
+                tick=1,
+                intent="HOLD",
+                intent_id="INTENT-1",
+            ),
+            self._execution(
+                sequence=3,
+                state="STATE-A",
+                tick=1,
+                intent_id="FOREIGN-INTENT",
+                action="CLOSE_LONG",
+                executed=1,
+                reason="LONG_TIME_STOP_HIT",
+            ),
+        )
+        self.source.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        with self.assertRaises(IU4ReplayInputBuilderError) as caught:
+            self._build()
+        self.assertEqual(
+            caught.exception.reason_code,
+            IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
+        )
+        self.assertFalse(self.output.exists())
 
     def test_identical_build_is_idempotent_without_rewrite(self) -> None:
         self.source.write_bytes(self._valid_source())

@@ -324,6 +324,12 @@ def run_iu4_replay_pipeline_smoke(
             "committed_step_count": validation.get("committed_step_count"),
             "noop_step_count": validation.get("noop_step_count"),
             "rejected_step_count": validation.get("rejected_step_count"),
+            "autonomous_exit_step_count": validation.get(
+                "autonomous_exit_step_count"
+            ),
+            "autonomous_exit_committed_count": validation.get(
+                "autonomous_exit_committed_count"
+            ),
             "simulated_transaction_count": validation.get("simulated_transaction_count"),
             "sandbox_final_state_fingerprint": validation.get(
                 "sandbox_final_state_fingerprint"

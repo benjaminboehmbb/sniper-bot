@@ -172,12 +172,20 @@ def load_iu4_replay_jsonl(path: str | Path) -> IU4ReplayInputV1:
     )
 
 
-def _outcome_record(index: int, outcome: IU4AdapterResultV1) -> dict[str, Any]:
+def _outcome_record(
+    index: int,
+    outcome: IU4AdapterResultV1,
+    step: IU4ShadowIntentStepV1,
+) -> dict[str, Any]:
     state = outcome.state
     position = state.position
     return {
         "index": index,
         "source_intent_id": outcome.source_intent_id,
+        "source_event_kind": step.source_event_kind,
+        "source_intent_final": step.source_intent_final,
+        "source_execution_action": step.source_execution_action,
+        "source_execution_sequence": step.source_execution_sequence,
         "request_id": outcome.request_id,
         "status": outcome.status,
         "action": outcome.action,
@@ -208,6 +216,11 @@ def _evidence_record(
     replay_id: str,
     generated_at_utc: str,
 ) -> dict[str, Any]:
+    autonomous_pairs = tuple(
+        (step, outcome)
+        for step, outcome in zip(replay.steps, report.outcomes, strict=True)
+        if step.source_event_kind == "AUTONOMOUS_EXIT_EXECUTION"
+    )
     base = {
         "artifact_type": "PEE_IU4_SHADOW_REPLAY_EVIDENCE",
         "schema_version": 1,
@@ -231,11 +244,17 @@ def _evidence_record(
             "committed_step_count": report.committed_step_count,
             "noop_step_count": report.noop_step_count,
             "rejected_step_count": report.rejected_step_count,
+            "autonomous_exit_step_count": len(autonomous_pairs),
+            "autonomous_exit_committed_count": sum(
+                outcome.status == "COMMITTED"
+                and outcome.action == step.source_execution_action
+                for step, outcome in autonomous_pairs
+            ),
             "source_unchanged": report.source_unchanged,
             "sandbox_consistent": report.sandbox_consistent,
         },
         "outcomes": [
-            _outcome_record(index, outcome)
+            _outcome_record(index, outcome, replay.steps[index - 1])
             for index, outcome in enumerate(report.outcomes, start=1)
         ],
     }

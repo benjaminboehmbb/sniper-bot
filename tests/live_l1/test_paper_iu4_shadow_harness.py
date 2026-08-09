@@ -203,6 +203,63 @@ class PaperIU4ShadowDryRunHarnessTests(unittest.TestCase):
         self.assertEqual(report.outcomes[-1].state.account.closed_trade_count, 1)
         self.assertEqual(self.coordinator.load_state().position.position, "FLAT")
 
+    def test_proven_autonomous_exit_closes_only_matching_open_position(self) -> None:
+        autonomous_close = IU4ShadowIntentStepV1(
+            schema_version=2,
+            source_intent_id="INTENT-2",
+            intent_final="SELL",
+            intent_reason_code="LONG_TIME_STOP_HIT",
+            target_system_state_id="SYSTEM-2",
+            timestamp_utc="2026-08-09T11:00:00Z",
+            tick_id=160,
+            reference_price=D("110"),
+            reference_stop_price=None,
+            trade_id="",
+            source_event_kind="AUTONOMOUS_EXIT_EXECUTION",
+            source_intent_final="HOLD",
+            source_execution_action="CLOSE_LONG",
+            source_execution_sequence=42,
+        )
+        report = PaperIU4ShadowDryRunHarness(
+            self.coordinator,
+            self._shadow_decision(),
+        ).run((self._step(), autonomous_close))
+
+        self.assertEqual(
+            tuple(outcome.action for outcome in report.outcomes),
+            ("OPEN_LONG", "CLOSE_LONG"),
+        )
+        self.assertEqual(report.outcomes[-1].state.position.position, "FLAT")
+
+    def test_autonomous_close_can_never_open_or_reverse_from_flat(self) -> None:
+        autonomous_close = IU4ShadowIntentStepV1(
+            schema_version=2,
+            source_intent_id="INTENT-EXIT",
+            intent_final="SELL",
+            intent_reason_code="LONG_TIME_STOP_HIT",
+            target_system_state_id="SYSTEM-2",
+            timestamp_utc="2026-08-09T11:00:00Z",
+            tick_id=160,
+            reference_price=D("110"),
+            reference_stop_price=None,
+            trade_id="",
+            source_event_kind="AUTONOMOUS_EXIT_EXECUTION",
+            source_intent_final="HOLD",
+            source_execution_action="CLOSE_LONG",
+            source_execution_sequence=42,
+        )
+
+        with self.assertRaises(IU4ShadowHarnessError) as caught:
+            PaperIU4ShadowDryRunHarness(
+                self.coordinator,
+                self._shadow_decision(),
+            ).run((autonomous_close,))
+        self.assertEqual(
+            caught.exception.reason_code,
+            IU4ShadowHarnessReasonCode.STEP_INVALID,
+        )
+        self.assertEqual(self.coordinator.load_state().position.position, "FLAT")
+
     def test_repeated_run_is_deterministic(self) -> None:
         harness = PaperIU4ShadowDryRunHarness(
             self.coordinator,

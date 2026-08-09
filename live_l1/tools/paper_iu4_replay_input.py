@@ -10,7 +10,11 @@ from decimal import Context, Decimal, InvalidOperation, ROUND_HALF_EVEN
 from pathlib import Path
 from typing import Any
 
-from live_l1.core.paper_iu4_shadow_harness import IU4ShadowIntentStepV1
+from live_l1.core.paper_iu4_shadow_harness import (
+    IU4ShadowIntentStepV1,
+    SOURCE_EVENT_AUTONOMOUS_EXIT,
+    SOURCE_EVENT_INTENT,
+)
 from live_l1.state.paper_artifacts import canonical_decimal
 from live_l1.tools.paper_economics_shadow_sidecar import (
     PaperEconomicsSidecarError,
@@ -62,6 +66,9 @@ class IU4ReplayInputBuildV1:
     parsed_event_count: int
     market_event_count: int
     intent_event_count: int
+    execution_event_count: int
+    executed_exit_event_count: int
+    autonomous_exit_event_count: int
     replay: IU4ReplayJsonlExportV1
     manifest_path: Path
     manifest_sha256: str
@@ -73,6 +80,7 @@ class IU4ReplayInputBuildV1:
 class _TickSource:
     market: ParsedLogEvent | None = None
     intent: ParsedLogEvent | None = None
+    execution: ParsedLogEvent | None = None
 
 
 def _sha256(payload: bytes) -> str:
@@ -181,6 +189,7 @@ def _step_from_pair(
     *,
     market: ParsedLogEvent,
     intent_event: ParsedLogEvent,
+    execution_event: ParsedLogEvent | None,
     replay_tick: int,
     reference_stop_rate: Decimal,
 ) -> IU4ShadowIntentStepV1:
@@ -201,8 +210,8 @@ def _step_from_pair(
             IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
             f"intent_fused line {intent_event.line_number} misses intent_id",
         )
-    intent = _required_field(intent_event, "intent_final").upper()
-    if intent not in ("BUY", "SELL", "HOLD"):
+    source_intent = _required_field(intent_event, "intent_final").upper()
+    if source_intent not in ("BUY", "SELL", "HOLD"):
         raise IU4ReplayInputBuilderError(
             IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
             f"intent_fused line {intent_event.line_number} has invalid intent_final",
@@ -225,11 +234,58 @@ def _step_from_pair(
             IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
             f"market_snapshot line {market.line_number} price text is not canonical",
         )
+    intent = source_intent
+    reason_code = _required_field(intent_event, "reason_code")
+    source_event_kind = SOURCE_EVENT_INTENT
+    source_execution_action = ""
+    source_execution_sequence = 0
+    if execution_event is not None:
+        if (
+            _tick(execution_event) != source_tick
+            or execution_event.system_state_id != market.system_state_id
+            or execution_event.intent_id != source_intent_id
+        ):
+            raise IU4ReplayInputBuilderError(
+                IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
+                "joined execution provenance does not match market/intent identity",
+            )
+        executed = _required_field(execution_event, "executed")
+        action = _required_field(execution_event, "action").upper()
+        if executed not in ("0", "1"):
+            raise IU4ReplayInputBuilderError(
+                IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
+                f"execution line {execution_event.line_number} has invalid executed flag",
+            )
+        if executed == "1":
+            allowed_source_intents = {
+                "OPEN_LONG": ("BUY",),
+                "OPEN_SHORT": ("SELL",),
+                "CLOSE_LONG": ("SELL", "HOLD"),
+                "CLOSE_SHORT": ("BUY", "HOLD"),
+            }
+            if action not in allowed_source_intents or source_intent not in allowed_source_intents[action]:
+                raise IU4ReplayInputBuilderError(
+                    IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
+                    f"execution line {execution_event.line_number} conflicts with source intent",
+                )
+            if source_intent == "HOLD":
+                intent = "SELL" if action == "CLOSE_LONG" else "BUY"
+                reason_code = _required_field(execution_event, "reason")
+                source_event_kind = SOURCE_EVENT_AUTONOMOUS_EXIT
+                source_execution_action = action
+                source_execution_sequence = execution_event.sequence
+        elif action != "NOOP":
+            raise IU4ReplayInputBuilderError(
+                IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
+                f"non-executed line {execution_event.line_number} must be NOOP",
+            )
     stop = _candidate_stop_price(
         intent=intent,
         reference_price=reference_price,
         reference_stop_rate=reference_stop_rate,
     )
+    if source_event_kind == SOURCE_EVENT_AUTONOMOUS_EXIT:
+        stop = None
     trade_id = "" if stop is None else _candidate_trade_id(
         source_intent_id=source_intent_id,
         system_state_id=market.system_state_id,
@@ -240,16 +296,20 @@ def _step_from_pair(
         reference_stop_price=stop,
     )
     return IU4ShadowIntentStepV1(
-        schema_version=1,
+        schema_version=2,
         source_intent_id=source_intent_id,
         intent_final=intent,
-        intent_reason_code=_required_field(intent_event, "reason_code"),
+        intent_reason_code=reason_code,
         target_system_state_id=market.system_state_id,
         timestamp_utc=_required_field(market, "timestamp_utc"),
         tick_id=replay_tick,
         reference_price=reference_price,
         reference_stop_price=stop,
         trade_id=trade_id,
+        source_event_kind=source_event_kind,
+        source_intent_final=source_intent,
+        source_execution_action=source_execution_action,
+        source_execution_sequence=source_execution_sequence,
     )
 
 
@@ -266,9 +326,8 @@ def _parse_source(
             "L1 source log must be UTF-8",
         ) from exc
     contexts: dict[tuple[str, int], _TickSource] = {}
-    completed_keys: set[tuple[str, int]] = set()
-    steps: list[IU4ShadowIntentStepV1] = []
-    non_empty = parsed = markets = intents = 0
+    key_order: list[tuple[str, int]] = []
+    non_empty = parsed = markets = intents = executions = 0
     for line_number, line in enumerate(text.splitlines(), start=1):
         if not line.strip():
             continue
@@ -281,16 +340,14 @@ def _parse_source(
                 f"invalid L1 log line {line_number}: {exc}",
             ) from exc
         parsed += 1
-        if event.event not in ("market_snapshot", "intent_fused"):
+        if event.event not in ("market_snapshot", "intent_fused", "execution"):
             continue
         event_tick = _tick(event)
         key = (event.system_state_id, event_tick)
-        if key in completed_keys:
-            raise IU4ReplayInputBuilderError(
-                IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
-                f"duplicate completed market/intent key at line {line_number}",
-            )
-        context = contexts.setdefault(key, _TickSource())
+        if key not in contexts:
+            contexts[key] = _TickSource()
+            key_order.append(key)
+        context = contexts[key]
         if event.event == "market_snapshot":
             markets += 1
             if event.category != "L2" or context.market is not None:
@@ -299,7 +356,7 @@ def _parse_source(
                     f"duplicate or non-L2 market_snapshot at line {line_number}",
                 )
             context.market = event
-        else:
+        elif event.event == "intent_fused":
             intents += 1
             if event.category != "L3" or context.intent is not None:
                 raise IU4ReplayInputBuilderError(
@@ -307,33 +364,59 @@ def _parse_source(
                     f"duplicate or non-L3 intent_fused at line {line_number}",
                 )
             context.intent = event
-        if context.market is not None and context.intent is not None:
-            steps.append(
-                _step_from_pair(
-                    market=context.market,
-                    intent_event=context.intent,
-                    replay_tick=len(steps) + 1,
-                    reference_stop_rate=reference_stop_rate,
+        else:
+            executions += 1
+            if event.category != "L5" or context.execution is not None:
+                raise IU4ReplayInputBuilderError(
+                    IU4ReplayInputBuilderReasonCode.EVENT_INVALID,
+                    f"duplicate or non-L5 execution at line {line_number}",
                 )
-            )
-            completed_keys.add(key)
-            contexts.pop(key)
-    if contexts:
-        first_key = next(iter(contexts))
+            context.execution = event
+    incomplete = [
+        key
+        for key in key_order
+        if contexts[key].market is None or contexts[key].intent is None
+    ]
+    if incomplete:
+        first_key = incomplete[0]
         raise IU4ReplayInputBuilderError(
             IU4ReplayInputBuilderReasonCode.EVENT_MISSING,
             f"unpaired market/intent event for system_state_id={first_key[0]} tick={first_key[1]}",
         )
-    if not steps:
+    if not key_order:
         raise IU4ReplayInputBuilderError(
             IU4ReplayInputBuilderReasonCode.EVENT_MISSING,
             "source log contains no complete market/intent pairs",
         )
-    return tuple(steps), {
+    steps = tuple(
+        _step_from_pair(
+            market=contexts[key].market,  # type: ignore[arg-type]
+            intent_event=contexts[key].intent,  # type: ignore[arg-type]
+            execution_event=contexts[key].execution,
+            replay_tick=index,
+            reference_stop_rate=reference_stop_rate,
+        )
+        for index, key in enumerate(key_order, start=1)
+    )
+    executed_exits = sum(
+        1
+        for context in contexts.values()
+        if context.execution is not None
+        and context.execution.fields.get("executed") == "1"
+        and context.execution.fields.get("action") in ("CLOSE_LONG", "CLOSE_SHORT")
+    )
+    autonomous_exits = sum(
+        step.source_event_kind == SOURCE_EVENT_AUTONOMOUS_EXIT
+        for step in steps
+    )
+    return steps, {
         "source_non_empty_lines": non_empty,
         "parsed_event_count": parsed,
         "market_event_count": markets,
         "intent_event_count": intents,
+        "execution_event_count": executions,
+        "executed_exit_event_count": executed_exits,
+        "autonomous_exit_event_count": autonomous_exits,
     }
 
 
@@ -396,7 +479,7 @@ def build_iu4_replay_input_from_l1_log(
         raise _output_error(exc) from exc
     manifest_base: dict[str, Any] = {
         "artifact_type": "PEE_IU4_REPLAY_INPUT_MANIFEST",
-        "schema_version": 1,
+        "schema_version": 2,
         "source": {
             "logical_name": source.name,
             "sha256": source_hash,
@@ -407,6 +490,10 @@ def build_iu4_replay_input_from_l1_log(
             "reference_stop_rate": canonical_decimal(stop_rate),
             "tick_policy": "STRICT_SEQUENTIAL_FROM_ONE",
             "price_authority": "market_snapshot.reference_price_text",
+            "autonomous_exit_authority": (
+                "L5.execution executed=1 action=CLOSE_LONG|CLOSE_SHORT "
+                "joined by system_state_id+tick+intent_id"
+            ),
         },
         "replay": {
             "logical_name": replay.output_path.name,
@@ -444,6 +531,9 @@ def build_iu4_replay_input_from_l1_log(
         parsed_event_count=statistics["parsed_event_count"],
         market_event_count=statistics["market_event_count"],
         intent_event_count=statistics["intent_event_count"],
+        execution_event_count=statistics["execution_event_count"],
+        executed_exit_event_count=statistics["executed_exit_event_count"],
+        autonomous_exit_event_count=statistics["autonomous_exit_event_count"],
         replay=replay,
         manifest_path=manifest,
         manifest_sha256=_sha256(manifest_payload),

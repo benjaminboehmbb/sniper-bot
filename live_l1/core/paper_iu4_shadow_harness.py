@@ -48,6 +48,10 @@ class IU4ShadowHarnessReasonCode:
     DUPLICATE_SOURCE_INTENT = "PEE_IU4_SHADOW_DUPLICATE_SOURCE_INTENT"
 
 
+SOURCE_EVENT_INTENT = "INTENT"
+SOURCE_EVENT_AUTONOMOUS_EXIT = "AUTONOMOUS_EXIT_EXECUTION"
+
+
 class IU4ShadowHarnessError(RuntimeError):
     def __init__(self, reason_code: str, message: str) -> None:
         self.reason_code = reason_code
@@ -112,16 +116,20 @@ class IU4ShadowIntentStepV1:
     reference_price: Decimal | int | str
     reference_stop_price: Decimal | int | str | None
     trade_id: str
+    source_event_kind: str = SOURCE_EVENT_INTENT
+    source_intent_final: str = ""
+    source_execution_action: str = ""
+    source_execution_sequence: int = 0
 
     def __post_init__(self) -> None:
         if (
             isinstance(self.schema_version, bool)
             or not isinstance(self.schema_version, int)
-            or self.schema_version != 1
+            or self.schema_version not in (1, 2)
         ):
             raise IU4ShadowHarnessError(
                 IU4ShadowHarnessReasonCode.STEP_INVALID,
-                "IU4ShadowIntentStepV1 requires schema_version 1",
+                "IU4ShadowIntentStepV1 requires schema_version 1 or 2",
             )
         for name in (
             "source_intent_id",
@@ -162,8 +170,77 @@ class IU4ShadowIntentStepV1:
             )
         object.__setattr__(self, "trade_id", _text(self.trade_id, "trade_id", allow_empty=True))
 
+        if self.schema_version == 1:
+            if (
+                self.source_event_kind != SOURCE_EVENT_INTENT
+                or self.source_intent_final not in ("", self.intent_final)
+                or self.source_execution_action
+                or self.source_execution_sequence != 0
+            ):
+                raise IU4ShadowHarnessError(
+                    IU4ShadowHarnessReasonCode.STEP_INVALID,
+                    "schema version 1 cannot carry source execution provenance",
+                )
+            object.__setattr__(self, "source_intent_final", self.intent_final)
+            return
+
+        source_event_kind = _text(self.source_event_kind, "source_event_kind").upper()
+        source_intent_final = _text(
+            self.source_intent_final,
+            "source_intent_final",
+        ).upper()
+        source_execution_action = _text(
+            self.source_execution_action,
+            "source_execution_action",
+            allow_empty=True,
+        ).upper()
+        source_execution_sequence = _integer(
+            self.source_execution_sequence,
+            "source_execution_sequence",
+        )
+        if source_intent_final not in ("BUY", "SELL", "HOLD"):
+            raise IU4ShadowHarnessError(
+                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                "source_intent_final must be BUY, SELL, or HOLD",
+            )
+        if source_event_kind == SOURCE_EVENT_INTENT:
+            if (
+                source_intent_final != self.intent_final
+                or source_execution_action
+                or source_execution_sequence != 0
+            ):
+                raise IU4ShadowHarnessError(
+                    IU4ShadowHarnessReasonCode.STEP_INVALID,
+                    "INTENT provenance cannot alter the fused source intent",
+                )
+        elif source_event_kind == SOURCE_EVENT_AUTONOMOUS_EXIT:
+            expected_intent = {
+                "CLOSE_LONG": "SELL",
+                "CLOSE_SHORT": "BUY",
+            }.get(source_execution_action)
+            if (
+                source_intent_final != "HOLD"
+                or expected_intent != self.intent_final
+                or source_execution_sequence < 1
+                or self.reference_stop_price is not None
+                or self.trade_id
+            ):
+                raise IU4ShadowHarnessError(
+                    IU4ShadowHarnessReasonCode.STEP_INVALID,
+                    "autonomous exit provenance must bind HOLD to one close-only execution",
+                )
+        else:
+            raise IU4ShadowHarnessError(
+                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                "source_event_kind is unsupported",
+            )
+        object.__setattr__(self, "source_event_kind", source_event_kind)
+        object.__setattr__(self, "source_intent_final", source_intent_final)
+        object.__setattr__(self, "source_execution_action", source_execution_action)
+        object.__setattr__(self, "source_execution_sequence", source_execution_sequence)
+
     def to_record(self) -> dict[str, Any]:
-        return {
+        record = {
             "schema_version": self.schema_version,
             "source_intent_id": self.source_intent_id,
             "intent_final": self.intent_final,
@@ -179,16 +256,35 @@ class IU4ShadowIntentStepV1:
             ),
             "trade_id": self.trade_id,
         }
+        if self.schema_version == 2:
+            record.update(
+                {
+                    "source_event_kind": self.source_event_kind,
+                    "source_intent_final": self.source_intent_final,
+                    "source_execution_action": self.source_execution_action,
+                    "source_execution_sequence": self.source_execution_sequence,
+                }
+            )
+        return record
 
     @classmethod
     def from_record(cls, record: Mapping[str, Any]) -> "IU4ShadowIntentStepV1":
+        schema_version = record.get("schema_version")
+        provenance_fields = {
+            "source_event_kind",
+            "source_intent_final",
+            "source_execution_action",
+            "source_execution_sequence",
+        }
         expected_fields = set(cls.__dataclass_fields__)
+        if schema_version == 1:
+            expected_fields -= provenance_fields
         if set(record) != expected_fields:
             raise IU4ShadowHarnessError(
                 IU4ShadowHarnessReasonCode.STEP_INVALID,
                 "IU4 shadow replay step fields are missing or unknown",
             )
-        return cls(**{name: record.get(name) for name in cls.__dataclass_fields__})
+        return cls(**record)
 
 
 @dataclass(frozen=True)
@@ -351,6 +447,17 @@ class PaperIU4ShadowDryRunHarness:
             )
         state = sandbox.load_state()
         position = state.position.position
+        if step.source_event_kind == SOURCE_EVENT_AUTONOMOUS_EXIT:
+            required_position = (
+                "LONG"
+                if step.source_execution_action == "CLOSE_LONG"
+                else "SHORT"
+            )
+            if position != required_position:
+                raise IU4ShadowHarnessError(
+                    IU4ShadowHarnessReasonCode.STEP_INVALID,
+                    "autonomous exit execution does not match the sandbox position",
+                )
         opens = position == "FLAT" and step.intent_final in ("BUY", "SELL")
         closes = (position == "LONG" and step.intent_final == "SELL") or (
             position == "SHORT" and step.intent_final == "BUY"
@@ -523,4 +630,6 @@ __all__ = [
     "IU4ShadowHarnessReasonCode",
     "IU4ShadowIntentStepV1",
     "PaperIU4ShadowDryRunHarness",
+    "SOURCE_EVENT_AUTONOMOUS_EXIT",
+    "SOURCE_EVENT_INTENT",
 ]

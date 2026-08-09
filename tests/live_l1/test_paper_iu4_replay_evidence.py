@@ -228,6 +228,50 @@ class PaperIU4ReplayEvidenceTests(unittest.TestCase):
         self.assertEqual(evidence["outcomes"][-1]["position"], "FLAT")
         self.assertEqual(evidence["outcomes"][-1]["last_closed_trade_id"], "TRADE-1")
 
+    def test_evidence_binds_autonomous_exit_provenance_and_commit_count(self) -> None:
+        autonomous_close = IU4ShadowIntentStepV1(
+            schema_version=2,
+            source_intent_id="INTENT-2",
+            intent_final="SELL",
+            intent_reason_code="LONG_TIME_STOP_HIT",
+            target_system_state_id="SYSTEM-2",
+            timestamp_utc="2026-08-09T12:00:00Z",
+            tick_id=200,
+            reference_price=D("110"),
+            reference_stop_price=None,
+            trade_id="",
+            source_event_kind="AUTONOMOUS_EXIT_EXECUTION",
+            source_intent_final="HOLD",
+            source_execution_action="CLOSE_LONG",
+            source_execution_sequence=42,
+        )
+        source = self._write_steps(self._step(1, "BUY"), autonomous_close)
+        output = self.artifacts / "autonomous-evidence.json"
+
+        export_iu4_replay_evidence(
+            input_path=source,
+            output_path=output,
+            harness=self.harness,
+            replay_id="REPLAY-AUTONOMOUS-EXIT",
+            generated_at_utc="2026-08-09T14:00:00Z",
+        )
+        evidence = json.loads(output.read_text(encoding="utf-8"))
+
+        self.assertEqual(evidence["validation"]["autonomous_exit_step_count"], 1)
+        self.assertEqual(
+            evidence["validation"]["autonomous_exit_committed_count"],
+            1,
+        )
+        outcome = evidence["outcomes"][-1]
+        self.assertEqual(outcome["action"], "CLOSE_LONG")
+        self.assertEqual(
+            outcome["source_event_kind"],
+            "AUTONOMOUS_EXIT_EXECUTION",
+        )
+        self.assertEqual(outcome["source_intent_final"], "HOLD")
+        self.assertEqual(outcome["source_execution_action"], "CLOSE_LONG")
+        self.assertEqual(outcome["source_execution_sequence"], 42)
+
     def test_identical_export_is_idempotent(self) -> None:
         source = self._write_steps(self._step(1))
         output = self.artifacts / "evidence.json"
