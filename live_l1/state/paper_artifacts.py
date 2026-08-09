@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Context, Decimal, InvalidOperation, ROUND_HALF_EVEN
 from typing import Any, Mapping, Union
 
@@ -150,6 +151,32 @@ def _dsub(left: Decimal, right: Decimal) -> Decimal:
     return DECIMAL_CONTEXT.subtract(left, right)
 
 
+def _dmul(left: Decimal, right: Decimal) -> Decimal:
+    return DECIMAL_CONTEXT.multiply(left, right)
+
+
+def _utc_timestamp_seconds(value: object, field_name: str) -> str:
+    text = _text(value, field_name)
+    try:
+        parsed = datetime.fromisoformat(
+            text[:-1] + "+00:00" if text.endswith("Z") else text
+        )
+    except ValueError as exc:
+        raise PaperArtifactError(
+            ArtifactReasonCode.ARTIFACT_INVALID,
+            f"{field_name} must be an ISO-8601 timestamp",
+        ) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None or parsed.microsecond:
+        raise PaperArtifactError(
+            ArtifactReasonCode.ARTIFACT_INVALID,
+            f"{field_name} must be timezone-aware with whole-second resolution",
+        )
+    return parsed.astimezone(timezone.utc).isoformat(timespec="seconds").replace(
+        "+00:00",
+        "Z",
+    )
+
+
 def _ddiv(left: Decimal, right: Decimal) -> Decimal:
     return DECIMAL_CONTEXT.divide(left, right)
 
@@ -234,7 +261,11 @@ class PositionStateS2V2:
     config_fingerprint: str
 
     def __post_init__(self) -> None:
-        if self.schema_version != 2:
+        if (
+            isinstance(self.schema_version, bool)
+            or not isinstance(self.schema_version, int)
+            or self.schema_version != 2
+        ):
             raise PaperArtifactError(
                 ArtifactReasonCode.SCHEMA_UNSUPPORTED,
                 "PositionStateS2V2 requires schema_version 2",
@@ -258,12 +289,16 @@ class PositionStateS2V2:
             "system_state_id",
             "symbol",
             "trade_id",
-            "entry_timestamp_utc",
             "economics_profile_id",
             "economics_model_version",
             "config_fingerprint",
         ):
             object.__setattr__(self, name, _text(getattr(self, name), name))
+        object.__setattr__(
+            self,
+            "entry_timestamp_utc",
+            _utc_timestamp_seconds(self.entry_timestamp_utc, "entry_timestamp_utc"),
+        )
         object.__setattr__(self, "entry_tick_id", _integer(self.entry_tick_id, "entry_tick_id"))
         for name in (
             "reference_entry_price",
@@ -289,6 +324,31 @@ class PositionStateS2V2:
             raise PaperArtifactError(
                 ArtifactReasonCode.ARTIFACT_INVALID,
                 "reference stop direction is invalid for the position",
+            )
+        valid_entry_fill = (
+            position == "LONG"
+            and self.modeled_entry_fill_price >= self.reference_entry_price
+        ) or (
+            position == "SHORT"
+            and self.modeled_entry_fill_price <= self.reference_entry_price
+        )
+        if not valid_entry_fill:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "modeled entry fill is favorable relative to the reference price",
+            )
+        if self.entry_notional_quote != _dmul(
+            self.quantity,
+            self.modeled_entry_fill_price,
+        ):
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry notional identity is invalid",
+            )
+        if self.modeled_stop_loss_quote > self.risk_budget_quote:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "modeled stop loss exceeds the risk budget",
             )
 
     def to_record(self) -> dict[str, Any]:
@@ -318,6 +378,87 @@ class PositionStateS2V2:
     def from_record(cls, record: Mapping[str, Any]) -> "PositionStateS2V2":
         artifact_schema_version(record, ARTIFACT_S2_POSITION)
         return cls(**{name: record.get(name) for name in cls.__dataclass_fields__})
+
+    @property
+    def state_fingerprint(self) -> str:
+        return canonical_json_sha256(self.to_record())
+
+
+@dataclass(frozen=True)
+class PositionStateS2FlatV2:
+    schema_version: int
+    system_state_id: str
+    symbol: str
+    position: str
+    side: str
+    last_closed_trade_id: str
+    economics_profile_id: str
+    economics_model_version: str
+    config_fingerprint: str
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.schema_version, bool)
+            or not isinstance(self.schema_version, int)
+            or self.schema_version != 2
+        ):
+            raise PaperArtifactError(
+                ArtifactReasonCode.SCHEMA_UNSUPPORTED,
+                "PositionStateS2FlatV2 requires schema_version 2",
+            )
+        position = _text(self.position, "position").upper()
+        if position != "FLAT":
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "S2 V2 flat position must be FLAT",
+            )
+        side = _text(self.side, "side", allow_empty=True).upper()
+        if side != "":
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "S2 V2 flat position must have an empty side",
+            )
+        object.__setattr__(self, "position", position)
+        object.__setattr__(self, "side", side)
+        for name in (
+            "system_state_id",
+            "symbol",
+            "economics_profile_id",
+            "economics_model_version",
+            "config_fingerprint",
+        ):
+            object.__setattr__(self, name, _text(getattr(self, name), name))
+        object.__setattr__(
+            self,
+            "last_closed_trade_id",
+            _text(
+                self.last_closed_trade_id,
+                "last_closed_trade_id",
+                allow_empty=True,
+            ),
+        )
+
+    def to_record(self) -> dict[str, Any]:
+        return {
+            "schema_version": 2,
+            "system_state_id": self.system_state_id,
+            "symbol": self.symbol,
+            "position": self.position,
+            "side": self.side,
+            "last_closed_trade_id": self.last_closed_trade_id,
+            "economics_profile_id": self.economics_profile_id,
+            "economics_model_version": self.economics_model_version,
+            "config_fingerprint": self.config_fingerprint,
+        }
+
+    @classmethod
+    def from_record(cls, record: Mapping[str, Any]) -> "PositionStateS2FlatV2":
+        artifact_schema_version(record, ARTIFACT_S2_POSITION)
+        return cls(**{name: record.get(name) for name in cls.__dataclass_fields__})
+
+    @property
+    def state_fingerprint(self) -> str:
+        return canonical_json_sha256(self.to_record())
 
 
 @dataclass(frozen=True)
@@ -914,7 +1055,8 @@ def apply_trade_to_account(
     )
 
 
-PositionArtifact = Union[PositionStateS2V2, LegacyArtifact]
+PositionArtifactV2 = Union[PositionStateS2FlatV2, PositionStateS2V2]
+PositionArtifact = Union[PositionStateS2FlatV2, PositionStateS2V2, LegacyArtifact]
 TradeArtifact = Union[TradeRecordV2, LegacyArtifact]
 
 
@@ -926,7 +1068,15 @@ def parse_position_artifact(record: Mapping[str, Any]) -> PositionArtifact:
             schema_version=version,
             raw_record=dict(record),
         )
-    return PositionStateS2V2.from_record(record)
+    position = str(record.get("position", "")).strip().upper()
+    if position == "FLAT":
+        return PositionStateS2FlatV2.from_record(record)
+    if position in ("LONG", "SHORT"):
+        return PositionStateS2V2.from_record(record)
+    raise PaperArtifactError(
+        ArtifactReasonCode.ARTIFACT_INVALID,
+        "S2 V2 position must be FLAT, LONG, or SHORT",
+    )
 
 
 def parse_trade_artifact(record: Mapping[str, Any]) -> TradeArtifact:
@@ -951,6 +1101,8 @@ __all__ = [
     "LegacyArtifact",
     "PaperAccountState",
     "PaperArtifactError",
+    "PositionArtifactV2",
+    "PositionStateS2FlatV2",
     "PositionStateS2V2",
     "SUPPORTED_ARTIFACT_SCHEMA_VERSIONS",
     "TradeRecordV2",
