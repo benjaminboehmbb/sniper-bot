@@ -382,7 +382,7 @@ class PaperIU4ShadowDryRunHarnessTests(unittest.TestCase):
         )
 
         with self.assertRaises(IU4ShadowHarnessError) as invalid:
-            harness.run((self._step(price=100.0),))
+            self._step(price=100.0)
         self.assertEqual(
             invalid.exception.reason_code,
             IU4ShadowHarnessReasonCode.STEP_INVALID,

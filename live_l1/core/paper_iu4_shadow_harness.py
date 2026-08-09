@@ -13,10 +13,11 @@ import json
 import shutil
 import tempfile
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
+from live_l1.core.paper_entry_throttle import canonical_utc_timestamp
 from live_l1.core.paper_iu4_adapter import (
     IU4AdapterRequestV1,
     IU4AdapterResultV1,
@@ -30,6 +31,7 @@ from live_l1.core.paper_iu4_startup_gate import (
     IU4StartupGateDecisionV1,
     MODE_SHADOW,
 )
+from live_l1.state.paper_artifacts import canonical_decimal
 from live_l1.state.paper_atomic_coordinator import (
     PaperAtomicCoordinator,
     PaperAtomicCoordinatorError,
@@ -64,6 +66,36 @@ def _text(value: object, field_name: str, *, allow_empty: bool = False) -> str:
         raise IU4ShadowHarnessError(
             IU4ShadowHarnessReasonCode.STEP_INVALID,
             f"{field_name} must not be empty",
+        )
+    return result
+
+
+def _integer(value: object, field_name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise IU4ShadowHarnessError(
+            IU4ShadowHarnessReasonCode.STEP_INVALID,
+            f"{field_name} must be a non-negative integer",
+        )
+    return value
+
+
+def _positive_decimal(value: object, field_name: str) -> Decimal:
+    if isinstance(value, bool) or isinstance(value, float):
+        raise IU4ShadowHarnessError(
+            IU4ShadowHarnessReasonCode.STEP_INVALID,
+            f"{field_name} must be Decimal, int, or a decimal string",
+        )
+    try:
+        result = value if isinstance(value, Decimal) else Decimal(value)
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise IU4ShadowHarnessError(
+            IU4ShadowHarnessReasonCode.STEP_INVALID,
+            f"{field_name} is not a valid decimal",
+        ) from exc
+    if not result.is_finite() or result <= 0:
+        raise IU4ShadowHarnessError(
+            IU4ShadowHarnessReasonCode.STEP_INVALID,
+            f"{field_name} must be finite and greater than zero",
         )
     return result
 
@@ -103,7 +135,60 @@ class IU4ShadowIntentStepV1:
             "intent_final",
             _text(self.intent_final, "intent_final").upper(),
         )
+        if self.intent_final not in ("BUY", "SELL", "HOLD"):
+            raise IU4ShadowHarnessError(
+                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                "intent_final must be BUY, SELL, or HOLD",
+            )
+        try:
+            timestamp = canonical_utc_timestamp(self.timestamp_utc, "timestamp_utc")
+        except Exception as exc:
+            raise IU4ShadowHarnessError(
+                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                "timestamp_utc must be canonical UTC whole seconds",
+            ) from exc
+        object.__setattr__(self, "timestamp_utc", timestamp)
+        object.__setattr__(self, "tick_id", _integer(self.tick_id, "tick_id"))
+        object.__setattr__(
+            self,
+            "reference_price",
+            _positive_decimal(self.reference_price, "reference_price"),
+        )
+        if self.reference_stop_price is not None:
+            object.__setattr__(
+                self,
+                "reference_stop_price",
+                _positive_decimal(self.reference_stop_price, "reference_stop_price"),
+            )
         object.__setattr__(self, "trade_id", _text(self.trade_id, "trade_id", allow_empty=True))
+
+    def to_record(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "source_intent_id": self.source_intent_id,
+            "intent_final": self.intent_final,
+            "intent_reason_code": self.intent_reason_code,
+            "target_system_state_id": self.target_system_state_id,
+            "timestamp_utc": self.timestamp_utc,
+            "tick_id": self.tick_id,
+            "reference_price": canonical_decimal(self.reference_price),
+            "reference_stop_price": (
+                None
+                if self.reference_stop_price is None
+                else canonical_decimal(self.reference_stop_price)
+            ),
+            "trade_id": self.trade_id,
+        }
+
+    @classmethod
+    def from_record(cls, record: Mapping[str, Any]) -> "IU4ShadowIntentStepV1":
+        expected_fields = set(cls.__dataclass_fields__)
+        if set(record) != expected_fields:
+            raise IU4ShadowHarnessError(
+                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                "IU4 shadow replay step fields are missing or unknown",
+            )
+        return cls(**{name: record.get(name) for name in cls.__dataclass_fields__})
 
 
 @dataclass(frozen=True)
