@@ -254,6 +254,7 @@ class PaperIU4ReplayEvidenceTests(unittest.TestCase):
             harness=self.harness,
             replay_id="REPLAY-AUTONOMOUS-EXIT",
             generated_at_utc="2026-08-09T14:00:00Z",
+            restart_after_steps=1,
         )
         evidence = json.loads(output.read_text(encoding="utf-8"))
 
@@ -271,6 +272,14 @@ class PaperIU4ReplayEvidenceTests(unittest.TestCase):
         self.assertEqual(outcome["source_intent_final"], "HOLD")
         self.assertEqual(outcome["source_execution_action"], "CLOSE_LONG")
         self.assertEqual(outcome["source_execution_sequence"], 42)
+        self.assertTrue(evidence["validation"]["restart_enabled"])
+        self.assertEqual(evidence["validation"]["restart_after_step"], 1)
+        self.assertEqual(evidence["validation"]["restart_position"], "LONG")
+        self.assertEqual(
+            evidence["validation"]["restart_transaction_sequence"],
+            1,
+        )
+        self.assertTrue(evidence["validation"]["restart_state_restored"])
 
     def test_identical_export_is_idempotent(self) -> None:
         source = self._write_steps(self._step(1))

@@ -160,6 +160,7 @@ def run_iu4_replay_pipeline_smoke(
     reference_stop_rate: str,
     replay_id: str,
     generated_at_utc: str,
+    restart_after_steps: int | None = None,
 ) -> IU4ReplayPipelineSmokeV1:
     if not isinstance(source_coordinator, PaperAtomicCoordinator):
         raise IU4ReplayPipelineError(
@@ -203,6 +204,7 @@ def run_iu4_replay_pipeline_smoke(
         harness=harness,
         replay_id=replay_id,
         generated_at_utc=generated_at_utc,
+        restart_after_steps=restart_after_steps,
     )
 
     input_manifest_record = _json_object(replay_manifest)
@@ -330,6 +332,17 @@ def run_iu4_replay_pipeline_smoke(
             "autonomous_exit_committed_count": validation.get(
                 "autonomous_exit_committed_count"
             ),
+            "restart_enabled": validation.get("restart_enabled"),
+            "restart_after_step": validation.get("restart_after_step"),
+            "restart_count": validation.get("restart_count"),
+            "restart_position": validation.get("restart_position"),
+            "restart_state_fingerprint": validation.get(
+                "restart_state_fingerprint"
+            ),
+            "restart_transaction_sequence": validation.get(
+                "restart_transaction_sequence"
+            ),
+            "restart_state_restored": validation.get("restart_state_restored"),
             "simulated_transaction_count": validation.get("simulated_transaction_count"),
             "sandbox_final_state_fingerprint": validation.get(
                 "sandbox_final_state_fingerprint"

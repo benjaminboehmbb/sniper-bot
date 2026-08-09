@@ -195,6 +195,7 @@ def run_x1_replay_dataset(
     source_id: str,
     replay_id: str,
     generated_at_utc: str,
+    restart_after_steps: int | None = None,
 ) -> IU4X1DatasetRunV1:
     output_directory = output_directory.resolve()
     if output_directory.exists():
@@ -206,6 +207,16 @@ def run_x1_replay_dataset(
         raise IU4X1DatasetError(
             IU4X1DatasetReasonCode.INPUT_INVALID,
             "max_ticks must be positive and valid_row_offset non-negative",
+        )
+    if restart_after_steps is not None and (
+        isinstance(restart_after_steps, bool)
+        or not isinstance(restart_after_steps, int)
+        or restart_after_steps < 1
+        or restart_after_steps >= max_ticks
+    ):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.INPUT_INVALID,
+            "restart_after_steps must split the bounded replay into two non-empty segments",
         )
     for path in (
         source_csv,
@@ -288,6 +299,7 @@ def run_x1_replay_dataset(
         reference_stop_rate=str(settings.reference_stop_rate),
         replay_id=replay_id,
         generated_at_utc=generated_at_utc,
+        restart_after_steps=restart_after_steps,
     )
     receipt_path = pipeline.receipt_path
     manifest_base = {
@@ -300,6 +312,7 @@ def run_x1_replay_dataset(
         "x1_only": True,
         "max_ticks": max_ticks,
         "valid_row_offset": valid_row_offset,
+        "restart_after_steps": restart_after_steps,
         "source_csv": {
             "logical_name": source_csv.name,
             "sha256": expected_source_sha256.lower(),
@@ -367,6 +380,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-id", required=True)
     parser.add_argument("--replay-id", required=True)
     parser.add_argument("--generated-at-utc", required=True)
+    parser.add_argument("--restart-after-steps", type=int)
     return parser
 
 
@@ -386,6 +400,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         source_id=args.source_id,
         replay_id=args.replay_id,
         generated_at_utc=args.generated_at_utc,
+        restart_after_steps=args.restart_after_steps,
     )
     evidence = result.pipeline.evidence_export.evidence
     validation = evidence["validation"]

@@ -108,6 +108,32 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
         )
         self.assertFalse((self.root / "run").exists())
 
+    def test_controlled_restart_is_bound_into_top_manifest_and_receipt(self) -> None:
+        arguments = self._arguments()
+        arguments["restart_after_steps"] = 1
+
+        result = run_x1_replay_dataset(**arguments)
+        manifest = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+        receipt = json.loads(result.pipeline.receipt_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["restart_after_steps"], 1)
+        self.assertTrue(receipt["result"]["restart_enabled"])
+        self.assertEqual(receipt["result"]["restart_after_step"], 1)
+        self.assertEqual(receipt["result"]["restart_position"], "FLAT")
+        self.assertTrue(receipt["result"]["restart_state_restored"])
+
+    def test_invalid_restart_boundary_is_rejected_before_output_creation(self) -> None:
+        arguments = self._arguments()
+        arguments["restart_after_steps"] = 3
+
+        with self.assertRaises(IU4X1DatasetError) as raised:
+            run_x1_replay_dataset(**arguments)
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4X1DatasetReasonCode.INPUT_INVALID,
+        )
+        self.assertFalse((self.root / "run").exists())
+
     def test_existing_output_directory_is_never_overwritten(self) -> None:
         output = self.root / "run"
         output.mkdir()

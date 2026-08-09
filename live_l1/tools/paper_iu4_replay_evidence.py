@@ -250,6 +250,13 @@ def _evidence_record(
                 and outcome.action == step.source_execution_action
                 for step, outcome in autonomous_pairs
             ),
+            "restart_enabled": report.restart_enabled,
+            "restart_after_step": report.restart_after_step,
+            "restart_count": report.restart_count,
+            "restart_position": report.restart_position,
+            "restart_state_fingerprint": report.restart_state_fingerprint,
+            "restart_transaction_sequence": report.restart_transaction_sequence,
+            "restart_state_restored": report.restart_state_restored,
             "source_unchanged": report.source_unchanged,
             "sandbox_consistent": report.sandbox_consistent,
         },
@@ -433,6 +440,7 @@ def export_iu4_replay_evidence(
     harness: PaperIU4ShadowDryRunHarness,
     replay_id: str,
     generated_at_utc: str,
+    restart_after_steps: int | None = None,
 ) -> IU4ReplayEvidenceExportV1:
     if not isinstance(harness, PaperIU4ShadowDryRunHarness):
         raise IU4ReplayEvidenceError(
@@ -459,7 +467,10 @@ def export_iu4_replay_evidence(
         input_path=replay.path,
         source_root=harness.source_coordinator.root_directory,
     )
-    report = harness.run(replay.steps)
+    report = harness.run(
+        replay.steps,
+        restart_after_steps=restart_after_steps,
+    )
     evidence = _evidence_record(
         replay=replay,
         report=report,

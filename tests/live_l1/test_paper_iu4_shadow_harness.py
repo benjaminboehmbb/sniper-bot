@@ -231,6 +231,57 @@ class PaperIU4ShadowDryRunHarnessTests(unittest.TestCase):
         )
         self.assertEqual(report.outcomes[-1].state.position.position, "FLAT")
 
+    def test_controlled_restart_restores_open_position_and_continues_exactly(self) -> None:
+        steps = (
+            self._step(),
+            self._step(
+                intent="SELL",
+                source_intent_id="INTENT-2",
+                reason="EXIT_AFTER_RESTART",
+                system_state_id="SYSTEM-2",
+                timestamp="2026-08-09T11:00:00Z",
+                tick_id=160,
+                price=D("110"),
+                stop=None,
+            ),
+        )
+        harness = PaperIU4ShadowDryRunHarness(
+            self.coordinator,
+            self._shadow_decision(),
+        )
+
+        uninterrupted = harness.run(steps)
+        restarted = harness.run(steps, restart_after_steps=1)
+
+        self.assertTrue(restarted.restart_enabled)
+        self.assertEqual(restarted.restart_after_step, 1)
+        self.assertEqual(restarted.restart_count, 1)
+        self.assertEqual(restarted.restart_position, "LONG")
+        self.assertEqual(restarted.restart_transaction_sequence, 1)
+        self.assertTrue(restarted.restart_state_restored)
+        self.assertEqual(restarted.outcomes, uninterrupted.outcomes)
+        self.assertEqual(
+            restarted.sandbox_final_state_fingerprint,
+            uninterrupted.sandbox_final_state_fingerprint,
+        )
+        self.assertEqual(restarted.outcomes[-1].state.position.position, "FLAT")
+
+    def test_invalid_restart_boundaries_fail_before_source_write(self) -> None:
+        harness = PaperIU4ShadowDryRunHarness(
+            self.coordinator,
+            self._shadow_decision(),
+        )
+        before = self._source_bytes()
+        for boundary in (0, 1, 2, True):
+            with self.subTest(boundary=boundary):
+                with self.assertRaises(IU4ShadowHarnessError) as caught:
+                    harness.run((self._step(),), restart_after_steps=boundary)
+                self.assertEqual(
+                    caught.exception.reason_code,
+                    IU4ShadowHarnessReasonCode.STEP_INVALID,
+                )
+        self.assertEqual(self._source_bytes(), before)
+
     def test_autonomous_close_can_never_open_or_reverse_from_flat(self) -> None:
         autonomous_close = IU4ShadowIntentStepV1(
             schema_version=2,

@@ -239,6 +239,20 @@ class PaperIU4ReplayPipelineSmokeTests(unittest.TestCase):
             self.assertEqual(path.stat().st_ino, stats[path].st_ino)
             self.assertEqual(path.stat().st_mtime_ns, stats[path].st_mtime_ns)
 
+    def test_pipeline_receipt_binds_controlled_restart_boundary(self) -> None:
+        arguments = self._pipeline_arguments()
+        arguments["restart_after_steps"] = 1
+
+        result = run_iu4_replay_pipeline_smoke(**arguments)
+        receipt = json.loads(result.receipt_path.read_text(encoding="utf-8"))
+
+        self.assertTrue(receipt["result"]["restart_enabled"])
+        self.assertEqual(receipt["result"]["restart_after_step"], 1)
+        self.assertEqual(receipt["result"]["restart_position"], "LONG")
+        self.assertEqual(receipt["result"]["restart_transaction_sequence"], 1)
+        self.assertTrue(receipt["result"]["restart_state_restored"])
+        self.assertEqual(receipt["result"]["committed_step_count"], 3)
+
     def test_unsafe_paths_and_conflicting_artifact_fail_closed(self) -> None:
         arguments = self._pipeline_arguments()
         arguments["pipeline_receipt_path"] = self.atomic_root / "unsafe.json"

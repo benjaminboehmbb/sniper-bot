@@ -308,6 +308,13 @@ class IU4ShadowDryRunReportV1:
     committed_step_count: int
     noop_step_count: int
     rejected_step_count: int
+    restart_enabled: bool
+    restart_after_step: int
+    restart_count: int
+    restart_position: str
+    restart_state_fingerprint: str
+    restart_transaction_sequence: int
+    restart_state_restored: bool
     source_unchanged: bool
     sandbox_consistent: bool
     outcomes: tuple[IU4AdapterResultV1, ...]
@@ -492,6 +499,8 @@ class PaperIU4ShadowDryRunHarness:
     def run(
         self,
         steps: Sequence[IU4ShadowIntentStepV1],
+        *,
+        restart_after_steps: int | None = None,
     ) -> IU4ShadowDryRunReportV1:
         if isinstance(steps, (str, bytes)) or not isinstance(steps, Sequence):
             raise IU4ShadowHarnessError(
@@ -499,6 +508,16 @@ class PaperIU4ShadowDryRunHarness:
                 "steps must be a finite sequence",
             )
         step_values = tuple(steps)
+        if restart_after_steps is not None and (
+            isinstance(restart_after_steps, bool)
+            or not isinstance(restart_after_steps, int)
+            or restart_after_steps < 1
+            or restart_after_steps >= len(step_values)
+        ):
+            raise IU4ShadowHarnessError(
+                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                "restart_after_steps must split the finite replay into two non-empty segments",
+            )
         source_report = self.source_coordinator.reconciliation_report()
         if not source_report.consistent:
             raise IU4ShadowHarnessError(
@@ -565,7 +584,11 @@ class PaperIU4ShadowDryRunHarness:
                 )
             adapter = PaperIU4Adapter(sandbox)
             outcome_values: list[IU4AdapterResultV1] = []
-            for step in step_values:
+            restart_position = ""
+            restart_state_fingerprint = ""
+            restart_transaction_sequence = 0
+            restart_state_restored = False
+            for index, step in enumerate(step_values, start=1):
                 try:
                     outcome_values.append(
                         adapter.execute(self._request_for(step, sandbox))
@@ -580,6 +603,40 @@ class PaperIU4ShadowDryRunHarness:
                         IU4ShadowHarnessReasonCode.SANDBOX_INVALID,
                         str(exc),
                     ) from exc
+                if index == restart_after_steps:
+                    restart_report = sandbox.reconciliation_report()
+                    restart_state = sandbox.load_state()
+                    if not restart_report.consistent:
+                        raise IU4ShadowHarnessError(
+                            IU4ShadowHarnessReasonCode.SANDBOX_INVALID,
+                            "sandbox is inconsistent at the controlled restart boundary",
+                        )
+                    restart_position = restart_state.position.position
+                    restart_state_fingerprint = restart_state.state_fingerprint
+                    restart_transaction_sequence = restart_state.transaction_sequence
+                    sandbox = PaperAtomicCoordinator(
+                        sandbox_root,
+                        self.source_coordinator.config,
+                        self.source_coordinator.throttle_policy,
+                        coordinator_id=self.source_coordinator.coordinator_id,
+                        symbol=self.source_coordinator.symbol,
+                    )
+                    recovered_report = sandbox.reconciliation_report()
+                    recovered_state = sandbox.load_state()
+                    restart_state_restored = (
+                        recovered_report.consistent
+                        and recovered_state == restart_state
+                        and recovered_state.state_fingerprint
+                        == restart_state_fingerprint
+                        and recovered_state.transaction_sequence
+                        == restart_transaction_sequence
+                    )
+                    if not restart_state_restored:
+                        raise IU4ShadowHarnessError(
+                            IU4ShadowHarnessReasonCode.SANDBOX_INVALID,
+                            "controlled restart did not restore the exact atomic state",
+                        )
+                    adapter = PaperIU4Adapter(sandbox)
             outcomes = tuple(outcome_values)
             final_report = sandbox.reconciliation_report()
             final_state = sandbox.load_state()
@@ -618,6 +675,15 @@ class PaperIU4ShadowDryRunHarness:
             committed_step_count=statuses.count(STATUS_COMMITTED),
             noop_step_count=statuses.count(STATUS_NOOP),
             rejected_step_count=statuses.count(STATUS_REJECTED),
+            restart_enabled=restart_after_steps is not None,
+            restart_after_step=(
+                0 if restart_after_steps is None else restart_after_steps
+            ),
+            restart_count=0 if restart_after_steps is None else 1,
+            restart_position=restart_position,
+            restart_state_fingerprint=restart_state_fingerprint,
+            restart_transaction_sequence=restart_transaction_sequence,
+            restart_state_restored=restart_state_restored,
             source_unchanged=True,
             sandbox_consistent=True,
             outcomes=outcomes,
