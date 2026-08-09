@@ -25,7 +25,7 @@ from live_l1.core.regime_detector import detect_regime
 from live_l1.core.intent import compute_1m_intent_raw
 from live_l1.core.timing_5m import compute_5m_timing_vote
 from live_l1.core.intent_fusion import fuse_intent_with_5m_timing
-from live_l1.core.execution import apply_paper_execution
+from live_l1.core.execution import ExecutionDecision, IntentFinal, apply_paper_execution
 from live_l1.core.paper_economics_shadow_runtime import (
     build_runtime_shadow_log_fields,
     load_runtime_shadow_settings,
@@ -58,6 +58,77 @@ class RuntimeConfig:
     thresh_5m: float
     timing_v2_shadow: bool
     timing_v2_history_len: int
+
+
+_GUARD_EXECUTION_REASON_CODES = {
+    "guard_gate_closed": "GUARD_GATE_CLOSED",
+    "guard_kill_level_block:HARD": "GUARD_KILL_LEVEL_HARD",
+    "guard_kill_level_block:EMERGENCY": "GUARD_KILL_LEVEL_EMERGENCY",
+    "guard_invalid_gate_mode": "GUARD_INVALID_GATE_MODE",
+}
+
+
+def _guard_blocked_execution_decision(*, state, guard_reason: str) -> ExecutionDecision:
+    s2_position = getattr(state, "s2_position", None)
+    position = str(getattr(s2_position, "position", "FLAT")).strip().upper()
+    if position not in ("FLAT", "LONG", "SHORT"):
+        position = "FLAT"
+
+    return ExecutionDecision(
+        action="NOOP",
+        executed=False,
+        position_before=position,
+        position_after=position,
+        side_after=str(getattr(s2_position, "side", "")).strip(),
+        entry_price=getattr(s2_position, "entry_price", None),
+        entry_timestamp_utc=str(
+            getattr(s2_position, "entry_timestamp_utc", "")
+        ).strip(),
+        reason=_GUARD_EXECUTION_REASON_CODES.get(
+            str(guard_reason),
+            "GUARD_EXECUTION_BLOCKED",
+        ),
+    )
+
+
+def _apply_guarded_paper_execution(
+    *,
+    cfg,
+    state,
+    intent_final: IntentFinal,
+    price: float,
+    timestamp_utc: str,
+    position_size: float = 1.0,
+) -> tuple[ExecutionDecision, str, str]:
+    guard_reason, kill_level = evaluate_guards(cfg=cfg, state=state)
+    state.s4_risk.kill_level = kill_level
+
+    position = str(
+        getattr(getattr(state, "s2_position", None), "position", "FLAT")
+    ).strip().upper()
+    is_entry_candidate = position == "FLAT" and intent_final in ("BUY", "SELL")
+
+    if guard_reason != "guard_ok" and is_entry_candidate:
+        return (
+            _guard_blocked_execution_decision(
+                state=state,
+                guard_reason=guard_reason,
+            ),
+            guard_reason,
+            kill_level,
+        )
+
+    return (
+        apply_paper_execution(
+            state=state,
+            intent_final=intent_final,
+            price=price,
+            timestamp_utc=timestamp_utc,
+            position_size=position_size,
+        ),
+        guard_reason,
+        kill_level,
+    )
 
 
 def _env_bool(key: str, default: bool = False) -> bool:
@@ -1062,13 +1133,30 @@ def run_l1_loop_step1234567(
                 intent_id=str(fused.intent_id),
             )
 
-            exec_decision = apply_paper_execution(
+            exec_decision, guard_reason, s4_kill_level = _apply_guarded_paper_execution(
+                cfg=cfg,
                 state=state,
                 intent_final=fused.intent_final,
                 price=float(features.price),
                 timestamp_utc=str(features.timestamp_utc),
                 position_size=1.0,
             )
+
+            if exec_decision.reason.startswith("GUARD_"):
+                log.log(
+                    category="L4",
+                    event="guard_blocked_execution",
+                    severity="WARNING",
+                    system_state_id=state.system_state_id,
+                    intent_id=fused.intent_id,
+                    fields={
+                        "tick": tick.tick_id,
+                        "guard_reason": guard_reason,
+                        "s4_kill_level": s4_kill_level,
+                        "intent_final": fused.intent_final,
+                        "execution_reason": exec_decision.reason,
+                    },
+                )
 
             _append_passive_shadow_entry_multiplier(
                 repo_root=repo_root,
@@ -1117,9 +1205,6 @@ def run_l1_loop_step1234567(
                 legacy_position_before=exec_decision.position_before,
                 legacy_position_after=exec_decision.position_after,
             )
-
-            guard_reason, s4_kill_level = evaluate_guards(cfg=cfg, state=state)
-            state.s4_risk.kill_level = s4_kill_level
 
             state.last_snapshot_id = str(features.snapshot_id)
             state.last_timestamp_utc = str(features.timestamp_utc)
