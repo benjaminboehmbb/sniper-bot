@@ -318,6 +318,9 @@ def build_monitor_status(
     s4_last, s4_count, s4_bad = read_jsonl_last(s4_path)
     trade_last, trade_count, trade_bad = read_jsonl_last(trades_file)
     loss_state, loss_bad = read_json_file(loss_path)
+    loss_reconciliation = next(
+        item for item in reconciliation if item.name == "loss_cluster_state"
+    )
 
     if s2_bad != 0:
         checks["s2_state"] = check_status(False, "bad_json_lines=" + str(s2_bad))
@@ -343,7 +346,18 @@ def build_monitor_status(
     else:
         checks["trades_log"] = check_status(True, "records=" + str(trade_count))
 
-    if loss_bad != 0:
+    if not loss_reconciliation.passed:
+        checks["loss_cluster_state"] = check_status(
+            False,
+            loss_reconciliation.detail,
+        )
+        add_alert(
+            alerts,
+            "FAIL",
+            "loss_cluster_state_invalid",
+            loss_reconciliation.detail,
+        )
+    elif loss_bad != 0:
         checks["loss_cluster_state"] = check_status(False, "bad_json")
         add_alert(alerts, "FAIL", "bad_json_detected", "loss_cluster_state bad_json")
     elif loss_state is None:

@@ -34,10 +34,17 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Literal, Optional
+
+from live_l1.state.loss_cluster import (
+    LossClusterStateError,
+    LossClusterStateStore,
+    LossClusterStateV2,
+)
 
 
 IntentFinal = Literal["BUY", "SELL", "HOLD"]
@@ -64,72 +71,115 @@ LOSS_CLUSTER_PAUSE_ENTRIES = 35
 class _LossClusterGateState:
     recent_closed_trade_pnls: list[float] = field(default_factory=list)
     pause_entries_remaining: int = 0
+    revision: int = 0
+    persistence_healthy: bool = True
+    failure_reason: str = ""
 
 
 _LOSS_GATE_STATE = _LossClusterGateState()
-_LOSS_GATE_STATE_LOADED = False
+_LOSS_GATE_STATE_LOADED_PATH: Optional[str] = None
 
 
 def _loss_gate_state_path() -> str:
     return os.environ.get("L1_LOSS_CLUSTER_STATE_PATH", "live_state/loss_cluster_state.json").strip() or "live_state/loss_cluster_state.json"
 
 
-def _persist_loss_gate_state() -> None:
+def _reset_loss_gate_memory() -> None:
+    _LOSS_GATE_STATE.recent_closed_trade_pnls = []
+    _LOSS_GATE_STATE.pause_entries_remaining = 0
+    _LOSS_GATE_STATE.revision = 0
+    _LOSS_GATE_STATE.persistence_healthy = True
+    _LOSS_GATE_STATE.failure_reason = ""
+
+
+def _mark_loss_gate_unhealthy(reason: str, event: str) -> None:
+    _LOSS_GATE_STATE.persistence_healthy = False
+    _LOSS_GATE_STATE.failure_reason = _safe_text(reason, "LOSS_CLUSTER_STATE_INVALID")
+    _append_audit_event({
+        "event": event,
+        "reason": _LOSS_GATE_STATE.failure_reason,
+        "entry_fail_closed": 1,
+    })
+
+
+def _persist_loss_gate_state() -> bool:
     try:
-        path = _loss_gate_state_path()
-        parent = os.path.dirname(path)
-        if parent:
-            os.makedirs(parent, exist_ok=True)
-        payload = {
-            "schema_version": 1,
-            "version": 1,
-            "recent_closed_trade_pnls": [float(x) for x in _LOSS_GATE_STATE.recent_closed_trade_pnls[-LOSS_CLUSTER_LOOKBACK:]],
-            "pause_entries_remaining": int(max(0, _LOSS_GATE_STATE.pause_entries_remaining)),
-            "updated_utc": datetime.now(timezone.utc).isoformat(),
-        }
-        with open(path, "w", encoding="utf-8") as fh:
-            json.dump(payload, fh, ensure_ascii=True, sort_keys=True, indent=2)
+        state = LossClusterStateV2(
+            schema_version=2,
+            revision=_LOSS_GATE_STATE.revision + 1,
+            recent_closed_trade_pnls=tuple(
+                _LOSS_GATE_STATE.recent_closed_trade_pnls[-LOSS_CLUSTER_LOOKBACK:]
+            ),
+            pause_entries_remaining=max(
+                0,
+                _LOSS_GATE_STATE.pause_entries_remaining,
+            ),
+            updated_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        )
+        target_path = _LOSS_GATE_STATE_LOADED_PATH or os.path.abspath(
+            _loss_gate_state_path()
+        )
+        LossClusterStateStore(target_path).save(state)
+    except LossClusterStateError as exc:
+        _mark_loss_gate_unhealthy(
+            exc.reason_code,
+            "LOSS_CLUSTER_PERSISTENCE_FAILED",
+        )
+        return False
     except Exception:
-        return
+        _mark_loss_gate_unhealthy(
+            "LOSS_CLUSTER_UNEXPECTED_PERSISTENCE_FAILURE",
+            "LOSS_CLUSTER_PERSISTENCE_FAILED",
+        )
+        return False
+    _LOSS_GATE_STATE.revision = state.revision
+    _LOSS_GATE_STATE.persistence_healthy = True
+    _LOSS_GATE_STATE.failure_reason = ""
+    return True
 
 
 def _load_loss_gate_state_once() -> None:
-    global _LOSS_GATE_STATE_LOADED
-    if _LOSS_GATE_STATE_LOADED:
+    global _LOSS_GATE_STATE_LOADED_PATH
+    path = os.path.abspath(_loss_gate_state_path())
+    if _LOSS_GATE_STATE_LOADED_PATH == path:
         return
-    _LOSS_GATE_STATE_LOADED = True
-
-    path = _loss_gate_state_path()
-    if not os.path.isfile(path):
-        return
-
+    _LOSS_GATE_STATE_LOADED_PATH = path
+    _reset_loss_gate_memory()
     try:
-        with open(path, "r", encoding="utf-8") as fh:
-            obj = json.load(fh)
-        if not isinstance(obj, dict):
-            return
-
-        raw_pnls = obj.get("recent_closed_trade_pnls", [])
-        if isinstance(raw_pnls, list):
-            vals = []
-            for x in raw_pnls[-LOSS_CLUSTER_LOOKBACK:]:
-                try:
-                    vals.append(float(x))
-                except Exception:
-                    continue
-            _LOSS_GATE_STATE.recent_closed_trade_pnls = vals
-
-        pause = obj.get("pause_entries_remaining", 0)
-        try:
-            _LOSS_GATE_STATE.pause_entries_remaining = max(0, int(pause))
-        except Exception:
-            _LOSS_GATE_STATE.pause_entries_remaining = 0
-    except Exception:
+        loaded = LossClusterStateStore(path).load()
+    except LossClusterStateError as exc:
+        _mark_loss_gate_unhealthy(exc.reason_code, "LOSS_CLUSTER_STATE_INVALID")
         return
+    except Exception:
+        _mark_loss_gate_unhealthy(
+            "LOSS_CLUSTER_UNEXPECTED_LOAD_FAILURE",
+            "LOSS_CLUSTER_STATE_INVALID",
+        )
+        return
+    if loaded.state is None:
+        return
+    _LOSS_GATE_STATE.recent_closed_trade_pnls = [
+        float(value) for value in loaded.state.recent_closed_trade_pnls
+    ]
+    _LOSS_GATE_STATE.pause_entries_remaining = loaded.state.pause_entries_remaining
+    _LOSS_GATE_STATE.revision = loaded.state.revision
 
 
 def _loss_gate_register_closed_trade(pnl: float) -> None:
     _load_loss_gate_state_once()
+    if not _LOSS_GATE_STATE.persistence_healthy:
+        _append_audit_event({
+            "event": "LOSS_CLUSTER_UPDATE_BLOCKED",
+            "reason": _LOSS_GATE_STATE.failure_reason,
+            "entry_fail_closed": 1,
+        })
+        return
+    if not math.isfinite(float(pnl)):
+        _mark_loss_gate_unhealthy(
+            "LOSS_CLUSTER_NONFINITE_PNL",
+            "LOSS_CLUSTER_STATE_INVALID",
+        )
+        return
     _LOSS_GATE_STATE.recent_closed_trade_pnls.append(float(pnl))
 
     if len(_LOSS_GATE_STATE.recent_closed_trade_pnls) > LOSS_CLUSTER_LOOKBACK:
@@ -157,6 +207,13 @@ def _loss_gate_register_closed_trade(pnl: float) -> None:
 
 def _loss_gate_allows_entry() -> bool:
     _load_loss_gate_state_once()
+    if not _LOSS_GATE_STATE.persistence_healthy:
+        _append_audit_event({
+            "event": "LOSS_CLUSTER_FAIL_CLOSED",
+            "reason": _LOSS_GATE_STATE.failure_reason,
+            "entry_fail_closed": 1,
+        })
+        return False
     if _LOSS_GATE_STATE.pause_entries_remaining > 0:
 
         _append_audit_event({

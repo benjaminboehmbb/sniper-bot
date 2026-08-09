@@ -14,6 +14,10 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from live_l1.state.loss_cluster import LossClusterStateStore, LossClusterStateV2
 
 
 SOURCE_FILES = [
@@ -127,17 +131,15 @@ def test_loss_cluster_warn() -> bool:
         tmp = Path(td)
         copy_runtime_files(tmp)
         path = tmp / "live_state" / "loss_cluster_state.json"
-        obj = {}
-        if path.is_file():
-            try:
-                obj = json.loads(path.read_text(encoding="utf-8"))
-            except Exception:
-                obj = {}
-        if not isinstance(obj, dict):
-            obj = {}
-        obj["schema_version"] = 1
-        obj["pause_entries_remaining"] = 5
-        path.write_text(json.dumps(obj, ensure_ascii=True, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        LossClusterStateStore(path).save(
+            LossClusterStateV2(
+                schema_version=2,
+                revision=1,
+                recent_closed_trade_pnls=(),
+                pause_entries_remaining=5,
+                updated_utc="2026-08-09T10:00:00Z",
+            )
+        )
         rc, data = run_monitor(tmp)
         if rc != 0:
             print("FAIL: loss_cluster_warn expected_rc=0 actual_rc=", rc)

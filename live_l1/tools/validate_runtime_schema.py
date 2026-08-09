@@ -7,9 +7,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from live_l1.state.loss_cluster import LossClusterStateError, LossClusterStateStore
 
 
 SUPPORTED_SCHEMA_VERSIONS = {0, 1}
@@ -54,21 +61,6 @@ def _read_jsonl(path: Path) -> tuple[list[dict[str, Any]], int]:
     return rows, bad
 
 
-def _read_json(path: Path) -> tuple[dict[str, Any] | None, int]:
-    if not path.exists():
-        return None, 0
-
-    try:
-        obj = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return None, 1
-
-    if not isinstance(obj, dict):
-        return None, 1
-
-    return obj, 0
-
-
 def _schema_version(obj: dict[str, Any]) -> int | None:
     if "schema_version" not in obj:
         return 0
@@ -108,23 +100,25 @@ def _validate_rows(name: str, rows: list[dict[str, Any]], bad_json: int) -> Sche
     return SchemaCheck(name, True, f"rows={len(rows)} legacy_v0={legacy} schema_v1={v1}")
 
 
-def _validate_json_file(name: str, obj: dict[str, Any] | None, bad_json: int) -> SchemaCheck:
-    if bad_json != 0:
-        return SchemaCheck(name, False, "bad_json")
-
-    if obj is None:
-        return SchemaCheck(name, True, "missing_allowed")
-
-    version = _schema_version(obj)
-
-    if version is None:
-        return SchemaCheck(name, False, "malformed_schema_version")
-
-    if version not in SUPPORTED_SCHEMA_VERSIONS:
-        return SchemaCheck(name, False, f"unsupported_schema_version={version}")
-
-    label = "legacy_v0" if version == 0 else "schema_v1"
-    return SchemaCheck(name, True, label)
+def _validate_loss_cluster(path: Path) -> SchemaCheck:
+    try:
+        loaded = LossClusterStateStore(path).load()
+    except LossClusterStateError as exc:
+        return SchemaCheck(
+            "loss_cluster_state_schema",
+            False,
+            f"invalid:{exc.reason_code}",
+        )
+    if loaded.state is None:
+        return SchemaCheck("loss_cluster_state_schema", True, "missing_allowed")
+    return SchemaCheck(
+        "loss_cluster_state_schema",
+        True,
+        "schema_v{} legacy_migration={}".format(
+            loaded.state.schema_version,
+            int(loaded.migrated_legacy_v1),
+        ),
+    )
 
 
 def validate_runtime_schema(
@@ -138,14 +132,13 @@ def validate_runtime_schema(
     audit_rows, audit_bad = _read_jsonl(audit_path)
     trade_rows, trade_bad = _read_jsonl(trades_path)
     s2_rows, s2_bad = _read_jsonl(s2_path)
-    loss_obj, loss_bad = _read_json(loss_path)
     s4_rows, s4_bad = _read_jsonl(s4_path)
 
     return [
         _validate_rows("execution_audit_schema", audit_rows, audit_bad),
         _validate_rows("trades_l1_schema", trade_rows, trade_bad),
         _validate_rows("s2_position_schema", s2_rows, s2_bad),
-        _validate_json_file("loss_cluster_state_schema", loss_obj, loss_bad),
+        _validate_loss_cluster(loss_path),
         _validate_rows("s4_risk_schema", s4_rows, s4_bad),
     ]
 
