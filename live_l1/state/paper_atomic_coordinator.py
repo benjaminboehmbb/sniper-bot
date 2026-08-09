@@ -1259,6 +1259,21 @@ class PaperAtomicCoordinator:
             previous = transaction
         return entries
 
+    def transaction_by_event_id(
+        self,
+        transaction_event_id: str,
+    ) -> AtomicPaperTransactionV1 | None:
+        """Return one validated transaction without mutating coordinator state."""
+        event_id = _text(transaction_event_id, "transaction_event_id")
+        return next(
+            (
+                transaction
+                for _, transaction in self._journal_transactions()
+                if transaction.transaction_event_id == event_id
+            ),
+            None,
+        )
+
     @staticmethod
     def _snapshot_index(
         current: AtomicPaperStateV1,
