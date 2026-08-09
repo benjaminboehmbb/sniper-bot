@@ -11,6 +11,7 @@ from unittest import mock
 
 from live_l1.core import loop
 from live_l1.core.paper_economics_shadow import MODE_OFF
+from live_l1.core.paper_economics_shadow import SHADOW_REFERENCE_PRICE_MISSING
 from live_l1.core.paper_economics_shadow_runtime import (
     SHADOW_PARITY_UNKNOWN,
     SHADOW_RUNTIME_ERROR,
@@ -159,6 +160,95 @@ class RuntimeShadowBridgeTests(unittest.TestCase):
         self.assertEqual(fields["parity_code"], SHADOW_PARITY_UNKNOWN)
         self.assertEqual(fields["legacy_executed"], 1)
         self.assertEqual(fields["config_fingerprint"], EXPECTED_FINGERPRINT)
+
+    def test_missing_canonical_price_is_logged_fail_closed_without_control(self) -> None:
+        attempt = observe_runtime_shadow(
+            settings=self.settings,
+            current_position="FLAT",
+            intent_final="BUY",
+            reference_entry_price="",
+            tick_id=11,
+            snapshot_id="SNAP-11",
+            timestamp_utc="2026-08-06T10:03:00Z",
+            intent_id="INTENT-11",
+        )
+        fields = build_runtime_shadow_log_fields(
+            attempt,
+            settings=self.settings,
+            legacy_action="OPEN_LONG",
+            legacy_executed=True,
+            legacy_position_before="FLAT",
+            legacy_position_after="LONG",
+        )
+
+        self.assertIsNotNone(fields)
+        assert fields is not None
+        self.assertEqual(fields["pee_allowed"], 0)
+        self.assertEqual(
+            fields["pee_reason_code"],
+            SHADOW_REFERENCE_PRICE_MISSING,
+        )
+        self.assertEqual(fields["config_fingerprint"], EXPECTED_FINGERPRINT)
+        self.assertEqual(
+            fields["parity_code"],
+            "PEE_SHADOW_LEGACY_EXECUTED_PEE_REJECTED",
+        )
+        self.assertEqual(fields["legacy_executed"], 1)
+        self.assertNotIn("allow_execution", fields)
+
+    def test_active_loop_passes_exact_canonical_carrier_to_shadow(self) -> None:
+        exact_price = "12345.678901234567890123456789"
+        with tempfile.TemporaryDirectory(prefix="pee-canonical-boundary-") as root_text:
+            root = Path(root_text)
+            (root / "data").mkdir()
+            (root / "seeds" / "5m").mkdir(parents=True)
+            (root / "live_state").mkdir()
+            (root / "live_logs").mkdir()
+            (root / "data" / "market.csv").write_text(
+                "timestamp_utc,open,high,low,close,volume\n"
+                f"2026-08-06T10:00:00Z,{exact_price},{exact_price},"
+                f"{exact_price},{exact_price},1\n",
+                encoding="utf-8",
+            )
+            (root / "seeds" / "5m" / "seeds.csv").write_text(
+                "seed_id,comb_json,direction\n",
+                encoding="utf-8",
+            )
+            environment = {
+                "L1_LOG_PATH": str(root / "live_logs" / "l1.log"),
+                "L1_MARKET_CSV_PATH": "data/market.csv",
+                "SEEDS_5M_CSV": "seeds/5m/seeds.csv",
+                "L1_DECISION_TICK_SECONDS": "0",
+                "L1_REQUIRE_WSL": "0",
+                "L1_TEST_FORCE_INTENTS": "1",
+                "L1_TEST_FORCE_BUY_EVERY": "1",
+                "L1_TEST_FORCE_WARMUP_TICKS": "0",
+                "L1_AUDIT_LOG_PATH": str(root / "live_logs" / "execution.jsonl"),
+                "L1_TRADE_LOG_PATH": str(root / "live_logs" / "trades.jsonl"),
+                "L1_LOSS_CLUSTER_STATE_PATH": str(
+                    root / "live_state" / "loss_cluster.json"
+                ),
+                **accepted_environment(),
+            }
+
+            with mock.patch.dict(os.environ, environment, clear=True):
+                with mock.patch.object(
+                    loop,
+                    "_observe_pee_shadow_fail_safe",
+                    return_value=None,
+                ) as shadow_observer:
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        result = loop.run_l1_loop_step1234567(
+                            str(root),
+                            max_ticks=1,
+                        )
+
+        self.assertEqual(result, 0)
+        self.assertEqual(shadow_observer.call_count, 1)
+        self.assertEqual(
+            shadow_observer.call_args.kwargs["reference_entry_price"],
+            exact_price,
+        )
 
     def test_loop_boundary_swallows_shadow_calculation_and_logging_failures(self) -> None:
         with mock.patch.object(

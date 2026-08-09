@@ -42,6 +42,8 @@ SHADOW_CONFIG_INVALID = "PEE_CONFIG_INVALID"
 SHADOW_MODE_INVALID = "PEE_CONFIG_MODE_INVALID"
 SHADOW_OBSERVATION_ERROR = "PEE_SHADOW_OBSERVATION_ERROR"
 SHADOW_NOT_CANDIDATE = "PEE_SHADOW_NOT_ENTRY_CANDIDATE"
+SHADOW_REFERENCE_PRICE_MISSING = "PEE_SHADOW_REFERENCE_PRICE_MISSING"
+SHADOW_REFERENCE_PRICE_INVALID = "PEE_SHADOW_REFERENCE_PRICE_INVALID"
 
 ENVIRONMENT_FIELDS: Mapping[str, str] = {
     "PEE_SCHEMA_VERSION": "schema_version",
@@ -237,6 +239,7 @@ def _rejected_observation(
     reason_code: str,
     detail: str,
 ) -> ShadowEntryObservation:
+    config = settings.config
     identity = {
         "tick_id": tick_id,
         "snapshot_id": snapshot_id,
@@ -262,9 +265,9 @@ def _rejected_observation(
         risk_budget_quote="",
         entry_notional_quote="",
         modeled_stop_loss_quote="",
-        economics_profile_id="",
-        economics_model_version="",
-        config_fingerprint="",
+        economics_profile_id="" if config is None else config.economics_profile_id,
+        economics_model_version="" if config is None else config.economics_model_version,
+        config_fingerprint="" if config is None else config.config_fingerprint,
     )
 
 
@@ -303,10 +306,37 @@ def observe_shadow_entry_candidate(
             detail=settings.detail,
         )
 
+    if entry_text == "":
+        return _rejected_observation(
+            settings=settings,
+            tick_id=tick_id,
+            snapshot_id=snapshot_id,
+            timestamp_utc=timestamp_utc,
+            intent_id=intent_id,
+            side=side,
+            reference_entry_price="",
+            reason_code=SHADOW_REFERENCE_PRICE_MISSING,
+            detail="canonical reference price text is missing",
+        )
+
     try:
         entry_price = _decimal_from_text(entry_text, "reference_entry_price")
         if entry_price <= ZERO:
             raise ValueError("reference_entry_price must be greater than zero")
+    except (InvalidOperation, ValueError) as exc:
+        return _rejected_observation(
+            settings=settings,
+            tick_id=tick_id,
+            snapshot_id=snapshot_id,
+            timestamp_utc=timestamp_utc,
+            intent_id=intent_id,
+            side=side,
+            reference_entry_price=entry_text,
+            reason_code=SHADOW_REFERENCE_PRICE_INVALID,
+            detail=str(exc),
+        )
+
+    try:
         if side == "LONG":
             stop_price = DECIMAL_CONTEXT.multiply(
                 entry_price,
@@ -441,6 +471,8 @@ __all__ = [
     "SHADOW_CONFIG_INVALID",
     "SHADOW_CONFIG_MISSING",
     "SHADOW_MODE_INVALID",
+    "SHADOW_REFERENCE_PRICE_INVALID",
+    "SHADOW_REFERENCE_PRICE_MISSING",
     "ShadowEconomicsSettings",
     "ShadowEntryObservation",
     "add_legacy_execution_outcome",

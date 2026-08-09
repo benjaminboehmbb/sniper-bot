@@ -9,6 +9,8 @@ from live_l1.core.paper_economics_shadow import (
     MODE_SHADOW,
     SHADOW_CONFIG_MISSING,
     SHADOW_MODE_INVALID,
+    SHADOW_REFERENCE_PRICE_INVALID,
+    SHADOW_REFERENCE_PRICE_MISSING,
     add_legacy_execution_outcome,
     load_shadow_settings,
     observe_shadow_entry_candidate,
@@ -153,6 +155,30 @@ class ShadowObservationTests(unittest.TestCase):
         self.assertIsNotNone(observation)
         self.assertFalse(observation.allowed)
         self.assertEqual(observation.hypothetical_quantity, "0")
+        self.assertEqual(
+            observation.reason_code,
+            SHADOW_REFERENCE_PRICE_INVALID,
+        )
+        self.assertEqual(
+            observation.config_fingerprint,
+            self.settings.config.config_fingerprint,
+        )
+
+    def test_missing_canonical_market_price_is_stable_rejection(self) -> None:
+        observation = observe(self.settings, reference_entry_price="  ")
+
+        self.assertIsNotNone(observation)
+        self.assertFalse(observation.allowed)
+        self.assertEqual(
+            observation.reason_code,
+            SHADOW_REFERENCE_PRICE_MISSING,
+        )
+        self.assertEqual(observation.reference_entry_price, "")
+        self.assertEqual(observation.hypothetical_quantity, "0")
+        self.assertEqual(
+            observation.config_fingerprint,
+            self.settings.config.config_fingerprint,
+        )
 
     def test_minimum_notional_rejection_is_visible(self) -> None:
         settings = load_shadow_settings(

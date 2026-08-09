@@ -1126,7 +1126,7 @@ def run_l1_loop_step1234567(
                 settings=pee_shadow_settings,
                 current_position=current_position,
                 intent_final=fused.intent_final,
-                reference_entry_price=str(features.price),
+                reference_entry_price=str(features.reference_price_text).strip(),
                 tick_id=tick.tick_id,
                 snapshot_id=str(features.snapshot_id),
                 timestamp_utc=str(features.timestamp_utc),

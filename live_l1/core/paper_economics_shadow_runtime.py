@@ -97,7 +97,7 @@ def observe_runtime_shadow(
         "timestamp_utc": str(timestamp_utc),
         "intent_id": str(intent_id),
         "side": side,
-        "reference_entry_price": str(reference_entry_price),
+        "reference_entry_price": str(reference_entry_price).strip(),
     }
     if settings.mode == MODE_OFF or not candidate:
         return RuntimeShadowAttempt(observation=None, **values)
