@@ -20,6 +20,7 @@ from live_l1.core.paper_iu4_shadow_harness import (
     IU4ShadowHarnessReasonCode,
     IU4ShadowIntentStepV1,
     PaperIU4ShadowDryRunHarness,
+    RESTART_FAULT_SNAPSHOT_TRUNCATED,
 )
 from live_l1.core.paper_iu4_startup_gate import (
     IU4StartupModeRequestV1,
@@ -280,6 +281,53 @@ class PaperIU4ShadowDryRunHarnessTests(unittest.TestCase):
                     caught.exception.reason_code,
                     IU4ShadowHarnessReasonCode.STEP_INVALID,
                 )
+        self.assertEqual(self._source_bytes(), before)
+
+    def test_truncated_restart_snapshot_is_detected_and_blocks_continuation(self) -> None:
+        steps = (
+            self._step(),
+            self._step(
+                intent="SELL",
+                source_intent_id="INTENT-2",
+                reason="MUST_NOT_EXECUTE",
+                system_state_id="SYSTEM-2",
+                timestamp="2026-08-09T11:00:00Z",
+                tick_id=160,
+                price=D("110"),
+                stop=None,
+            ),
+        )
+        before = self._source_bytes()
+
+        report = PaperIU4ShadowDryRunHarness(
+            self.coordinator,
+            self._shadow_decision(),
+        ).run(
+            steps,
+            restart_after_steps=1,
+            restart_fault_injection=RESTART_FAULT_SNAPSHOT_TRUNCATED,
+        )
+
+        self.assertEqual(report.requested_step_count, 2)
+        self.assertEqual(report.step_count, 1)
+        self.assertEqual(len(report.outcomes), 1)
+        self.assertEqual(report.outcomes[0].action, "OPEN_LONG")
+        self.assertEqual(report.restart_position, "LONG")
+        self.assertEqual(report.restart_transaction_sequence, 1)
+        self.assertFalse(report.restart_state_restored)
+        self.assertTrue(report.restart_fault_detected)
+        self.assertEqual(
+            report.restart_fault_injection,
+            RESTART_FAULT_SNAPSHOT_TRUNCATED,
+        )
+        self.assertIn("PEE_ATOMIC_JSON_INVALID", report.restart_fault_reason_codes)
+        self.assertNotEqual(
+            report.restart_fault_snapshot_sha256_before,
+            report.restart_fault_snapshot_sha256_after,
+        )
+        self.assertTrue(report.continuation_blocked)
+        self.assertFalse(report.sandbox_consistent)
+        self.assertTrue(report.source_unchanged)
         self.assertEqual(self._source_bytes(), before)
 
     def test_autonomous_close_can_never_open_or_reverse_from_flat(self) -> None:

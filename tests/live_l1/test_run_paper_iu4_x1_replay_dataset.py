@@ -134,6 +134,26 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
         )
         self.assertFalse((self.root / "run").exists())
 
+    def test_restart_fault_injection_is_bound_and_blocks_remaining_steps(self) -> None:
+        arguments = self._arguments()
+        arguments["restart_after_steps"] = 1
+        arguments["restart_fault_injection"] = "SNAPSHOT_TRUNCATED"
+
+        result = run_x1_replay_dataset(**arguments)
+        manifest = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+        receipt = json.loads(result.pipeline.receipt_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["restart_after_steps"], 1)
+        self.assertEqual(
+            manifest["restart_fault_injection"],
+            "SNAPSHOT_TRUNCATED",
+        )
+        self.assertEqual(receipt["result"]["requested_step_count"], 3)
+        self.assertEqual(receipt["result"]["step_count"], 1)
+        self.assertTrue(receipt["result"]["restart_fault_detected"])
+        self.assertTrue(receipt["result"]["continuation_blocked"])
+        self.assertTrue(all(receipt["chain_checks"].values()))
+
     def test_existing_output_directory_is_never_overwritten(self) -> None:
         output = self.root / "run"
         output.mkdir()

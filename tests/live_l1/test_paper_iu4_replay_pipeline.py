@@ -253,6 +253,31 @@ class PaperIU4ReplayPipelineSmokeTests(unittest.TestCase):
         self.assertTrue(receipt["result"]["restart_state_restored"])
         self.assertEqual(receipt["result"]["committed_step_count"], 3)
 
+    def test_pipeline_receipt_proves_restart_fault_blocks_continuation(self) -> None:
+        arguments = self._pipeline_arguments()
+        arguments["restart_after_steps"] = 1
+        arguments["restart_fault_injection"] = "SNAPSHOT_TRUNCATED"
+
+        result = run_iu4_replay_pipeline_smoke(**arguments)
+        receipt = json.loads(result.receipt_path.read_text(encoding="utf-8"))
+
+        self.assertTrue(all(receipt["chain_checks"].values()))
+        self.assertEqual(receipt["result"]["requested_step_count"], 3)
+        self.assertEqual(receipt["result"]["step_count"], 1)
+        self.assertTrue(receipt["result"]["restart_fault_detected"])
+        self.assertEqual(
+            receipt["result"]["restart_fault_injection"],
+            "SNAPSHOT_TRUNCATED",
+        )
+        self.assertIn(
+            "PEE_ATOMIC_JSON_INVALID",
+            receipt["result"]["restart_fault_reason_codes"],
+        )
+        self.assertTrue(receipt["result"]["continuation_blocked"])
+        self.assertFalse(receipt["iu4_enforced_enabled"])
+        self.assertFalse(receipt["exchange_enabled"])
+        self.assertFalse(receipt["live_enabled"])
+
     def test_unsafe_paths_and_conflicting_artifact_fail_closed(self) -> None:
         arguments = self._pipeline_arguments()
         arguments["pipeline_receipt_path"] = self.atomic_root / "unsafe.json"

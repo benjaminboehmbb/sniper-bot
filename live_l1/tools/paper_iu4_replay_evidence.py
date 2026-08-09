@@ -216,9 +216,25 @@ def _evidence_record(
     replay_id: str,
     generated_at_utc: str,
 ) -> dict[str, Any]:
+    if report.continuation_blocked:
+        if (
+            not report.restart_fault_detected
+            or report.step_count != report.restart_after_step
+            or report.step_count >= len(replay.steps)
+            or len(report.outcomes) != report.step_count
+        ):
+            raise IU4ReplayEvidenceError(
+                IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+                "blocked fault-injection report has inconsistent replay counts",
+            )
+    elif len(report.outcomes) != len(replay.steps):
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+            "completed replay report must contain one outcome per input step",
+        )
     autonomous_pairs = tuple(
         (step, outcome)
-        for step, outcome in zip(replay.steps, report.outcomes, strict=True)
+        for step, outcome in zip(replay.steps, report.outcomes)
         if step.source_event_kind == "AUTONOMOUS_EXIT_EXECUTION"
     )
     base = {
@@ -241,6 +257,7 @@ def _evidence_record(
             "sandbox_final_transaction_sequence": report.sandbox_final_transaction_sequence,
             "simulated_transaction_count": report.simulated_transaction_count,
             "step_count": report.step_count,
+            "requested_step_count": report.requested_step_count,
             "committed_step_count": report.committed_step_count,
             "noop_step_count": report.noop_step_count,
             "rejected_step_count": report.rejected_step_count,
@@ -257,6 +274,18 @@ def _evidence_record(
             "restart_state_fingerprint": report.restart_state_fingerprint,
             "restart_transaction_sequence": report.restart_transaction_sequence,
             "restart_state_restored": report.restart_state_restored,
+            "restart_fault_injection": report.restart_fault_injection,
+            "restart_fault_detected": report.restart_fault_detected,
+            "restart_fault_reason_codes": list(
+                report.restart_fault_reason_codes
+            ),
+            "restart_fault_snapshot_sha256_before": (
+                report.restart_fault_snapshot_sha256_before
+            ),
+            "restart_fault_snapshot_sha256_after": (
+                report.restart_fault_snapshot_sha256_after
+            ),
+            "continuation_blocked": report.continuation_blocked,
             "source_unchanged": report.source_unchanged,
             "sandbox_consistent": report.sandbox_consistent,
         },
@@ -441,6 +470,7 @@ def export_iu4_replay_evidence(
     replay_id: str,
     generated_at_utc: str,
     restart_after_steps: int | None = None,
+    restart_fault_injection: str | None = None,
 ) -> IU4ReplayEvidenceExportV1:
     if not isinstance(harness, PaperIU4ShadowDryRunHarness):
         raise IU4ReplayEvidenceError(
@@ -470,6 +500,7 @@ def export_iu4_replay_evidence(
     report = harness.run(
         replay.steps,
         restart_after_steps=restart_after_steps,
+        restart_fault_injection=restart_fault_injection,
     )
     evidence = _evidence_record(
         replay=replay,

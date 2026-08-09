@@ -161,6 +161,7 @@ def run_iu4_replay_pipeline_smoke(
     replay_id: str,
     generated_at_utc: str,
     restart_after_steps: int | None = None,
+    restart_fault_injection: str | None = None,
 ) -> IU4ReplayPipelineSmokeV1:
     if not isinstance(source_coordinator, PaperAtomicCoordinator):
         raise IU4ReplayPipelineError(
@@ -205,6 +206,7 @@ def run_iu4_replay_pipeline_smoke(
         replay_id=replay_id,
         generated_at_utc=generated_at_utc,
         restart_after_steps=restart_after_steps,
+        restart_fault_injection=restart_fault_injection,
     )
 
     input_manifest_record = _json_object(replay_manifest)
@@ -244,6 +246,7 @@ def run_iu4_replay_pipeline_smoke(
     input_manifest_hash = _sha256(input_manifest_bytes)
     evidence_bytes = replay_evidence.read_bytes()
     evidence_hash = _sha256(evidence_bytes)
+    expected_restart_fault = restart_fault_injection is not None
     chain_checks = {
         "source_log_unchanged": source.read_bytes() == source_bytes,
         "builder_source_hash": input_build.source_sha256 == source_hash,
@@ -263,7 +266,23 @@ def run_iu4_replay_pipeline_smoke(
             == canonical_utc_timestamp(generated_at_utc, "generated_at_utc")
         ),
         "source_state_unchanged": validation.get("source_unchanged") is True,
-        "sandbox_consistent": validation.get("sandbox_consistent") is True,
+        "sandbox_state_matches_expected_mode": (
+            validation.get("sandbox_consistent") is (not expected_restart_fault)
+        ),
+        "restart_fault_expectation": (
+            validation.get("restart_fault_injection")
+            == ("" if restart_fault_injection is None else restart_fault_injection)
+            and validation.get("restart_fault_detected") is expected_restart_fault
+            and validation.get("continuation_blocked") is expected_restart_fault
+        ),
+        "processed_step_count_matches_mode": (
+            validation.get("step_count")
+            == (
+                restart_after_steps
+                if expected_restart_fault
+                else validation.get("requested_step_count")
+            )
+        ),
         "source_state_fingerprint_stable": (
             validation.get("source_initial_state_fingerprint")
             == state_before.state_fingerprint
@@ -323,6 +342,7 @@ def run_iu4_replay_pipeline_smoke(
         },
         "result": {
             "step_count": validation.get("step_count"),
+            "requested_step_count": validation.get("requested_step_count"),
             "committed_step_count": validation.get("committed_step_count"),
             "noop_step_count": validation.get("noop_step_count"),
             "rejected_step_count": validation.get("rejected_step_count"),
@@ -343,6 +363,20 @@ def run_iu4_replay_pipeline_smoke(
                 "restart_transaction_sequence"
             ),
             "restart_state_restored": validation.get("restart_state_restored"),
+            "restart_fault_injection": validation.get(
+                "restart_fault_injection"
+            ),
+            "restart_fault_detected": validation.get("restart_fault_detected"),
+            "restart_fault_reason_codes": validation.get(
+                "restart_fault_reason_codes"
+            ),
+            "restart_fault_snapshot_sha256_before": validation.get(
+                "restart_fault_snapshot_sha256_before"
+            ),
+            "restart_fault_snapshot_sha256_after": validation.get(
+                "restart_fault_snapshot_sha256_after"
+            ),
+            "continuation_blocked": validation.get("continuation_blocked"),
             "simulated_transaction_count": validation.get("simulated_transaction_count"),
             "sandbox_final_state_fingerprint": validation.get(
                 "sandbox_final_state_fingerprint"

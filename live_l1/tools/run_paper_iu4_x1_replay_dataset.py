@@ -21,6 +21,9 @@ from live_l1.core.paper_iu4_startup_gate import (
     MODE_SHADOW,
     evaluate_iu4_startup_gate,
 )
+from live_l1.core.paper_iu4_shadow_harness import (
+    RESTART_FAULT_SNAPSHOT_TRUNCATED,
+)
 from live_l1.state.paper_artifacts import PaperAccountState, PositionStateS2FlatV2
 from live_l1.state.paper_atomic_coordinator import PaperAtomicCoordinator
 from live_l1.tools.paper_economics_shadow_sidecar import load_settings_json
@@ -196,6 +199,7 @@ def run_x1_replay_dataset(
     replay_id: str,
     generated_at_utc: str,
     restart_after_steps: int | None = None,
+    restart_fault_injection: str | None = None,
 ) -> IU4X1DatasetRunV1:
     output_directory = output_directory.resolve()
     if output_directory.exists():
@@ -217,6 +221,14 @@ def run_x1_replay_dataset(
         raise IU4X1DatasetError(
             IU4X1DatasetReasonCode.INPUT_INVALID,
             "restart_after_steps must split the bounded replay into two non-empty segments",
+        )
+    if restart_fault_injection is not None and (
+        restart_fault_injection != RESTART_FAULT_SNAPSHOT_TRUNCATED
+        or restart_after_steps is None
+    ):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.INPUT_INVALID,
+            "restart fault injection requires SNAPSHOT_TRUNCATED and a valid boundary",
         )
     for path in (
         source_csv,
@@ -300,6 +312,7 @@ def run_x1_replay_dataset(
         replay_id=replay_id,
         generated_at_utc=generated_at_utc,
         restart_after_steps=restart_after_steps,
+        restart_fault_injection=restart_fault_injection,
     )
     receipt_path = pipeline.receipt_path
     manifest_base = {
@@ -313,6 +326,7 @@ def run_x1_replay_dataset(
         "max_ticks": max_ticks,
         "valid_row_offset": valid_row_offset,
         "restart_after_steps": restart_after_steps,
+        "restart_fault_injection": restart_fault_injection,
         "source_csv": {
             "logical_name": source_csv.name,
             "sha256": expected_source_sha256.lower(),
@@ -381,6 +395,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--replay-id", required=True)
     parser.add_argument("--generated-at-utc", required=True)
     parser.add_argument("--restart-after-steps", type=int)
+    parser.add_argument(
+        "--restart-fault-injection",
+        choices=(RESTART_FAULT_SNAPSHOT_TRUNCATED,),
+    )
     return parser
 
 
@@ -401,6 +419,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         replay_id=args.replay_id,
         generated_at_utc=args.generated_at_utc,
         restart_after_steps=args.restart_after_steps,
+        restart_fault_injection=args.restart_fault_injection,
     )
     evidence = result.pipeline.evidence_export.evidence
     validation = evidence["validation"]
@@ -409,6 +428,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     print("committed:", validation["committed_step_count"])
     print("noop:", validation["noop_step_count"])
     print("rejected:", validation["rejected_step_count"])
+    print("continuation_blocked:", validation["continuation_blocked"])
     print("run_manifest:", result.run_manifest_path)
     return 0
 

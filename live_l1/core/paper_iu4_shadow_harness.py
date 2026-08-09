@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -50,6 +51,7 @@ class IU4ShadowHarnessReasonCode:
 
 SOURCE_EVENT_INTENT = "INTENT"
 SOURCE_EVENT_AUTONOMOUS_EXIT = "AUTONOMOUS_EXIT_EXECUTION"
+RESTART_FAULT_SNAPSHOT_TRUNCATED = "SNAPSHOT_TRUNCATED"
 
 
 class IU4ShadowHarnessError(RuntimeError):
@@ -308,6 +310,7 @@ class IU4ShadowDryRunReportV1:
     committed_step_count: int
     noop_step_count: int
     rejected_step_count: int
+    requested_step_count: int
     restart_enabled: bool
     restart_after_step: int
     restart_count: int
@@ -315,6 +318,12 @@ class IU4ShadowDryRunReportV1:
     restart_state_fingerprint: str
     restart_transaction_sequence: int
     restart_state_restored: bool
+    restart_fault_injection: str
+    restart_fault_detected: bool
+    restart_fault_reason_codes: tuple[str, ...]
+    restart_fault_snapshot_sha256_before: str
+    restart_fault_snapshot_sha256_after: str
+    continuation_blocked: bool
     source_unchanged: bool
     sandbox_consistent: bool
     outcomes: tuple[IU4AdapterResultV1, ...]
@@ -410,6 +419,16 @@ def _clone_source(
         shutil.copyfile(source_path, target_path)
 
 
+def _inject_truncated_snapshot(path: Path) -> tuple[str, str]:
+    before = path.read_bytes()
+    payload = b'{"schema_version":1,"fault":"TRUNCATED"\n'
+    with path.open("wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    return hashlib.sha256(before).hexdigest(), hashlib.sha256(payload).hexdigest()
+
+
 class PaperIU4ShadowDryRunHarness:
     def __init__(
         self,
@@ -501,6 +520,7 @@ class PaperIU4ShadowDryRunHarness:
         steps: Sequence[IU4ShadowIntentStepV1],
         *,
         restart_after_steps: int | None = None,
+        restart_fault_injection: str | None = None,
     ) -> IU4ShadowDryRunReportV1:
         if isinstance(steps, (str, bytes)) or not isinstance(steps, Sequence):
             raise IU4ShadowHarnessError(
@@ -517,6 +537,14 @@ class PaperIU4ShadowDryRunHarness:
             raise IU4ShadowHarnessError(
                 IU4ShadowHarnessReasonCode.STEP_INVALID,
                 "restart_after_steps must split the finite replay into two non-empty segments",
+            )
+        if restart_fault_injection is not None and (
+            restart_fault_injection != RESTART_FAULT_SNAPSHOT_TRUNCATED
+            or restart_after_steps is None
+        ):
+            raise IU4ShadowHarnessError(
+                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                "restart fault injection requires SNAPSHOT_TRUNCATED and a valid restart boundary",
             )
         source_report = self.source_coordinator.reconciliation_report()
         if not source_report.consistent:
@@ -588,6 +616,11 @@ class PaperIU4ShadowDryRunHarness:
             restart_state_fingerprint = ""
             restart_transaction_sequence = 0
             restart_state_restored = False
+            restart_fault_detected = False
+            restart_fault_reason_codes: tuple[str, ...] = ()
+            restart_fault_snapshot_sha256_before = ""
+            restart_fault_snapshot_sha256_after = ""
+            continuation_blocked = False
             for index, step in enumerate(step_values, start=1):
                 try:
                     outcome_values.append(
@@ -614,6 +647,28 @@ class PaperIU4ShadowDryRunHarness:
                     restart_position = restart_state.position.position
                     restart_state_fingerprint = restart_state.state_fingerprint
                     restart_transaction_sequence = restart_state.transaction_sequence
+                    if restart_fault_injection is not None:
+                        (
+                            restart_fault_snapshot_sha256_before,
+                            restart_fault_snapshot_sha256_after,
+                        ) = _inject_truncated_snapshot(sandbox.state_path)
+                        sandbox = PaperAtomicCoordinator(
+                            sandbox_root,
+                            self.source_coordinator.config,
+                            self.source_coordinator.throttle_policy,
+                            coordinator_id=self.source_coordinator.coordinator_id,
+                            symbol=self.source_coordinator.symbol,
+                        )
+                        fault_report = sandbox.reconciliation_report()
+                        restart_fault_detected = not fault_report.consistent
+                        restart_fault_reason_codes = fault_report.reason_codes
+                        continuation_blocked = restart_fault_detected
+                        if not restart_fault_detected:
+                            raise IU4ShadowHarnessError(
+                                IU4ShadowHarnessReasonCode.SANDBOX_INVALID,
+                                "injected restart fault was not detected",
+                            )
+                        break
                     sandbox = PaperAtomicCoordinator(
                         sandbox_root,
                         self.source_coordinator.config,
@@ -638,13 +693,18 @@ class PaperIU4ShadowDryRunHarness:
                         )
                     adapter = PaperIU4Adapter(sandbox)
             outcomes = tuple(outcome_values)
-            final_report = sandbox.reconciliation_report()
-            final_state = sandbox.load_state()
-            if not final_report.consistent:
-                raise IU4ShadowHarnessError(
-                    IU4ShadowHarnessReasonCode.SANDBOX_INVALID,
-                    "sandbox became inconsistent during dry-run execution",
-                )
+            if continuation_blocked:
+                final_state = restart_state
+                sandbox_consistent = False
+            else:
+                final_report = sandbox.reconciliation_report()
+                final_state = sandbox.load_state()
+                if not final_report.consistent:
+                    raise IU4ShadowHarnessError(
+                        IU4ShadowHarnessReasonCode.SANDBOX_INVALID,
+                        "sandbox became inconsistent during dry-run execution",
+                    )
+                sandbox_consistent = True
 
         final_source_entries, final_manifest_fingerprint = _manifest(
             self.source_coordinator
@@ -671,10 +731,11 @@ class PaperIU4ShadowDryRunHarness:
             simulated_transaction_count=(
                 final_state.transaction_sequence - source_state.transaction_sequence
             ),
-            step_count=len(step_values),
+            step_count=len(outcomes),
             committed_step_count=statuses.count(STATUS_COMMITTED),
             noop_step_count=statuses.count(STATUS_NOOP),
             rejected_step_count=statuses.count(STATUS_REJECTED),
+            requested_step_count=len(step_values),
             restart_enabled=restart_after_steps is not None,
             restart_after_step=(
                 0 if restart_after_steps is None else restart_after_steps
@@ -684,8 +745,20 @@ class PaperIU4ShadowDryRunHarness:
             restart_state_fingerprint=restart_state_fingerprint,
             restart_transaction_sequence=restart_transaction_sequence,
             restart_state_restored=restart_state_restored,
+            restart_fault_injection=(
+                "" if restart_fault_injection is None else restart_fault_injection
+            ),
+            restart_fault_detected=restart_fault_detected,
+            restart_fault_reason_codes=restart_fault_reason_codes,
+            restart_fault_snapshot_sha256_before=(
+                restart_fault_snapshot_sha256_before
+            ),
+            restart_fault_snapshot_sha256_after=(
+                restart_fault_snapshot_sha256_after
+            ),
+            continuation_blocked=continuation_blocked,
             source_unchanged=True,
-            sandbox_consistent=True,
+            sandbox_consistent=sandbox_consistent,
             outcomes=outcomes,
         )
 
@@ -696,6 +769,7 @@ __all__ = [
     "IU4ShadowHarnessReasonCode",
     "IU4ShadowIntentStepV1",
     "PaperIU4ShadowDryRunHarness",
+    "RESTART_FAULT_SNAPSHOT_TRUNCATED",
     "SOURCE_EVENT_AUTONOMOUS_EXIT",
     "SOURCE_EVENT_INTENT",
 ]
