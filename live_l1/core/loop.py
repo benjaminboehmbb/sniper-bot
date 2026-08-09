@@ -1056,6 +1056,7 @@ def run_l1_loop_step1234567(
                     "timestamp_utc": features.timestamp_utc,
                     "symbol": features.symbol,
                     "price": float(features.price),
+                    "reference_price_text": str(features.reference_price_text).strip(),
                     "allow_long": int(features.allow_long),
                     "allow_short": int(features.allow_short),
                     "regime_v2": int(features.regime_v2),

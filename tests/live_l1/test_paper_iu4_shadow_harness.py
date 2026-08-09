@@ -215,6 +215,35 @@ class PaperIU4ShadowDryRunHarnessTests(unittest.TestCase):
 
         self.assertEqual(first, second)
 
+    def test_state_bound_requests_continue_after_rejected_entry(self) -> None:
+        steps = (
+            self._step(stop=D("105")),
+            self._step(
+                intent="SELL",
+                source_intent_id="INTENT-2",
+                system_state_id="SYSTEM-2",
+                timestamp="2026-08-09T10:01:00Z",
+                tick_id=101,
+                stop=D("105"),
+                trade_id="TRADE-2",
+            ),
+        )
+        report = PaperIU4ShadowDryRunHarness(
+            self.coordinator,
+            self._shadow_decision(),
+        ).run(steps)
+
+        self.assertEqual(
+            tuple(outcome.status for outcome in report.outcomes),
+            ("REJECTED", "COMMITTED"),
+        )
+        self.assertEqual(
+            tuple(outcome.action for outcome in report.outcomes),
+            ("OPEN_LONG", "OPEN_SHORT"),
+        )
+        self.assertEqual(report.outcomes[-1].state.position.trade_id, "TRADE-2")
+        self.assertEqual(self.coordinator.load_state().position.position, "FLAT")
+
     def test_kill_rejects_shadow_entry_without_source_write(self) -> None:
         self.coordinator.commit_kill_transition(
             transition_event_id="KILL-1",

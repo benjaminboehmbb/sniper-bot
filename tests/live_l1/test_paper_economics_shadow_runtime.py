@@ -514,6 +514,10 @@ class RuntimeShadowBridgeTests(unittest.TestCase):
                 [event.fields["snapshot_id"] for event in markets],
                 ["CSV-00000001", "CSV-00000002"],
             )
+            self.assertEqual(
+                [event.fields["reference_price_text"] for event in markets],
+                ["100000", "100100"],
+            )
 
 
 if __name__ == "__main__":

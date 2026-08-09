@@ -350,6 +350,23 @@ class PaperIU4ShadowDryRunHarness:
                 "every shadow step must be IU4ShadowIntentStepV1",
             )
         state = sandbox.load_state()
+        position = state.position.position
+        opens = position == "FLAT" and step.intent_final in ("BUY", "SELL")
+        closes = (position == "LONG" and step.intent_final == "SELL") or (
+            position == "SHORT" and step.intent_final == "BUY"
+        )
+        if opens:
+            trade_id = step.trade_id
+            reference_stop_price = step.reference_stop_price
+            target_system_state_id = step.target_system_state_id
+        else:
+            trade_id = getattr(state.position, "trade_id", "")
+            reference_stop_price = None
+            target_system_state_id = (
+                step.target_system_state_id
+                if closes
+                else state.position.system_state_id
+            )
         return IU4AdapterRequestV1(
             schema_version=1,
             request_id="",
@@ -357,12 +374,12 @@ class PaperIU4ShadowDryRunHarness:
             intent_final=step.intent_final,
             intent_reason_code=step.intent_reason_code,
             expected_state_fingerprint=state.state_fingerprint,
-            target_system_state_id=step.target_system_state_id,
+            target_system_state_id=target_system_state_id,
             timestamp_utc=step.timestamp_utc,
             tick_id=step.tick_id,
             reference_price=step.reference_price,
-            reference_stop_price=step.reference_stop_price,
-            trade_id=step.trade_id,
+            reference_stop_price=reference_stop_price,
+            trade_id=trade_id,
         )
 
     def run(

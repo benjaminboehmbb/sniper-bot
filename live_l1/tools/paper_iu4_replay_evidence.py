@@ -54,6 +54,16 @@ class IU4ReplayEvidenceExportV1:
     already_exists: bool
 
 
+@dataclass(frozen=True)
+class IU4ReplayJsonlExportV1:
+    output_path: Path
+    output_sha256: str
+    size_bytes: int
+    line_count: int
+    newly_written: bool
+    already_exists: bool
+
+
 def _reject_float(_: str) -> None:
     raise ValueError("JSON floating-point numbers are forbidden; use decimal strings")
 
@@ -271,7 +281,7 @@ def _publish_no_clobber(output: Path, payload: bytes) -> tuple[bool, bool]:
             return False, True
         raise IU4ReplayEvidenceError(
             IU4ReplayEvidenceReasonCode.OUTPUT_CONFLICT,
-            "existing evidence differs; overwrite is forbidden",
+            "existing immutable artifact differs; overwrite is forbidden",
         )
 
     descriptor, temporary_text = tempfile.mkstemp(
@@ -294,7 +304,7 @@ def _publish_no_clobber(output: Path, payload: bytes) -> tuple[bool, bool]:
                 return False, True
             raise IU4ReplayEvidenceError(
                 IU4ReplayEvidenceReasonCode.OUTPUT_CONFLICT,
-                "concurrent evidence differs; overwrite is forbidden",
+                "concurrent immutable artifact differs; overwrite is forbidden",
             ) from exc
         directory_descriptor = os.open(output.parent, os.O_RDONLY)
         try:
@@ -311,6 +321,90 @@ def _publish_no_clobber(output: Path, payload: bytes) -> tuple[bool, bool]:
         ) from exc
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def publish_immutable_bytes(
+    *,
+    output_path: str | Path,
+    payload: bytes,
+) -> tuple[bool, bool]:
+    if not isinstance(payload, bytes) or not payload:
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.OUTPUT_INVALID,
+            "immutable artifact payload must be non-empty bytes",
+        )
+    output = Path(output_path)
+    if output.is_symlink() or (output.exists() and not output.is_file()):
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.OUTPUT_INVALID,
+            "immutable artifact output must be a regular, non-symlink file",
+        )
+    if not output.parent.is_dir() or output.parent.is_symlink():
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.OUTPUT_INVALID,
+            "immutable artifact directory must exist and not be a symlink",
+        )
+    return _publish_no_clobber(output.resolve(), payload)
+
+
+def write_iu4_replay_jsonl(
+    *,
+    steps: tuple[IU4ShadowIntentStepV1, ...],
+    output_path: str | Path,
+) -> IU4ReplayJsonlExportV1:
+    if not isinstance(steps, tuple) or not steps:
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+            "replay output requires a non-empty tuple of steps",
+        )
+    if not all(isinstance(step, IU4ShadowIntentStepV1) for step in steps):
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+            "replay output requires IU4ShadowIntentStepV1 values",
+        )
+    seen_ids: set[str] = set()
+    previous_timestamp = ""
+    previous_tick = -1
+    for step in steps:
+        if step.source_intent_id in seen_ids:
+            raise IU4ReplayEvidenceError(
+                IU4ReplayEvidenceReasonCode.ORDER_INVALID,
+                "replay output source_intent_id values must be unique",
+            )
+        if previous_timestamp and step.timestamp_utc <= previous_timestamp:
+            raise IU4ReplayEvidenceError(
+                IU4ReplayEvidenceReasonCode.ORDER_INVALID,
+                "replay output timestamps must be strictly increasing",
+            )
+        if step.tick_id <= previous_tick:
+            raise IU4ReplayEvidenceError(
+                IU4ReplayEvidenceReasonCode.ORDER_INVALID,
+                "replay output tick_id values must be strictly increasing",
+            )
+        seen_ids.add(step.source_intent_id)
+        previous_timestamp = step.timestamp_utc
+        previous_tick = step.tick_id
+    output = Path(output_path)
+    payload = b"".join(_canonical_json(step.to_record()) + b"\n" for step in steps)
+    newly_written, already_exists = publish_immutable_bytes(
+        output_path=output,
+        payload=payload,
+    )
+    output = output.resolve()
+    loaded = load_iu4_replay_jsonl(output)
+    if loaded.steps != steps:
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.OUTPUT_CONFLICT,
+            "published replay does not equal the requested canonical steps",
+        )
+    return IU4ReplayJsonlExportV1(
+        output_path=output,
+        output_sha256=_sha256(payload),
+        size_bytes=len(payload),
+        line_count=len(steps),
+        newly_written=newly_written,
+        already_exists=already_exists,
+    )
 
 
 def export_iu4_replay_evidence(
@@ -369,6 +463,9 @@ __all__ = [
     "IU4ReplayEvidenceExportV1",
     "IU4ReplayEvidenceReasonCode",
     "IU4ReplayInputV1",
+    "IU4ReplayJsonlExportV1",
     "export_iu4_replay_evidence",
     "load_iu4_replay_jsonl",
+    "publish_immutable_bytes",
+    "write_iu4_replay_jsonl",
 ]
