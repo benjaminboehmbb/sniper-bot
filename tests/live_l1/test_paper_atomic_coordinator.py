@@ -356,6 +356,24 @@ class PaperAtomicCoordinatorTests(unittest.TestCase):
         )
         return result, flat, trade
 
+    def _commit_kill(self, **overrides: object):
+        return self.coordinator.commit_kill_transition(
+            transition_event_id=str(overrides.get("event_id", "KILL-1")),
+            expected_from_kill_level=str(overrides.get("from_level", "NONE")),
+            target_kill_level=str(overrides.get("to_level", "HARD")),
+            reason_code=str(overrides.get("reason_code", "RISK_LIMIT_BREACH")),
+            authorization_reference=str(
+                overrides.get("authorization_reference", "AUTH-S4-TEST-1")
+            ),
+            transition_timestamp_utc=str(
+                overrides.get("timestamp", "2026-08-09T10:00:00Z")
+            ),
+            transition_tick_id=int(overrides.get("tick_id", 100)),
+            simulate_interruption_after_journal=bool(
+                overrides.get("simulate_interruption_after_journal", False)
+            ),
+        )
+
     def test_initial_state_roundtrip_binds_all_component_fingerprints(self) -> None:
         restored = AtomicPaperStateV1.from_record(self.initial.to_record())
 
@@ -530,6 +548,141 @@ class PaperAtomicCoordinatorTests(unittest.TestCase):
             AtomicCoordinatorReasonCode.ENTRY_BLOCKED,
         )
         self.assertEqual(list(killed.transaction_directory.glob("*.json")), [])
+
+    def test_explicit_kill_transition_blocks_entry_and_preserves_exit(self) -> None:
+        before = self.coordinator.load_state()
+        result = self._commit_kill()
+
+        self.assertEqual(result.state.transaction_sequence, 1)
+        self.assertEqual(result.state.kill_transition_count, 1)
+        self.assertEqual(result.state.risk.kill_level, "HARD")
+        self.assertFalse(result.state.risk.entry_allowed)
+        self.assertTrue(result.state.risk.exit_allowed)
+        self.assertIn("PEE_S4_KILL_HARD", result.state.risk.reason_codes)
+        self.assertEqual(result.state.position, before.position)
+        self.assertEqual(result.state.account, before.account)
+        self.assertEqual(result.state.throttle, before.throttle)
+
+    def test_authorized_kill_deescalation_restores_flat_entry_permission(self) -> None:
+        self._commit_kill()
+        result = self._commit_kill(
+            event_id="KILL-2",
+            from_level="HARD",
+            to_level="NONE",
+            reason_code="MANUAL_RISK_CLEARANCE",
+            authorization_reference="AUTH-S4-CLEAR-1",
+            timestamp="2026-08-09T10:05:00Z",
+            tick_id=105,
+        )
+
+        self.assertEqual(result.state.kill_transition_count, 2)
+        self.assertEqual(result.state.risk.kill_level, "NONE")
+        self.assertTrue(result.state.risk.entry_allowed)
+        self.assertTrue(result.state.risk.exit_allowed)
+
+    def test_kill_transition_while_open_never_blocks_exit(self) -> None:
+        opened, _, _ = self._commit_open()
+        result = self._commit_kill(
+            event_id="KILL-OPEN-1",
+            timestamp="2026-08-09T10:30:00Z",
+            tick_id=130,
+        )
+
+        self.assertEqual(result.state.position, opened.state.position)
+        self.assertEqual(result.state.account, opened.state.account)
+        self.assertEqual(result.state.throttle, opened.state.throttle)
+        self.assertEqual(result.state.kill_transition_count, 1)
+        self.assertFalse(result.state.risk.entry_allowed)
+        self.assertTrue(result.state.risk.exit_allowed)
+
+    def test_kill_transition_requires_change_reason_and_authorization(self) -> None:
+        invalid_values = (
+            {"to_level": "NONE"},
+            {"reason_code": ""},
+            {"authorization_reference": ""},
+        )
+        for values in invalid_values:
+            with self.subTest(values=values):
+                with self.assertRaises(PaperAtomicCoordinatorError) as caught:
+                    self._commit_kill(**values)
+                self.assertEqual(
+                    caught.exception.reason_code,
+                    AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                )
+        self.assertEqual(list(self.coordinator.transaction_directory.glob("*.json")), [])
+
+    def test_kill_transition_rejects_stale_expected_level(self) -> None:
+        self._commit_kill()
+
+        with self.assertRaises(PaperAtomicCoordinatorError) as caught:
+            self._commit_kill(
+                event_id="KILL-2",
+                from_level="NONE",
+                to_level="SOFT",
+                timestamp="2026-08-09T10:05:00Z",
+                tick_id=105,
+            )
+
+        self.assertEqual(
+            caught.exception.reason_code,
+            AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+        )
+        self.assertEqual(self.coordinator.load_state().risk.kill_level, "HARD")
+
+    def test_kill_interruption_recovers_exactly_once_and_is_idempotent(self) -> None:
+        with self.assertRaises(SimulatedAtomicTransactionInterruption):
+            self._commit_kill(simulate_interruption_after_journal=True)
+
+        before = self.coordinator.reconciliation_report()
+        recovered = self.coordinator.recover()
+        duplicate = self._commit_kill()
+
+        self.assertFalse(before.consistent)
+        self.assertFalse(before.entry_allowed)
+        self.assertTrue(before.exit_allowed)
+        self.assertEqual(recovered.recovered_transaction_count, 1)
+        self.assertEqual(recovered.state.risk.kill_level, "HARD")
+        self.assertTrue(duplicate.already_committed)
+        self.assertEqual(duplicate.state, recovered.state)
+
+    def test_changed_duplicate_kill_event_is_rejected(self) -> None:
+        self._commit_kill()
+
+        with self.assertRaises(PaperAtomicCoordinatorError) as caught:
+            self._commit_kill(reason_code="DIFFERENT_REASON")
+
+        self.assertEqual(
+            caught.exception.reason_code,
+            AtomicCoordinatorReasonCode.JOURNAL_CONFLICT,
+        )
+
+    def test_open_record_without_optional_kill_payload_remains_readable(self) -> None:
+        opened, _, _ = self._commit_open()
+        record = json.loads(opened.journal_path.read_text(encoding="utf-8"))
+        record.pop("kill_transition")
+        opened.journal_path.write_text(json.dumps(record), encoding="utf-8")
+
+        report = self.coordinator.reconciliation_report()
+
+        self.assertTrue(report.consistent)
+        self.assertEqual(report.snapshot_transaction_sequence, 1)
+        self.assertTrue(report.exit_allowed)
+
+    def test_corrupt_kill_transition_journal_fails_closed(self) -> None:
+        result = self._commit_kill()
+        record = json.loads(result.journal_path.read_text(encoding="utf-8"))
+        record["kill_transition"]["authorization_reference"] = ""
+        result.journal_path.write_text(json.dumps(record), encoding="utf-8")
+
+        report = self.coordinator.reconciliation_report()
+
+        self.assertFalse(report.consistent)
+        self.assertFalse(report.entry_allowed)
+        self.assertTrue(report.exit_allowed)
+        self.assertEqual(
+            report.reason_codes,
+            (AtomicCoordinatorReasonCode.TRANSACTION_INVALID,),
+        )
 
     def test_throttle_limit_blocks_second_open_without_partial_state(self) -> None:
         limited_policy = make_policy(max_entries_per_utc_day=1)

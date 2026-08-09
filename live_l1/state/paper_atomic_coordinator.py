@@ -3,7 +3,7 @@
 
 One aggregate snapshot owns the publication boundary across S2 position,
 Paper Account/settlement, derived S4 risk state, and entry throttle.  Every
-OPEN/CLOSE transaction is written to an immutable write-ahead journal before
+OPEN/CLOSE/KILL transaction is written to an immutable write-ahead journal before
 the aggregate snapshot advances.  Recovery therefore publishes either the
 complete state before a transaction or the complete state after it.
 
@@ -47,6 +47,7 @@ from live_l1.state.paper_artifacts import (
 ARTIFACT_ATOMIC_TRANSACTION = "paper_atomic_transaction"
 TRANSACTION_OPEN = "OPEN"
 TRANSACTION_CLOSE = "CLOSE"
+TRANSACTION_KILL = "KILL"
 KILL_LEVELS = frozenset({"NONE", "SOFT", "HARD", "EMERGENCY"})
 POSITION_OPEN_REASON = "PEE_S4_POSITION_OPEN"
 
@@ -451,13 +452,13 @@ class AtomicPaperStateV1:
                 "S4 does not bind the exact atomic component heads",
             )
 
-        expected_transaction_sequence = (
+        economic_transaction_count = (
             self.throttle.total_accepted_entry_count + self.account.closed_trade_count
         )
-        if self.transaction_sequence != expected_transaction_sequence:
+        if self.transaction_sequence < economic_transaction_count:
             raise PaperAtomicCoordinatorError(
                 AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
-                "transaction sequence must equal accepted entries plus settlements",
+                "transaction sequence cannot trail accepted entries plus settlements",
             )
         if isinstance(self.position, PositionStateS2FlatV2):
             if (
@@ -527,6 +528,13 @@ class AtomicPaperStateV1:
     def state_fingerprint(self) -> str:
         return canonical_json_sha256(self.to_record())
 
+    @property
+    def kill_transition_count(self) -> int:
+        """Number of journaled non-economic S4 KILL transitions."""
+        return self.transaction_sequence - (
+            self.throttle.total_accepted_entry_count + self.account.closed_trade_count
+        )
+
 
 def _validate_trade_matches_open(
     trade: TradeRecordV2,
@@ -558,6 +566,75 @@ def _validate_trade_matches_open(
 
 
 @dataclass(frozen=True)
+class S4KillTransitionV1:
+    schema_version: int
+    transition_event_id: str
+    from_kill_level: str
+    to_kill_level: str
+    reason_code: str
+    authorization_reference: str
+    transition_timestamp_utc: str
+    transition_tick_id: int
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.schema_version, bool)
+            or not isinstance(self.schema_version, int)
+            or self.schema_version != 1
+        ):
+            raise PaperAtomicCoordinatorError(
+                AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                "S4KillTransitionV1 requires schema_version 1",
+            )
+        object.__setattr__(
+            self,
+            "transition_event_id",
+            _text(self.transition_event_id, "transition_event_id"),
+        )
+        for field_name in ("from_kill_level", "to_kill_level"):
+            level = _text(getattr(self, field_name), field_name).upper()
+            if level not in KILL_LEVELS:
+                raise PaperAtomicCoordinatorError(
+                    AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                    f"{field_name} is unsupported",
+                )
+            object.__setattr__(self, field_name, level)
+        if self.from_kill_level == self.to_kill_level:
+            raise PaperAtomicCoordinatorError(
+                AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                "S4 KILL transition must change the kill level",
+            )
+        object.__setattr__(self, "reason_code", _text(self.reason_code, "reason_code"))
+        object.__setattr__(
+            self,
+            "authorization_reference",
+            _text(self.authorization_reference, "authorization_reference"),
+        )
+        object.__setattr__(
+            self,
+            "transition_timestamp_utc",
+            _utc_timestamp_seconds(
+                self.transition_timestamp_utc,
+                "transition_timestamp_utc",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "transition_tick_id",
+            _integer(self.transition_tick_id, "transition_tick_id"),
+        )
+
+    def to_record(self) -> dict[str, Any]:
+        return {name: getattr(self, name) for name in self.__dataclass_fields__}
+
+    @classmethod
+    def from_record(cls, record: Mapping[str, Any]) -> "S4KillTransitionV1":
+        return cls(
+            **{name: record.get(name) for name in cls.__dataclass_fields__}
+        )
+
+
+@dataclass(frozen=True)
 class AtomicPaperTransactionV1:
     schema_version: int
     transaction_sequence: int
@@ -570,6 +647,7 @@ class AtomicPaperTransactionV1:
     state_after: AtomicPaperStateV1
     accepted_entry_event: AcceptedEntryEventV1 | None
     trade: TradeRecordV2 | None
+    kill_transition: S4KillTransitionV1 | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -626,10 +704,12 @@ class AtomicPaperTransactionV1:
             self._validate_open()
         elif transaction_type == TRANSACTION_CLOSE:
             self._validate_close()
+        elif transaction_type == TRANSACTION_KILL:
+            self._validate_kill()
         else:
             raise PaperAtomicCoordinatorError(
                 AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
-                "transaction_type must be OPEN or CLOSE",
+                "transaction_type must be OPEN, CLOSE, or KILL",
             )
 
     def _validate_open(self) -> None:
@@ -638,6 +718,7 @@ class AtomicPaperTransactionV1:
             or not isinstance(self.state_after.position, PositionStateS2V2)
             or not isinstance(self.accepted_entry_event, AcceptedEntryEventV1)
             or self.trade is not None
+            or self.kill_transition is not None
             or self.state_before.account != self.state_after.account
         ):
             raise PaperAtomicCoordinatorError(
@@ -663,6 +744,7 @@ class AtomicPaperTransactionV1:
             or not isinstance(self.state_after.position, PositionStateS2FlatV2)
             or self.accepted_entry_event is not None
             or not isinstance(self.trade, TradeRecordV2)
+            or self.kill_transition is not None
             or self.state_before.throttle != self.state_after.throttle
         ):
             raise PaperAtomicCoordinatorError(
@@ -683,6 +765,33 @@ class AtomicPaperTransactionV1:
             )
         _validate_trade_matches_open(trade, self.state_before.position)
 
+    def _validate_kill(self) -> None:
+        transition = self.kill_transition
+        if (
+            self.accepted_entry_event is not None
+            or self.trade is not None
+            or not isinstance(transition, S4KillTransitionV1)
+            or self.state_before.position != self.state_after.position
+            or self.state_before.account != self.state_after.account
+            or self.state_before.throttle != self.state_after.throttle
+        ):
+            raise PaperAtomicCoordinatorError(
+                AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                "KILL must atomically change only the bound S4 state",
+            )
+        if (
+            transition.transition_event_id != self.transaction_event_id
+            or transition.transition_timestamp_utc
+            != self.transaction_timestamp_utc
+            or transition.transition_tick_id != self.transaction_tick_id
+            or transition.from_kill_level != self.state_before.risk.kill_level
+            or transition.to_kill_level != self.state_after.risk.kill_level
+        ):
+            raise PaperAtomicCoordinatorError(
+                AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                "KILL transaction and S4 transition identities differ",
+            )
+
     def to_record(self) -> dict[str, Any]:
         return {
             "schema_version": self.schema_version,
@@ -701,6 +810,11 @@ class AtomicPaperTransactionV1:
                 else self.accepted_entry_event.to_record()
             ),
             "trade": None if self.trade is None else self.trade.to_record(),
+            "kill_transition": (
+                None
+                if self.kill_transition is None
+                else self.kill_transition.to_record()
+            ),
         }
 
     @classmethod
@@ -714,6 +828,7 @@ class AtomicPaperTransactionV1:
         after_raw = record.get("state_after")
         entry_raw = record.get("accepted_entry_event")
         trade_raw = record.get("trade")
+        kill_raw = record.get("kill_transition")
         if not isinstance(before_raw, Mapping) or not isinstance(after_raw, Mapping):
             raise PaperAtomicCoordinatorError(
                 AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
@@ -728,6 +843,11 @@ class AtomicPaperTransactionV1:
             raise PaperAtomicCoordinatorError(
                 AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
                 "trade must be an object or null",
+            )
+        if kill_raw is not None and not isinstance(kill_raw, Mapping):
+            raise PaperAtomicCoordinatorError(
+                AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                "kill_transition must be an object or null",
             )
         return cls(
             schema_version=record.get("schema_version"),
@@ -745,6 +865,11 @@ class AtomicPaperTransactionV1:
                 else AcceptedEntryEventV1.from_record(entry_raw)
             ),
             trade=None if trade_raw is None else TradeRecordV2.from_record(trade_raw),
+            kill_transition=(
+                None
+                if kill_raw is None
+                else S4KillTransitionV1.from_record(kill_raw)
+            ),
         )
 
     @property
@@ -978,7 +1103,10 @@ class PaperAtomicCoordinator:
         before = transaction.state_before
         after = transaction.state_after
         kill_level = before.risk.kill_level
-        if after.risk.kill_level != kill_level:
+        if (
+            transaction.transaction_type != TRANSACTION_KILL
+            and after.risk.kill_level != kill_level
+        ):
             raise PaperAtomicCoordinatorError(
                 AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
                 "OPEN/CLOSE transaction cannot silently change S4 kill level",
@@ -1017,7 +1145,7 @@ class PaperAtomicCoordinator:
                     AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
                     "OPEN throttle state_after is not reproducible",
                 )
-        else:
+        elif transaction.transaction_type == TRANSACTION_CLOSE:
             trade = transaction.trade
             assert trade is not None
             try:
@@ -1032,6 +1160,15 @@ class PaperAtomicCoordinator:
                     AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
                     "CLOSE account state_after is not reproducible",
                 )
+        else:
+            transition = transaction.kill_transition
+            assert transition is not None
+            if transition.from_kill_level != kill_level:
+                raise PaperAtomicCoordinatorError(
+                    AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                    "KILL transition was not built from the current S4 kill level",
+                )
+            kill_level = transition.to_kill_level
 
         expected_risk = self._build_risk(
             position=after.position,
@@ -1093,7 +1230,7 @@ class PaperAtomicCoordinator:
                         "S2 trade ID is duplicated",
                     )
                 open_trade_ids.add(trade_id)
-            else:
+            elif transaction.transaction_type == TRANSACTION_CLOSE:
                 assert transaction.trade is not None
                 if transaction.trade.trade_id in trade_ids:
                     raise PaperAtomicCoordinatorError(
@@ -1432,6 +1569,98 @@ class PaperAtomicCoordinator:
             simulate_interruption_after_journal=simulate_interruption_after_journal,
         )
 
+    def commit_kill_transition(
+        self,
+        *,
+        transition_event_id: str,
+        expected_from_kill_level: str,
+        target_kill_level: str,
+        reason_code: str,
+        authorization_reference: str,
+        transition_timestamp_utc: str,
+        transition_tick_id: int,
+        simulate_interruption_after_journal: bool = False,
+    ) -> AtomicCommitResult:
+        """Durably publish one explicit, authorized S4 kill-level transition."""
+        transition = S4KillTransitionV1(
+            schema_version=1,
+            transition_event_id=transition_event_id,
+            from_kill_level=expected_from_kill_level,
+            to_kill_level=target_kill_level,
+            reason_code=reason_code,
+            authorization_reference=authorization_reference,
+            transition_timestamp_utc=transition_timestamp_utc,
+            transition_tick_id=transition_tick_id,
+        )
+        current = self.load_state()
+        entries = self._journal_transactions()
+        duplicate = next(
+            (
+                existing
+                for _, existing in entries
+                if existing.transaction_event_id == transition.transition_event_id
+            ),
+            None,
+        )
+        if duplicate is not None:
+            if (
+                duplicate.transaction_type != TRANSACTION_KILL
+                or duplicate.kill_transition != transition
+            ):
+                raise PaperAtomicCoordinatorError(
+                    AtomicCoordinatorReasonCode.JOURNAL_CONFLICT,
+                    "same KILL event contains different transition data",
+                )
+            return self._commit(
+                duplicate,
+                simulate_interruption_after_journal=False,
+            )
+        if current.risk.kill_level != transition.from_kill_level:
+            raise PaperAtomicCoordinatorError(
+                AtomicCoordinatorReasonCode.TRANSACTION_INVALID,
+                "current S4 kill level does not match expected_from_kill_level",
+            )
+
+        sequence = current.transaction_sequence + 1
+        risk_after = self._build_risk(
+            position=current.position,
+            account=current.account,
+            throttle=current.throttle,
+            transaction_sequence=sequence,
+            event_id=transition.transition_event_id,
+            timestamp_utc=transition.transition_timestamp_utc,
+            tick_id=transition.transition_tick_id,
+            kill_level=transition.to_kill_level,
+        )
+        state_after = AtomicPaperStateV1(
+            schema_version=1,
+            coordinator_id=self.coordinator_id,
+            transaction_sequence=sequence,
+            last_transaction_event_id=transition.transition_event_id,
+            position=current.position,
+            account=current.account,
+            throttle=current.throttle,
+            risk=risk_after,
+        )
+        transaction = AtomicPaperTransactionV1(
+            schema_version=1,
+            transaction_sequence=sequence,
+            transaction_event_id=transition.transition_event_id,
+            previous_transaction_event_id=current.last_transaction_event_id,
+            transaction_type=TRANSACTION_KILL,
+            transaction_timestamp_utc=transition.transition_timestamp_utc,
+            transaction_tick_id=transition.transition_tick_id,
+            state_before=current,
+            state_after=state_after,
+            accepted_entry_event=None,
+            trade=None,
+            kill_transition=transition,
+        )
+        return self._commit(
+            transaction,
+            simulate_interruption_after_journal=simulate_interruption_after_journal,
+        )
+
     def reconciliation_report(self) -> AtomicReconciliationReport:
         try:
             current = self.load_state()
@@ -1523,7 +1752,9 @@ __all__ = [
     "PaperAtomicCoordinator",
     "PaperAtomicCoordinatorError",
     "PaperRiskStateS4V1",
+    "S4KillTransitionV1",
     "SimulatedAtomicTransactionInterruption",
     "TRANSACTION_CLOSE",
+    "TRANSACTION_KILL",
     "TRANSACTION_OPEN",
 ]
