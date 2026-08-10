@@ -12,6 +12,7 @@ from live_l1.tools.run_paper_iu4_x1_replay_dataset import (
     IU4X1DatasetReasonCode,
     run_x1_replay_dataset,
 )
+from live_l1.tools.paper_iu4_replay_pipeline import IU4ReplayPipelineError
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -202,6 +203,60 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
             IU4X1DatasetReasonCode.OUTPUT_INVALID,
         )
         self.assertEqual(marker.read_text(encoding="utf-8"), "keep")
+
+    def test_resume_reuses_completed_iu3_and_replay_input(self) -> None:
+        arguments = self._arguments()
+        first = run_x1_replay_dataset(**arguments)
+        replay_path = first.output_directory / "iu4_replay" / "replay.jsonl"
+        evidence_path = (
+            first.output_directory / "iu4_replay" / "replay_evidence.json"
+        )
+        replay_hash = hashlib.sha256(replay_path.read_bytes()).hexdigest()
+        evidence_hash = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+        evidence_path.unlink()
+        (first.output_directory / "iu4_replay" / "pipeline_receipt.json").unlink()
+        first.run_manifest_path.unlink()
+
+        resumed = run_x1_replay_dataset(
+            **arguments,
+            resume_existing_output=True,
+            progress_interval_steps=1,
+        )
+        progress = json.loads(
+            (resumed.output_directory / "iu4_replay" / "phase2_progress.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual(
+            hashlib.sha256(replay_path.read_bytes()).hexdigest(), replay_hash
+        )
+        self.assertEqual(
+            hashlib.sha256(evidence_path.read_bytes()).hexdigest(), evidence_hash
+        )
+        self.assertTrue(resumed.pipeline.input_build.replay.already_exists)
+        self.assertEqual(progress["completed_steps"], 3)
+        self.assertEqual(progress["total_steps"], 3)
+        self.assertEqual(progress["percentage"], 100.0)
+        self.assertEqual(progress["status"], "COMPLETE")
+
+    def test_resume_rejects_modified_replay_input(self) -> None:
+        arguments = self._arguments()
+        first = run_x1_replay_dataset(**arguments)
+        replay_path = first.output_directory / "iu4_replay" / "replay.jsonl"
+        (first.output_directory / "iu4_replay" / "replay_evidence.json").unlink()
+        (first.output_directory / "iu4_replay" / "pipeline_receipt.json").unlink()
+        first.run_manifest_path.unlink()
+        replay_path.write_bytes(replay_path.read_bytes() + b"{}\n")
+
+        with self.assertRaises(IU4ReplayPipelineError):
+            run_x1_replay_dataset(
+                **arguments,
+                resume_existing_output=True,
+            )
+        self.assertFalse(
+            (first.output_directory / "iu4_replay" / "replay_evidence.json").exists()
+        )
 
 
 if __name__ == "__main__":

@@ -189,6 +189,138 @@ def _initial_atomic_coordinator(
     return coordinator
 
 
+def _resume_atomic_coordinator(
+    *,
+    root: Path,
+    source_id: str,
+    config: PaperEconomicsConfig,
+    policy: PaperEntryThrottlePolicy,
+    execution_host: str,
+) -> PaperAtomicCoordinator:
+    identity = _sha256_bytes(source_id.encode("utf-8"))[:16]
+    coordinator = PaperAtomicCoordinator(
+        root,
+        config,
+        policy,
+        coordinator_id=f"IU4-{execution_host}-REPLAY-BTCUSDT-{identity}",
+        symbol="BTCUSDT",
+    )
+    report = coordinator.reconciliation_report()
+    state = coordinator.load_state()
+    if not report.consistent or state.transaction_sequence != 0:
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.OUTPUT_INVALID,
+            "resume atomic source must be reconciled at transaction sequence zero",
+        )
+    return coordinator
+
+
+def _load_resume_iu3_manifest(
+    *,
+    iu3_directory: Path,
+    source_csv: Path,
+    expected_source_sha256: str,
+    economics_profile_json: Path,
+    seed_csv: Path,
+    max_ticks: int,
+    valid_row_offset: int,
+    source_id: str,
+    git_commit: str,
+) -> dict[str, Any]:
+    manifest_path = iu3_directory / "run_manifest.json"
+    if not manifest_path.is_file() or manifest_path.is_symlink():
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.OUTPUT_INVALID,
+            "resume requires the existing IU3 manifest",
+        )
+    manifest = _json_object(manifest_path)
+    source_record = manifest.get("source_csv")
+    slice_record = manifest.get("normalized_market_slice")
+    profile_record = manifest.get("profile")
+    seed_record = manifest.get("seed_csv")
+    runtime_record = manifest.get("runtime")
+    sidecar_record = manifest.get("sidecar")
+    output_hashes = manifest.get("output_hashes")
+    if not all(
+        isinstance(value, Mapping)
+        for value in (
+            source_record,
+            slice_record,
+            profile_record,
+            seed_record,
+            runtime_record,
+            sidecar_record,
+            output_hashes,
+        )
+    ):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.OUTPUT_INVALID,
+            "resume IU3 manifest misses required objects",
+        )
+    checks = (
+        manifest.get("artifact_type") == "pee_iu3_shadow_validation_manifest",
+        manifest.get("source_id") == source_id,
+        manifest.get("git_commit") == git_commit,
+        source_record.get("sha256") == expected_source_sha256.lower(),
+        _sha256_file(source_csv) == expected_source_sha256.lower(),
+        profile_record.get("file_sha256") == _sha256_file(economics_profile_json),
+        seed_record.get("sha256") == _sha256_file(seed_csv),
+        runtime_record.get("return_code") == 0,
+        runtime_record.get("max_ticks") == max_ticks,
+        slice_record.get("valid_row_offset") == valid_row_offset,
+        slice_record.get("rows_written") == max_ticks,
+        sidecar_record.get("issues") == 0,
+    )
+    if not all(checks):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.OUTPUT_INVALID,
+            "resume parameters do not match the completed IU3 evidence",
+        )
+    for relative_name, expected_hash in output_hashes.items():
+        if not isinstance(relative_name, str) or not isinstance(expected_hash, str):
+            raise IU4X1DatasetError(
+                IU4X1DatasetReasonCode.OUTPUT_INVALID,
+                "resume IU3 output hash manifest is invalid",
+            )
+        path = (iu3_directory / relative_name).resolve()
+        iu3_root = iu3_directory.resolve()
+        if iu3_root not in path.parents:
+            raise IU4X1DatasetError(
+                IU4X1DatasetReasonCode.OUTPUT_INVALID,
+                "resume IU3 output path escapes its run directory",
+            )
+        if not path.is_file() or path.is_symlink() or _sha256_file(path) != expected_hash:
+            raise IU4X1DatasetError(
+                IU4X1DatasetReasonCode.OUTPUT_INVALID,
+                f"resume IU3 artifact hash mismatch: {relative_name}",
+            )
+    return manifest
+
+
+def _progress_callback(path: Path):
+    if path.is_symlink():
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.OUTPUT_INVALID,
+            "progress path must not be a symlink",
+        )
+
+    def publish(completed: int, total: int) -> None:
+        percentage = 100.0 if total == 0 else round(completed * 100 / total, 2)
+        record = {
+            "artifact_type": "PEE_IU4_REPLAY_OPERATIONAL_PROGRESS",
+            "schema_version": 1,
+            "completed_steps": completed,
+            "total_steps": total,
+            "percentage": percentage,
+            "status": "COMPLETE" if completed == total else "RUNNING",
+        }
+        temporary = path.with_name(f".{path.name}.tmp")
+        temporary.write_bytes(_canonical_json(record) + b"\n")
+        temporary.replace(path)
+
+    return publish
+
+
 def run_x1_replay_dataset(
     *,
     source_csv: Path,
@@ -205,17 +337,41 @@ def run_x1_replay_dataset(
     execution_host: str = EXECUTION_HOST_X1,
     restart_after_steps: int | None = None,
     restart_fault_injection: str | None = None,
+    resume_existing_output: bool = False,
+    progress_interval_steps: int = 10_000,
 ) -> IU4X1DatasetRunV1:
-    output_directory = output_directory.resolve()
-    if output_directory.exists():
+    output_candidate = output_directory
+    if resume_existing_output and output_candidate.is_symlink():
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.OUTPUT_INVALID,
+            "resume output must not be a symlink",
+        )
+    output_directory = output_candidate.resolve()
+    if output_directory.exists() and not resume_existing_output:
         raise IU4X1DatasetError(
             IU4X1DatasetReasonCode.OUTPUT_INVALID,
             "output directory already exists",
+        )
+    if resume_existing_output and (
+        not output_directory.is_dir() or output_directory.is_symlink()
+    ):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.OUTPUT_INVALID,
+            "resume output must be an existing non-symlink directory",
         )
     if max_ticks < 1 or valid_row_offset < 0:
         raise IU4X1DatasetError(
             IU4X1DatasetReasonCode.INPUT_INVALID,
             "max_ticks must be positive and valid_row_offset non-negative",
+        )
+    if (
+        isinstance(progress_interval_steps, bool)
+        or not isinstance(progress_interval_steps, int)
+        or progress_interval_steps < 1
+    ):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.INPUT_INVALID,
+            "progress_interval_steps must be a positive integer",
         )
     if execution_host not in EXECUTION_HOSTS:
         raise IU4X1DatasetError(
@@ -260,30 +416,55 @@ def run_x1_replay_dataset(
         )
     config = settings.config
     git_commit = _git_head()
-    output_directory.mkdir(parents=True)
+    if not resume_existing_output:
+        output_directory.mkdir(parents=True)
     iu3_directory = output_directory / "iu3_source"
-    iu3_manifest = run_validation(
-        source_csv=source_csv.resolve(),
-        expected_source_sha256=expected_source_sha256,
-        profile_json=economics_profile_json.resolve(),
-        seed_csv=seed_csv.resolve(),
-        output_directory=iu3_directory,
-        max_ticks=max_ticks,
-        valid_row_offset=valid_row_offset,
-        source_id=source_id,
+    iu3_manifest = (
+        _load_resume_iu3_manifest(
+            iu3_directory=iu3_directory,
+            source_csv=source_csv,
+            expected_source_sha256=expected_source_sha256,
+            economics_profile_json=economics_profile_json,
+            seed_csv=seed_csv,
+            max_ticks=max_ticks,
+            valid_row_offset=valid_row_offset,
+            source_id=source_id,
+            git_commit=git_commit,
+        )
+        if resume_existing_output
+        else run_validation(
+            source_csv=source_csv.resolve(),
+            expected_source_sha256=expected_source_sha256,
+            profile_json=economics_profile_json.resolve(),
+            seed_csv=seed_csv.resolve(),
+            output_directory=iu3_directory,
+            max_ticks=max_ticks,
+            valid_row_offset=valid_row_offset,
+            source_id=source_id,
+        )
     )
     first_timestamp = str(
         iu3_manifest["normalized_market_slice"]["first_timestamp_utc"]
     )
     first_utc_day = first_timestamp[:10]
     atomic_directory = output_directory / "atomic_source"
-    coordinator = _initial_atomic_coordinator(
-        root=atomic_directory,
-        source_id=source_id,
-        first_utc_day=first_utc_day,
-        config=config,
-        policy=policy,
-        execution_host=execution_host,
+    coordinator = (
+        _resume_atomic_coordinator(
+            root=atomic_directory,
+            source_id=source_id,
+            config=config,
+            policy=policy,
+            execution_host=execution_host,
+        )
+        if resume_existing_output
+        else _initial_atomic_coordinator(
+            root=atomic_directory,
+            source_id=source_id,
+            first_utc_day=first_utc_day,
+            config=config,
+            policy=policy,
+            execution_host=execution_host,
+        )
     )
     state = coordinator.load_state()
     gate_request = IU4StartupModeRequestV1(
@@ -310,7 +491,20 @@ def run_x1_replay_dataset(
         running_repository_commit_sha=git_commit,
     )
     iu4_directory = output_directory / "iu4_replay"
-    iu4_directory.mkdir()
+    if resume_existing_output:
+        for completed_path in (
+            iu4_directory / "replay_evidence.json",
+            iu4_directory / "pipeline_receipt.json",
+            output_directory / "run_manifest.json",
+        ):
+            if completed_path.exists() or completed_path.is_symlink():
+                raise IU4X1DatasetError(
+                    IU4X1DatasetReasonCode.OUTPUT_INVALID,
+                    "resume refuses a run with completed or conflicting outputs",
+                )
+    else:
+        iu4_directory.mkdir()
+    progress_path = iu4_directory / "phase2_progress.json"
     pipeline = run_iu4_replay_pipeline_smoke(
         source_log_path=iu3_directory / "live_logs" / "l1.log",
         replay_output_path=iu4_directory / "replay.jsonl",
@@ -324,6 +518,10 @@ def run_x1_replay_dataset(
         generated_at_utc=generated_at_utc,
         restart_after_steps=restart_after_steps,
         restart_fault_injection=restart_fault_injection,
+        reuse_existing_replay_input=resume_existing_output,
+        progress_callback=_progress_callback(progress_path),
+        progress_interval_steps=progress_interval_steps,
+        stream_evidence_output=resume_existing_output,
     )
     receipt_path = pipeline.receipt_path
     manifest_base = {
@@ -417,6 +615,8 @@ def _parser() -> argparse.ArgumentParser:
         "--restart-fault-injection",
         choices=(RESTART_FAULT_SNAPSHOT_TRUNCATED,),
     )
+    parser.add_argument("--resume-existing-output", action="store_true")
+    parser.add_argument("--progress-interval-steps", type=int, default=10_000)
     return parser
 
 
@@ -439,6 +639,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         execution_host=args.execution_host,
         restart_after_steps=args.restart_after_steps,
         restart_fault_injection=args.restart_fault_injection,
+        resume_existing_output=args.resume_existing_output,
+        progress_interval_steps=args.progress_interval_steps,
     )
     evidence = result.pipeline.evidence_export.evidence
     validation = evidence["validation"]

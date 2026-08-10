@@ -10,7 +10,7 @@ import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from live_l1.core.paper_entry_throttle import canonical_utc_timestamp
 from live_l1.core.paper_iu4_adapter import IU4AdapterResultV1
@@ -209,13 +209,11 @@ def _outcome_record(
     }
 
 
-def _evidence_record(
+def _evidence_components(
     *,
     replay: IU4ReplayInputV1,
     report: IU4ShadowDryRunReportV1,
-    replay_id: str,
-    generated_at_utc: str,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     if report.continuation_blocked:
         if (
             not report.restart_fault_detected
@@ -232,69 +230,199 @@ def _evidence_record(
             IU4ReplayEvidenceReasonCode.INPUT_INVALID,
             "completed replay report must contain one outcome per input step",
         )
-    autonomous_pairs = tuple(
+    autonomous_pairs = (
         (step, outcome)
         for step, outcome in zip(replay.steps, report.outcomes)
         if step.source_event_kind == "AUTONOMOUS_EXIT_EXECUTION"
     )
+    autonomous_step_count = 0
+    autonomous_committed_count = 0
+    for step, outcome in autonomous_pairs:
+        autonomous_step_count += 1
+        autonomous_committed_count += (
+            outcome.status == "COMMITTED"
+            and outcome.action == step.source_execution_action
+        )
+    input_record = {
+        "logical_name": replay.path.name,
+        "sha256": replay.sha256,
+        "size_bytes": replay.size_bytes,
+        "line_count": replay.line_count,
+    }
+    validation = {
+        "source_manifest_fingerprint": report.source_manifest_fingerprint,
+        "source_initial_state_fingerprint": report.source_initial_state_fingerprint,
+        "source_final_state_fingerprint": report.source_final_state_fingerprint,
+        "sandbox_final_state_fingerprint": report.sandbox_final_state_fingerprint,
+        "source_initial_transaction_sequence": (
+            report.source_initial_transaction_sequence
+        ),
+        "sandbox_final_transaction_sequence": (
+            report.sandbox_final_transaction_sequence
+        ),
+        "simulated_transaction_count": report.simulated_transaction_count,
+        "step_count": report.step_count,
+        "requested_step_count": report.requested_step_count,
+        "committed_step_count": report.committed_step_count,
+        "noop_step_count": report.noop_step_count,
+        "rejected_step_count": report.rejected_step_count,
+        "autonomous_exit_step_count": autonomous_step_count,
+        "autonomous_exit_committed_count": autonomous_committed_count,
+        "restart_enabled": report.restart_enabled,
+        "restart_after_step": report.restart_after_step,
+        "restart_count": report.restart_count,
+        "restart_position": report.restart_position,
+        "restart_state_fingerprint": report.restart_state_fingerprint,
+        "restart_transaction_sequence": report.restart_transaction_sequence,
+        "restart_state_restored": report.restart_state_restored,
+        "restart_fault_injection": report.restart_fault_injection,
+        "restart_fault_detected": report.restart_fault_detected,
+        "restart_fault_reason_codes": list(report.restart_fault_reason_codes),
+        "restart_fault_snapshot_sha256_before": (
+            report.restart_fault_snapshot_sha256_before
+        ),
+        "restart_fault_snapshot_sha256_after": (
+            report.restart_fault_snapshot_sha256_after
+        ),
+        "continuation_blocked": report.continuation_blocked,
+        "source_unchanged": report.source_unchanged,
+        "sandbox_consistent": report.sandbox_consistent,
+    }
+    return input_record, validation
+
+
+def _evidence_record(
+    *,
+    replay: IU4ReplayInputV1,
+    report: IU4ShadowDryRunReportV1,
+    replay_id: str,
+    generated_at_utc: str,
+) -> dict[str, Any]:
+    input_record, validation = _evidence_components(replay=replay, report=report)
     base = {
         "artifact_type": "PEE_IU4_SHADOW_REPLAY_EVIDENCE",
         "schema_version": 1,
         "replay_id": replay_id,
         "generated_at_utc": generated_at_utc,
-        "input": {
-            "logical_name": replay.path.name,
-            "sha256": replay.sha256,
-            "size_bytes": replay.size_bytes,
-            "line_count": replay.line_count,
-        },
-        "validation": {
-            "source_manifest_fingerprint": report.source_manifest_fingerprint,
-            "source_initial_state_fingerprint": report.source_initial_state_fingerprint,
-            "source_final_state_fingerprint": report.source_final_state_fingerprint,
-            "sandbox_final_state_fingerprint": report.sandbox_final_state_fingerprint,
-            "source_initial_transaction_sequence": report.source_initial_transaction_sequence,
-            "sandbox_final_transaction_sequence": report.sandbox_final_transaction_sequence,
-            "simulated_transaction_count": report.simulated_transaction_count,
-            "step_count": report.step_count,
-            "requested_step_count": report.requested_step_count,
-            "committed_step_count": report.committed_step_count,
-            "noop_step_count": report.noop_step_count,
-            "rejected_step_count": report.rejected_step_count,
-            "autonomous_exit_step_count": len(autonomous_pairs),
-            "autonomous_exit_committed_count": sum(
-                outcome.status == "COMMITTED"
-                and outcome.action == step.source_execution_action
-                for step, outcome in autonomous_pairs
-            ),
-            "restart_enabled": report.restart_enabled,
-            "restart_after_step": report.restart_after_step,
-            "restart_count": report.restart_count,
-            "restart_position": report.restart_position,
-            "restart_state_fingerprint": report.restart_state_fingerprint,
-            "restart_transaction_sequence": report.restart_transaction_sequence,
-            "restart_state_restored": report.restart_state_restored,
-            "restart_fault_injection": report.restart_fault_injection,
-            "restart_fault_detected": report.restart_fault_detected,
-            "restart_fault_reason_codes": list(
-                report.restart_fault_reason_codes
-            ),
-            "restart_fault_snapshot_sha256_before": (
-                report.restart_fault_snapshot_sha256_before
-            ),
-            "restart_fault_snapshot_sha256_after": (
-                report.restart_fault_snapshot_sha256_after
-            ),
-            "continuation_blocked": report.continuation_blocked,
-            "source_unchanged": report.source_unchanged,
-            "sandbox_consistent": report.sandbox_consistent,
-        },
+        "input": input_record,
+        "validation": validation,
         "outcomes": [
             _outcome_record(index, outcome, replay.steps[index - 1])
             for index, outcome in enumerate(report.outcomes, start=1)
         ],
     }
     return {**base, "evidence_fingerprint": _sha256(_canonical_json(base))}
+
+
+def _stream_evidence(
+    *,
+    output: Path,
+    replay: IU4ReplayInputV1,
+    report: IU4ShadowDryRunReportV1,
+    replay_id: str,
+    generated_at_utc: str,
+) -> tuple[dict[str, Any], str, bool, bool]:
+    input_record, validation = _evidence_components(replay=replay, report=report)
+    artifact_type = "PEE_IU4_SHADOW_REPLAY_EVIDENCE"
+    base_prefix = (
+        b'{"artifact_type":'
+        + _canonical_json(artifact_type)
+        + b',"generated_at_utc":'
+        + _canonical_json(generated_at_utc)
+        + b',"input":'
+        + _canonical_json(input_record)
+        + b',"outcomes":['
+    )
+    base_suffix = (
+        b'],"replay_id":'
+        + _canonical_json(replay_id)
+        + b',"schema_version":1,"validation":'
+        + _canonical_json(validation)
+        + b'}'
+    )
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{output.name}.", suffix=".tmp", dir=str(output.parent)
+    )
+    temporary = Path(temporary_name)
+    fingerprint_hash = hashlib.sha256()
+    fingerprint_hash.update(base_prefix)
+    placeholder = b"0" * 64
+    final_prefix_before_hash = (
+        b'{"artifact_type":'
+        + _canonical_json(artifact_type)
+        + b',"evidence_fingerprint":"'
+    )
+    final_prefix_after_hash = (
+        b'","generated_at_utc":'
+        + _canonical_json(generated_at_utc)
+        + b',"input":'
+        + _canonical_json(input_record)
+        + b',"outcomes":['
+    )
+    try:
+        with os.fdopen(descriptor, "w+b") as handle:
+            handle.write(final_prefix_before_hash)
+            fingerprint_offset = handle.tell()
+            handle.write(placeholder)
+            handle.write(final_prefix_after_hash)
+            for index, outcome in enumerate(report.outcomes, start=1):
+                if index > 1:
+                    handle.write(b",")
+                    fingerprint_hash.update(b",")
+                payload = _canonical_json(
+                    _outcome_record(index, outcome, replay.steps[index - 1])
+                )
+                handle.write(payload)
+                fingerprint_hash.update(payload)
+            handle.write(base_suffix + b"\n")
+            fingerprint_hash.update(base_suffix)
+            evidence_fingerprint = fingerprint_hash.hexdigest()
+            handle.seek(fingerprint_offset)
+            handle.write(evidence_fingerprint.encode("ascii"))
+            handle.flush()
+            os.fsync(handle.fileno())
+        output_hash = hashlib.sha256()
+        with temporary.open("rb") as handle:
+            for block in iter(lambda: handle.read(1024 * 1024), b""):
+                output_hash.update(block)
+        try:
+            os.link(temporary, output)
+            newly_written, already_exists = True, False
+        except FileExistsError as exc:
+            existing_hash = hashlib.sha256()
+            with output.open("rb") as handle:
+                for block in iter(lambda: handle.read(1024 * 1024), b""):
+                    existing_hash.update(block)
+            if existing_hash.hexdigest() != output_hash.hexdigest():
+                raise IU4ReplayEvidenceError(
+                    IU4ReplayEvidenceReasonCode.OUTPUT_CONFLICT,
+                    "existing immutable artifact differs; overwrite is forbidden",
+                ) from exc
+            newly_written, already_exists = False, True
+        directory_descriptor = os.open(output.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+        summary = {
+            "artifact_type": artifact_type,
+            "schema_version": 1,
+            "replay_id": replay_id,
+            "generated_at_utc": generated_at_utc,
+            "input": input_record,
+            "validation": validation,
+            "evidence_fingerprint": evidence_fingerprint,
+        }
+        return summary, output_hash.hexdigest(), newly_written, already_exists
+    except IU4ReplayEvidenceError:
+        raise
+    except OSError as exc:
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.WRITE_FAILED,
+            f"streaming evidence publish failed: {exc}",
+        ) from exc
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _validate_output_path(
@@ -471,6 +599,9 @@ def export_iu4_replay_evidence(
     generated_at_utc: str,
     restart_after_steps: int | None = None,
     restart_fault_injection: str | None = None,
+    progress_callback: Callable[[int, int], None] | None = None,
+    progress_interval_steps: int = 10_000,
+    stream_output: bool = False,
 ) -> IU4ReplayEvidenceExportV1:
     if not isinstance(harness, PaperIU4ShadowDryRunHarness):
         raise IU4ReplayEvidenceError(
@@ -501,19 +632,31 @@ def export_iu4_replay_evidence(
         replay.steps,
         restart_after_steps=restart_after_steps,
         restart_fault_injection=restart_fault_injection,
+        progress_callback=progress_callback,
+        progress_interval_steps=progress_interval_steps,
     )
-    evidence = _evidence_record(
-        replay=replay,
-        report=report,
-        replay_id=replay_id,
-        generated_at_utc=generated,
-    )
-    payload = _canonical_json(evidence) + b"\n"
-    newly_written, already_exists = _publish_no_clobber(output, payload)
+    if stream_output:
+        evidence, output_sha256, newly_written, already_exists = _stream_evidence(
+            output=output,
+            replay=replay,
+            report=report,
+            replay_id=replay_id,
+            generated_at_utc=generated,
+        )
+    else:
+        evidence = _evidence_record(
+            replay=replay,
+            report=report,
+            replay_id=replay_id,
+            generated_at_utc=generated,
+        )
+        payload = _canonical_json(evidence) + b"\n"
+        newly_written, already_exists = _publish_no_clobber(output, payload)
+        output_sha256 = _sha256(payload)
     return IU4ReplayEvidenceExportV1(
         output_path=output,
         evidence=evidence,
-        output_sha256=_sha256(payload),
+        output_sha256=output_sha256,
         newly_written=newly_written,
         already_exists=already_exists,
     )

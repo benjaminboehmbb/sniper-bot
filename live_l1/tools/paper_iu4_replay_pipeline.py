@@ -7,7 +7,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from live_l1.core.paper_entry_throttle import canonical_utc_timestamp
 from live_l1.core.paper_iu4_shadow_harness import PaperIU4ShadowDryRunHarness
@@ -15,6 +15,7 @@ from live_l1.core.paper_iu4_startup_gate import IU4StartupGateDecisionV1
 from live_l1.state.paper_atomic_coordinator import PaperAtomicCoordinator
 from live_l1.tools.paper_iu4_replay_evidence import (
     IU4ReplayEvidenceExportV1,
+    IU4ReplayJsonlExportV1,
     export_iu4_replay_evidence,
     publish_immutable_bytes,
 )
@@ -51,6 +52,101 @@ class IU4ReplayPipelineSmokeV1:
 
 def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _existing_input_build(
+    *,
+    source: Path,
+    replay_output: Path,
+    replay_manifest: Path,
+    reference_stop_rate: str,
+) -> IU4ReplayInputBuildV1:
+    if not replay_output.is_file() or not replay_manifest.is_file():
+        raise IU4ReplayPipelineError(
+            IU4ReplayPipelineReasonCode.INPUT_INVALID,
+            "resume requires existing replay input and manifest",
+        )
+    record = _json_object(replay_manifest)
+    if not _verify_record_fingerprint(record, field_name="manifest_fingerprint"):
+        raise IU4ReplayPipelineError(
+            IU4ReplayPipelineReasonCode.CHAIN_INVALID,
+            "replay input manifest fingerprint is invalid",
+        )
+    source_record = record.get("source")
+    replay_record = record.get("replay")
+    builder_record = record.get("builder")
+    if not all(
+        isinstance(value, Mapping)
+        for value in (source_record, replay_record, builder_record)
+    ):
+        raise IU4ReplayPipelineError(
+            IU4ReplayPipelineReasonCode.CHAIN_INVALID,
+            "replay input manifest misses required objects",
+        )
+    source_size = source.stat().st_size
+    replay_size = replay_output.stat().st_size
+    source_hash = _sha256_file(source)
+    replay_hash = _sha256_file(replay_output)
+    with replay_output.open("rb") as handle:
+        line_count = sum(1 for _ in handle)
+    checks = (
+        record.get("artifact_type") == "PEE_IU4_REPLAY_INPUT_MANIFEST",
+        record.get("schema_version") == 2,
+        source_record.get("logical_name") == source.name,
+        source_record.get("sha256") == source_hash,
+        source_record.get("size_bytes") == source_size,
+        replay_record.get("logical_name") == replay_output.name,
+        replay_record.get("sha256") == replay_hash,
+        replay_record.get("size_bytes") == replay_size,
+        replay_record.get("line_count") == line_count,
+        builder_record.get("reference_stop_rate") == reference_stop_rate,
+    )
+    statistic_names = (
+        "source_non_empty_lines",
+        "parsed_event_count",
+        "market_event_count",
+        "intent_event_count",
+        "execution_event_count",
+        "executed_exit_event_count",
+        "autonomous_exit_event_count",
+    )
+    statistics = {name: source_record.get(name) for name in statistic_names}
+    if not all(checks) or any(
+        isinstance(value, bool) or not isinstance(value, int) or value < 0
+        for value in statistics.values()
+    ):
+        raise IU4ReplayPipelineError(
+            IU4ReplayPipelineReasonCode.CHAIN_INVALID,
+            "existing replay input does not match its immutable manifest",
+        )
+    manifest_payload = replay_manifest.read_bytes()
+    replay = IU4ReplayJsonlExportV1(
+        output_path=replay_output,
+        output_sha256=replay_hash,
+        size_bytes=replay_size,
+        line_count=line_count,
+        newly_written=False,
+        already_exists=True,
+    )
+    return IU4ReplayInputBuildV1(
+        source_path=source,
+        source_sha256=source_hash,
+        source_size_bytes=source_size,
+        replay=replay,
+        manifest_path=replay_manifest,
+        manifest_sha256=_sha256(manifest_payload),
+        manifest_newly_written=False,
+        manifest_already_exists=True,
+        **statistics,
+    )
 
 
 def _canonical_json(value: object) -> bytes:
@@ -162,6 +258,10 @@ def run_iu4_replay_pipeline_smoke(
     generated_at_utc: str,
     restart_after_steps: int | None = None,
     restart_fault_injection: str | None = None,
+    reuse_existing_replay_input: bool = False,
+    progress_callback: Callable[[int, int], None] | None = None,
+    progress_interval_steps: int = 10_000,
+    stream_evidence_output: bool = False,
 ) -> IU4ReplayPipelineSmokeV1:
     if not isinstance(source_coordinator, PaperAtomicCoordinator):
         raise IU4ReplayPipelineError(
@@ -184,16 +284,25 @@ def run_iu4_replay_pipeline_smoke(
         source_root=source_coordinator.root_directory,
     )
     replay_output, replay_manifest, replay_evidence, pipeline_receipt = outputs
-    source_bytes = source.read_bytes()
-    source_hash = _sha256(source_bytes)
+    source_hash = _sha256_file(source)
+    source_size = source.stat().st_size
     atomic_before, atomic_manifest_before = _coordinator_manifest(source_coordinator)
     state_before = source_coordinator.load_state()
 
-    input_build = build_iu4_replay_input_from_l1_log(
-        source_path=source,
-        output_path=replay_output,
-        manifest_path=replay_manifest,
-        reference_stop_rate=reference_stop_rate,
+    input_build = (
+        _existing_input_build(
+            source=source,
+            replay_output=replay_output,
+            replay_manifest=replay_manifest,
+            reference_stop_rate=reference_stop_rate,
+        )
+        if reuse_existing_replay_input
+        else build_iu4_replay_input_from_l1_log(
+            source_path=source,
+            output_path=replay_output,
+            manifest_path=replay_manifest,
+            reference_stop_rate=reference_stop_rate,
+        )
     )
     harness = PaperIU4ShadowDryRunHarness(
         source_coordinator,
@@ -207,10 +316,17 @@ def run_iu4_replay_pipeline_smoke(
         generated_at_utc=generated_at_utc,
         restart_after_steps=restart_after_steps,
         restart_fault_injection=restart_fault_injection,
+        progress_callback=progress_callback,
+        progress_interval_steps=progress_interval_steps,
+        stream_output=stream_evidence_output,
     )
 
     input_manifest_record = _json_object(replay_manifest)
-    evidence_record = _json_object(replay_evidence)
+    evidence_record = (
+        dict(evidence_export.evidence)
+        if stream_evidence_output
+        else _json_object(replay_evidence)
+    )
     if not _verify_record_fingerprint(
         input_manifest_record,
         field_name="manifest_fingerprint",
@@ -219,9 +335,8 @@ def run_iu4_replay_pipeline_smoke(
             IU4ReplayPipelineReasonCode.CHAIN_INVALID,
             "replay input manifest fingerprint is invalid",
         )
-    if not _verify_record_fingerprint(
-        evidence_record,
-        field_name="evidence_fingerprint",
+    if not stream_evidence_output and not _verify_record_fingerprint(
+        evidence_record, field_name="evidence_fingerprint"
     ):
         raise IU4ReplayPipelineError(
             IU4ReplayPipelineReasonCode.CHAIN_INVALID,
@@ -240,15 +355,18 @@ def run_iu4_replay_pipeline_smoke(
             IU4ReplayPipelineReasonCode.CHAIN_INVALID,
             "pipeline artifacts miss required chain objects",
         )
-    replay_bytes = replay_output.read_bytes()
-    replay_hash = _sha256(replay_bytes)
+    replay_hash = _sha256_file(replay_output)
+    replay_size = replay_output.stat().st_size
     input_manifest_bytes = replay_manifest.read_bytes()
     input_manifest_hash = _sha256(input_manifest_bytes)
-    evidence_bytes = replay_evidence.read_bytes()
-    evidence_hash = _sha256(evidence_bytes)
+    evidence_hash = _sha256_file(replay_evidence)
+    evidence_size = replay_evidence.stat().st_size
     expected_restart_fault = restart_fault_injection is not None
     chain_checks = {
-        "source_log_unchanged": source.read_bytes() == source_bytes,
+        "source_log_unchanged": (
+            source.stat().st_size == source_size
+            and _sha256_file(source) == source_hash
+        ),
         "builder_source_hash": input_build.source_sha256 == source_hash,
         "source_to_input_manifest": manifest_source.get("sha256") == source_hash,
         "input_manifest_whole_file_hash": (
@@ -315,7 +433,7 @@ def run_iu4_replay_pipeline_smoke(
         "source": {
             "logical_name": source.name,
             "sha256": source_hash,
-            "size_bytes": len(source_bytes),
+            "size_bytes": source_size,
         },
         "atomic_source": {
             "coordinator_id": state_before.coordinator_id,
@@ -327,7 +445,7 @@ def run_iu4_replay_pipeline_smoke(
             "replay": {
                 "logical_name": replay_output.name,
                 "sha256": replay_hash,
-                "size_bytes": len(replay_bytes),
+                "size_bytes": replay_size,
             },
             "input_manifest": {
                 "logical_name": replay_manifest.name,
@@ -337,7 +455,7 @@ def run_iu4_replay_pipeline_smoke(
             "evidence": {
                 "logical_name": replay_evidence.name,
                 "sha256": evidence_hash,
-                "size_bytes": len(evidence_bytes),
+                "size_bytes": evidence_size,
             },
         },
         "result": {

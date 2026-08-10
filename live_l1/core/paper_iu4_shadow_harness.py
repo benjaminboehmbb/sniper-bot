@@ -16,7 +16,7 @@ import tempfile
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from live_l1.core.paper_entry_throttle import canonical_utc_timestamp
 from live_l1.core.paper_iu4_adapter import (
@@ -521,6 +521,8 @@ class PaperIU4ShadowDryRunHarness:
         *,
         restart_after_steps: int | None = None,
         restart_fault_injection: str | None = None,
+        progress_callback: Callable[[int, int], None] | None = None,
+        progress_interval_steps: int = 10_000,
     ) -> IU4ShadowDryRunReportV1:
         if isinstance(steps, (str, bytes)) or not isinstance(steps, Sequence):
             raise IU4ShadowHarnessError(
@@ -528,6 +530,15 @@ class PaperIU4ShadowDryRunHarness:
                 "steps must be a finite sequence",
             )
         step_values = tuple(steps)
+        if (
+            isinstance(progress_interval_steps, bool)
+            or not isinstance(progress_interval_steps, int)
+            or progress_interval_steps < 1
+        ):
+            raise IU4ShadowHarnessError(
+                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                "progress_interval_steps must be a positive integer",
+            )
         if restart_after_steps is not None and (
             isinstance(restart_after_steps, bool)
             or not isinstance(restart_after_steps, int)
@@ -621,6 +632,8 @@ class PaperIU4ShadowDryRunHarness:
             restart_fault_snapshot_sha256_before = ""
             restart_fault_snapshot_sha256_after = ""
             continuation_blocked = False
+            if progress_callback is not None:
+                progress_callback(0, len(step_values))
             for index, step in enumerate(step_values, start=1):
                 try:
                     outcome_values.append(
@@ -636,6 +649,11 @@ class PaperIU4ShadowDryRunHarness:
                         IU4ShadowHarnessReasonCode.SANDBOX_INVALID,
                         str(exc),
                     ) from exc
+                if progress_callback is not None and (
+                    index % progress_interval_steps == 0
+                    or index == len(step_values)
+                ):
+                    progress_callback(index, len(step_values))
                 if index == restart_after_steps:
                     restart_report = sandbox.reconciliation_report()
                     restart_state = sandbox.load_state()
