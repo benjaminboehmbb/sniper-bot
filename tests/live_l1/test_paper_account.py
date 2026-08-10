@@ -165,6 +165,49 @@ class AccountEntryGuardTests(unittest.TestCase):
             (AccountGuardReasonCode.EQUITY_NON_POSITIVE,),
         )
 
+    def test_new_utc_day_clears_only_daily_guard_inputs(self) -> None:
+        prior_day_loss = replace(
+            self.account,
+            realized_equity_quote=D("9700"),
+            cumulative_net_pnl_quote=D("-300"),
+            realized_drawdown_quote=D("300"),
+            realized_drawdown_rate=D("0.03"),
+            daily_net_pnl_quote=D("-300"),
+            daily_fees_quote=D("100"),
+        )
+
+        same_day = evaluate_account_entry_guard(
+            prior_day_loss,
+            self.config,
+            entry_timestamp_utc="2026-08-06T23:59:59Z",
+        )
+        next_day = evaluate_account_entry_guard(
+            prior_day_loss,
+            self.config,
+            entry_timestamp_utc="2026-08-07T00:00:00Z",
+        )
+
+        self.assertFalse(same_day.entry_allowed)
+        self.assertTrue(next_day.entry_allowed)
+        self.assertEqual(next_day.reason_codes, ())
+        self.assertEqual(next_day.day_start_equity_quote, D("9700"))
+        self.assertEqual(next_day.daily_loss_rate, D("0"))
+        self.assertEqual(next_day.daily_fee_rate, D("0"))
+
+    def test_entry_day_before_account_day_fails_closed(self) -> None:
+        decision = evaluate_account_entry_guard(
+            self.account,
+            self.config,
+            entry_timestamp_utc="2026-08-05T23:59:59Z",
+        )
+
+        self.assertFalse(decision.entry_allowed)
+        self.assertTrue(decision.exit_allowed)
+        self.assertEqual(
+            decision.reason_codes,
+            (AccountGuardReasonCode.ACCOUNT_DAY_REGRESSION,),
+        )
+
 
 class ArtifactSchemaTests(unittest.TestCase):
     def setUp(self) -> None:

@@ -56,6 +56,7 @@ class ArtifactReasonCode:
 
 class AccountGuardReasonCode:
     EQUITY_NON_POSITIVE = "PEE_ACCOUNT_EQUITY_NON_POSITIVE"
+    ACCOUNT_DAY_REGRESSION = "PEE_ACCOUNT_DAY_REGRESSION"
     DAILY_LOSS_LIMIT = "PEE_RISK_DAILY_LOSS_LIMIT"
     REALIZED_DRAWDOWN_LIMIT = "PEE_RISK_REALIZED_DRAWDOWN_LIMIT"
     DAILY_FEE_LIMIT = "PEE_COST_DAILY_FEE_LIMIT"
@@ -914,6 +915,8 @@ class AccountEntryGuardDecision:
 def evaluate_account_entry_guard(
     account: PaperAccountState,
     config: PaperEconomicsConfig,
+    *,
+    entry_timestamp_utc: str | None = None,
 ) -> AccountEntryGuardDecision:
     """Evaluate account limits without ever blocking an exit."""
 
@@ -932,9 +935,27 @@ def evaluate_account_entry_guard(
             daily_fee_rate=ZERO,
         )
 
+    candidate_day = account.utc_day
+    if entry_timestamp_utc is not None:
+        candidate_day = _utc_timestamp_seconds(
+            entry_timestamp_utc,
+            "entry_timestamp_utc",
+        )[:10]
+    if candidate_day < account.utc_day:
+        return AccountEntryGuardDecision(
+            entry_allowed=False,
+            exit_allowed=True,
+            reason_codes=(AccountGuardReasonCode.ACCOUNT_DAY_REGRESSION,),
+            day_start_equity_quote=account.realized_equity_quote,
+            daily_loss_rate=ZERO,
+            daily_fee_rate=ZERO,
+        )
+    same_day = candidate_day == account.utc_day
+    daily_net_pnl = account.daily_net_pnl_quote if same_day else ZERO
+    daily_fees = account.daily_fees_quote if same_day else ZERO
     day_start_equity = _dsub(
         account.realized_equity_quote,
-        account.daily_net_pnl_quote,
+        daily_net_pnl,
     )
     if account.realized_equity_quote <= ZERO or day_start_equity <= ZERO:
         return AccountEntryGuardDecision(
@@ -946,9 +967,9 @@ def evaluate_account_entry_guard(
             daily_fee_rate=ZERO,
         )
 
-    daily_loss = max(ZERO, -account.daily_net_pnl_quote)
+    daily_loss = max(ZERO, -daily_net_pnl)
     daily_loss_rate = _ddiv(daily_loss, day_start_equity)
-    daily_fee_rate = _ddiv(account.daily_fees_quote, day_start_equity)
+    daily_fee_rate = _ddiv(daily_fees, day_start_equity)
     reasons: list[str] = []
 
     if daily_loss_rate >= config.max_daily_loss_rate:

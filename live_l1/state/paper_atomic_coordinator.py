@@ -969,7 +969,11 @@ class PaperAtomicCoordinator:
         kill_level: str,
     ) -> PaperRiskStateS4V1:
         timestamp = _utc_timestamp_seconds(timestamp_utc, "timestamp_utc")
-        account_decision = evaluate_account_entry_guard(account, self.config)
+        account_decision = evaluate_account_entry_guard(
+            account,
+            self.config,
+            entry_timestamp_utc=timestamp,
+        )
         throttle_decision = evaluate_entry_throttle(
             throttle,
             self.throttle_policy,
