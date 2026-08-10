@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a bounded X1-only IU-4 SHADOW replay dataset with full evidence."""
+"""Run a bounded IU-4 SHADOW replay dataset with host-bound evidence."""
 
 from __future__ import annotations
 
@@ -36,6 +36,9 @@ from live_l1.tools.run_pee_shadow_validation import run_validation
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+EXECUTION_HOST_X1 = "X1"
+EXECUTION_HOST_WORKSTATION = "WORKSTATION"
+EXECUTION_HOSTS = (EXECUTION_HOST_X1, EXECUTION_HOST_WORKSTATION)
 
 
 class IU4X1DatasetReasonCode:
@@ -150,19 +153,20 @@ def _initial_atomic_coordinator(
     first_utc_day: str,
     config: PaperEconomicsConfig,
     policy: PaperEntryThrottlePolicy,
+    execution_host: str,
 ) -> PaperAtomicCoordinator:
     identity = _sha256_bytes(source_id.encode("utf-8"))[:16]
     coordinator = PaperAtomicCoordinator(
         root,
         config,
         policy,
-        coordinator_id=f"IU4-X1-REPLAY-BTCUSDT-{identity}",
+        coordinator_id=f"IU4-{execution_host}-REPLAY-BTCUSDT-{identity}",
         symbol="BTCUSDT",
     )
     coordinator.initialize(
         position=PositionStateS2FlatV2(
             schema_version=2,
-            system_state_id=f"IU4-X1-INITIAL-{identity}",
+            system_state_id=f"IU4-{execution_host}-INITIAL-{identity}",
             symbol="BTCUSDT",
             position="FLAT",
             side="",
@@ -172,7 +176,7 @@ def _initial_atomic_coordinator(
             config_fingerprint=config.config_fingerprint,
         ),
         account=PaperAccountState.initial(
-            account_id=f"PAPER-IU4-X1-{identity}",
+            account_id=f"PAPER-IU4-{execution_host}-{identity}",
             quote_currency=config.quote_currency,
             starting_equity_quote=config.starting_equity_quote,
             utc_day=first_utc_day,
@@ -198,6 +202,7 @@ def run_x1_replay_dataset(
     source_id: str,
     replay_id: str,
     generated_at_utc: str,
+    execution_host: str = EXECUTION_HOST_X1,
     restart_after_steps: int | None = None,
     restart_fault_injection: str | None = None,
 ) -> IU4X1DatasetRunV1:
@@ -211,6 +216,11 @@ def run_x1_replay_dataset(
         raise IU4X1DatasetError(
             IU4X1DatasetReasonCode.INPUT_INVALID,
             "max_ticks must be positive and valid_row_offset non-negative",
+        )
+    if execution_host not in EXECUTION_HOSTS:
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.INPUT_INVALID,
+            f"execution_host must be one of {EXECUTION_HOSTS}",
         )
     if restart_after_steps is not None and (
         isinstance(restart_after_steps, bool)
@@ -273,6 +283,7 @@ def run_x1_replay_dataset(
         first_utc_day=first_utc_day,
         config=config,
         policy=policy,
+        execution_host=execution_host,
     )
     state = coordinator.load_state()
     gate_request = IU4StartupModeRequestV1(
@@ -316,13 +327,15 @@ def run_x1_replay_dataset(
     )
     receipt_path = pipeline.receipt_path
     manifest_base = {
-        "artifact_type": "PEE_IU4_X1_REPLAY_DATASET_RUN",
+        "artifact_type": f"PEE_IU4_{execution_host}_REPLAY_DATASET_RUN",
         "schema_version": 1,
         "git_commit": git_commit,
         "source_id": source_id,
         "replay_id": replay_id,
         "generated_at_utc": generated_at_utc,
-        "x1_only": True,
+        "execution_host": execution_host,
+        "x1_only": execution_host == EXECUTION_HOST_X1,
+        "workstation_only": execution_host == EXECUTION_HOST_WORKSTATION,
         "max_ticks": max_ticks,
         "valid_row_offset": valid_row_offset,
         "restart_after_steps": restart_after_steps,
@@ -394,6 +407,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-id", required=True)
     parser.add_argument("--replay-id", required=True)
     parser.add_argument("--generated-at-utc", required=True)
+    parser.add_argument(
+        "--execution-host",
+        choices=EXECUTION_HOSTS,
+        default=EXECUTION_HOST_X1,
+    )
     parser.add_argument("--restart-after-steps", type=int)
     parser.add_argument(
         "--restart-fault-injection",
@@ -418,12 +436,13 @@ def main(argv: Iterable[str] | None = None) -> int:
         source_id=args.source_id,
         replay_id=args.replay_id,
         generated_at_utc=args.generated_at_utc,
+        execution_host=args.execution_host,
         restart_after_steps=args.restart_after_steps,
         restart_fault_injection=args.restart_fault_injection,
     )
     evidence = result.pipeline.evidence_export.evidence
     validation = evidence["validation"]
-    print("IU4 X1 REPLAY DATASET: PASS")
+    print(f"IU4 {args.execution_host} REPLAY DATASET: PASS")
     print("max_ticks:", result.iu3_manifest["runtime"]["max_ticks"])
     print("committed:", validation["committed_step_count"])
     print("noop:", validation["noop_step_count"])
@@ -441,5 +460,7 @@ __all__ = [
     "IU4X1DatasetError",
     "IU4X1DatasetReasonCode",
     "IU4X1DatasetRunV1",
+    "EXECUTION_HOST_WORKSTATION",
+    "EXECUTION_HOST_X1",
     "run_x1_replay_dataset",
 ]

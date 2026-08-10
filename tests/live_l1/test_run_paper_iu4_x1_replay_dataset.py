@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from live_l1.tools.run_paper_iu4_x1_replay_dataset import (
+    EXECUTION_HOST_WORKSTATION,
     IU4X1DatasetError,
     IU4X1DatasetReasonCode,
     run_x1_replay_dataset,
@@ -82,6 +83,8 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
         self.assertTrue(all(receipt["chain_checks"].values()))
         self.assertEqual(manifest["atomic_source"]["transaction_sequence"], 0)
         self.assertTrue(manifest["x1_only"])
+        self.assertFalse(manifest["workstation_only"])
+        self.assertEqual(manifest["execution_host"], "X1")
         self.assertTrue(
             manifest["throttle_observation_policy"]["calibration_only"]
         )
@@ -91,6 +94,38 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
         self.assertFalse(manifest["iu4_enforced_enabled"])
         self.assertFalse(manifest["exchange_enabled"])
         self.assertFalse(manifest["live_enabled"])
+
+    def test_workstation_run_is_bound_to_workstation_in_all_host_ids(self) -> None:
+        arguments = self._arguments()
+        arguments["execution_host"] = EXECUTION_HOST_WORKSTATION
+
+        result = run_x1_replay_dataset(**arguments)
+        manifest = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+        receipt = json.loads(result.pipeline.receipt_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            manifest["artifact_type"],
+            "PEE_IU4_WORKSTATION_REPLAY_DATASET_RUN",
+        )
+        self.assertEqual(manifest["execution_host"], "WORKSTATION")
+        self.assertFalse(manifest["x1_only"])
+        self.assertTrue(manifest["workstation_only"])
+        self.assertIn(
+            "IU4-WORKSTATION-REPLAY",
+            receipt["atomic_source"]["coordinator_id"],
+        )
+
+    def test_unknown_execution_host_is_rejected_before_output_creation(self) -> None:
+        arguments = self._arguments()
+        arguments["execution_host"] = "UNBOUND"
+
+        with self.assertRaises(IU4X1DatasetError) as raised:
+            run_x1_replay_dataset(**arguments)
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4X1DatasetReasonCode.INPUT_INVALID,
+        )
+        self.assertFalse((self.root / "run").exists())
 
     def test_operationally_approved_policy_is_rejected(self) -> None:
         unsafe_policy = self.root / "unsafe-policy.json"
