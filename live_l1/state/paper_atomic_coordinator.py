@@ -1097,6 +1097,26 @@ class PaperAtomicCoordinator:
         self._ensure_identity(state)
         return state
 
+    def evaluate_entry_block_reasons(
+        self,
+        *,
+        entry_timestamp_utc: str,
+    ) -> tuple[str, ...]:
+        """Evaluate current entry guards at the candidate event time."""
+
+        current = self.load_state()
+        candidate_risk = self._build_risk(
+            position=current.position,
+            account=current.account,
+            throttle=current.throttle,
+            transaction_sequence=current.transaction_sequence,
+            event_id=current.last_transaction_event_id,
+            timestamp_utc=entry_timestamp_utc,
+            tick_id=current.risk.last_transaction_tick_id,
+            kill_level=current.risk.kill_level,
+        )
+        return candidate_risk.reason_codes
+
     def _journal_path(self, sequence: int, event_id: str) -> Path:
         event_hash = hashlib.sha256(event_id.encode("utf-8")).hexdigest()[:20]
         return self.transaction_directory / f"{sequence:020d}_{event_hash}.json"

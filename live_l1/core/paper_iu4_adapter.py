@@ -360,13 +360,16 @@ class PaperIU4Adapter:
         state: AtomicPaperStateV1,
         action: str,
     ) -> IU4AdapterResultV1:
-        if not state.risk.entry_allowed:
+        entry_block_reasons = self.coordinator.evaluate_entry_block_reasons(
+            entry_timestamp_utc=request.timestamp_utc,
+        )
+        if entry_block_reasons:
             return self._result(
                 request,
                 state,
                 status=STATUS_REJECTED,
                 action=action,
-                reason_code=state.risk.reason_codes[0],
+                reason_code=entry_block_reasons[0],
             )
         side = "LONG" if action == ACTION_OPEN_LONG else "SHORT"
         authorization = self._entry_authorization(request, state, side)

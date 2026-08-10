@@ -366,6 +366,44 @@ class PaperIU4AdapterTests(unittest.TestCase):
         self.assertEqual(rejected.state.position.position, "FLAT")
         self.assertEqual(len(list(self.coordinator.transaction_directory.glob("*.json"))), 2)
 
+    def test_daily_loss_blocks_same_day_but_not_next_utc_day(self) -> None:
+        self._open_long()
+        close = self._request(
+            intent="SELL",
+            source_intent_id="LOSS-CLOSE",
+            reason="LOSS_TEST_EXIT",
+            system_state_id="SYSTEM-2",
+            timestamp="2026-08-09T11:00:00Z",
+            tick_id=160,
+            price=D("1"),
+        )
+        closed = self.adapter.execute(close)
+        same_day = self.adapter.execute(
+            self._request(
+                source_intent_id="SAME-DAY-OPEN",
+                trade_id="TRADE-2",
+                system_state_id="SYSTEM-3",
+                timestamp="2026-08-09T12:00:00Z",
+                tick_id=220,
+            )
+        )
+        next_day = self.adapter.execute(
+            self._request(
+                source_intent_id="NEXT-DAY-OPEN",
+                trade_id="TRADE-3",
+                system_state_id="SYSTEM-4",
+                timestamp="2026-08-10T00:00:00Z",
+                tick_id=940,
+            )
+        )
+
+        self.assertEqual(closed.status, STATUS_COMMITTED)
+        self.assertEqual(same_day.status, STATUS_REJECTED)
+        self.assertEqual(same_day.reason_code, "PEE_RISK_DAILY_LOSS_LIMIT")
+        self.assertEqual(next_day.status, STATUS_COMMITTED)
+        self.assertEqual(next_day.action, ACTION_OPEN_LONG)
+        self.assertEqual(next_day.state.position.trade_id, "TRADE-3")
+
     def test_invalid_open_binding_and_economics_leave_state_unchanged(self) -> None:
         before = self.coordinator.load_state()
         with self.assertRaises(PaperIU4AdapterError):
