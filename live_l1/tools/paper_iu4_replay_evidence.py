@@ -15,7 +15,9 @@ from typing import Any, Callable, Mapping
 from live_l1.core.paper_entry_throttle import canonical_utc_timestamp
 from live_l1.core.paper_iu4_adapter import IU4AdapterResultV1
 from live_l1.core.paper_iu4_shadow_harness import (
+    GUARD_DIVERGENCE_EXIT_SUPPRESSED,
     IU4ShadowDryRunReportV1,
+    IU4ShadowGuardDivergenceV1,
     IU4ShadowIntentStepV1,
     PaperIU4ShadowDryRunHarness,
 )
@@ -176,6 +178,7 @@ def _outcome_record(
     index: int,
     outcome: IU4AdapterResultV1,
     step: IU4ShadowIntentStepV1,
+    guard_divergence: IU4ShadowGuardDivergenceV1 | None = None,
 ) -> dict[str, Any]:
     state = outcome.state
     position = state.position
@@ -206,14 +209,143 @@ def _outcome_record(
         "kill_level": state.risk.kill_level,
         "entry_allowed": state.risk.entry_allowed,
         "exit_allowed": state.risk.exit_allowed,
+        "guard_divergence": (
+            None
+            if guard_divergence is None
+            else _guard_divergence_record(guard_divergence)
+        ),
     }
+
+
+def _guard_divergence_record(
+    divergence: IU4ShadowGuardDivergenceV1,
+) -> dict[str, Any]:
+    return {
+        "schema_version": divergence.schema_version,
+        "position_side": divergence.position_side,
+        "first_rejected_step_index": divergence.first_rejected_step_index,
+        "first_rejected_source_intent_id": (
+            divergence.first_rejected_source_intent_id
+        ),
+        "last_rejected_step_index": divergence.last_rejected_step_index,
+        "last_rejected_source_intent_id": (
+            divergence.last_rejected_source_intent_id
+        ),
+        "rejected_entry_count": divergence.rejected_entry_count,
+        "guard_reason_codes": list(divergence.guard_reason_codes),
+        "sandbox_state_fingerprint": divergence.sandbox_state_fingerprint,
+        "suppressed_exit_step_index": divergence.suppressed_exit_step_index,
+        "suppressed_exit_source_intent_id": (
+            divergence.suppressed_exit_source_intent_id
+        ),
+        "suppressed_exit_action": divergence.suppressed_exit_action,
+        "suppressed_exit_sequence": divergence.suppressed_exit_sequence,
+    }
+
+
+def _validated_guard_divergences(
+    *,
+    replay: IU4ReplayInputV1,
+    report: IU4ShadowDryRunReportV1,
+) -> dict[int, IU4ShadowGuardDivergenceV1]:
+    if report.guard_divergence_count != len(report.guard_divergences):
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+            "guard-divergence report count is inconsistent",
+        )
+    by_exit: dict[int, IU4ShadowGuardDivergenceV1] = {}
+    for divergence in report.guard_divergences:
+        exit_index = divergence.suppressed_exit_step_index
+        if (
+            divergence.schema_version != 1
+            or divergence.position_side not in ("LONG", "SHORT")
+            or divergence.first_rejected_step_index < 1
+            or divergence.first_rejected_step_index
+            > divergence.last_rejected_step_index
+            or divergence.last_rejected_step_index >= exit_index
+            or exit_index > report.step_count
+            or divergence.rejected_entry_count < 1
+            or not divergence.guard_reason_codes
+            or len(set(divergence.guard_reason_codes))
+            != len(divergence.guard_reason_codes)
+            or exit_index in by_exit
+        ):
+            raise IU4ReplayEvidenceError(
+                IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+                "guard-divergence indices or identity are invalid",
+            )
+        exit_step = replay.steps[exit_index - 1]
+        exit_outcome = report.outcomes[exit_index - 1]
+        expected_open_action = (
+            "OPEN_LONG" if divergence.position_side == "LONG" else "OPEN_SHORT"
+        )
+        expected_close_action = (
+            "CLOSE_LONG" if divergence.position_side == "LONG" else "CLOSE_SHORT"
+        )
+        if (
+            exit_step.source_event_kind != "AUTONOMOUS_EXIT_EXECUTION"
+            or exit_step.source_execution_action != expected_close_action
+            or exit_step.source_intent_id
+            != divergence.suppressed_exit_source_intent_id
+            or exit_step.source_execution_sequence
+            != divergence.suppressed_exit_sequence
+            or divergence.suppressed_exit_action != expected_close_action
+            or exit_outcome.status != "NOOP"
+            or exit_outcome.action != "NOOP"
+            or exit_outcome.reason_code != GUARD_DIVERGENCE_EXIT_SUPPRESSED
+            or exit_outcome.state.state_fingerprint
+            != divergence.sandbox_state_fingerprint
+        ):
+            raise IU4ReplayEvidenceError(
+                IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+                "guard-divergence autonomous exit binding is invalid",
+            )
+        bound_rejections = []
+        for index in range(
+            divergence.first_rejected_step_index,
+            divergence.last_rejected_step_index + 1,
+        ):
+            step = replay.steps[index - 1]
+            outcome = report.outcomes[index - 1]
+            if (
+                step.source_event_kind == "INTENT"
+                and outcome.status == "REJECTED"
+                and outcome.action == expected_open_action
+                and outcome.reason_code in divergence.guard_reason_codes
+                and outcome.state.state_fingerprint
+                == divergence.sandbox_state_fingerprint
+            ):
+                bound_rejections.append((index, step.source_intent_id))
+        if (
+            len(bound_rejections) != divergence.rejected_entry_count
+            or bound_rejections[0]
+            != (
+                divergence.first_rejected_step_index,
+                divergence.first_rejected_source_intent_id,
+            )
+            or bound_rejections[-1]
+            != (
+                divergence.last_rejected_step_index,
+                divergence.last_rejected_source_intent_id,
+            )
+        ):
+            raise IU4ReplayEvidenceError(
+                IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+                "guard-divergence rejected-entry binding is invalid",
+            )
+        by_exit[exit_index] = divergence
+    return by_exit
 
 
 def _evidence_components(
     *,
     replay: IU4ReplayInputV1,
     report: IU4ShadowDryRunReportV1,
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> tuple[
+    dict[str, Any],
+    dict[str, Any],
+    dict[int, IU4ShadowGuardDivergenceV1],
+]:
     if report.continuation_blocked:
         if (
             not report.restart_fault_detected
@@ -230,18 +362,35 @@ def _evidence_components(
             IU4ReplayEvidenceReasonCode.INPUT_INVALID,
             "completed replay report must contain one outcome per input step",
         )
+    guard_divergences = _validated_guard_divergences(
+        replay=replay,
+        report=report,
+    )
     autonomous_pairs = (
-        (step, outcome)
-        for step, outcome in zip(replay.steps, report.outcomes)
+        (index, step, outcome)
+        for index, (step, outcome) in enumerate(
+            zip(replay.steps, report.outcomes),
+            start=1,
+        )
         if step.source_event_kind == "AUTONOMOUS_EXIT_EXECUTION"
     )
     autonomous_step_count = 0
     autonomous_committed_count = 0
-    for step, outcome in autonomous_pairs:
+    autonomous_guard_suppressed_count = 0
+    for index, step, outcome in autonomous_pairs:
         autonomous_step_count += 1
         autonomous_committed_count += (
             outcome.status == "COMMITTED"
             and outcome.action == step.source_execution_action
+        )
+        autonomous_guard_suppressed_count += index in guard_divergences
+    autonomous_accounted_count = (
+        autonomous_committed_count + autonomous_guard_suppressed_count
+    )
+    if autonomous_accounted_count != autonomous_step_count:
+        raise IU4ReplayEvidenceError(
+            IU4ReplayEvidenceReasonCode.INPUT_INVALID,
+            "every processed autonomous exit must commit or carry guard-divergence evidence",
         )
     input_record = {
         "logical_name": replay.path.name,
@@ -268,6 +417,15 @@ def _evidence_components(
         "rejected_step_count": report.rejected_step_count,
         "autonomous_exit_step_count": autonomous_step_count,
         "autonomous_exit_committed_count": autonomous_committed_count,
+        "autonomous_exit_guard_suppressed_count": (
+            autonomous_guard_suppressed_count
+        ),
+        "autonomous_exit_accounted_count": autonomous_accounted_count,
+        "guard_divergence_count": len(guard_divergences),
+        "guard_divergence_rejected_entry_count": sum(
+            divergence.rejected_entry_count
+            for divergence in guard_divergences.values()
+        ),
         "restart_enabled": report.restart_enabled,
         "restart_after_step": report.restart_after_step,
         "restart_count": report.restart_count,
@@ -288,7 +446,7 @@ def _evidence_components(
         "source_unchanged": report.source_unchanged,
         "sandbox_consistent": report.sandbox_consistent,
     }
-    return input_record, validation
+    return input_record, validation, guard_divergences
 
 
 def _evidence_record(
@@ -298,16 +456,24 @@ def _evidence_record(
     replay_id: str,
     generated_at_utc: str,
 ) -> dict[str, Any]:
-    input_record, validation = _evidence_components(replay=replay, report=report)
+    input_record, validation, guard_divergences = _evidence_components(
+        replay=replay,
+        report=report,
+    )
     base = {
         "artifact_type": "PEE_IU4_SHADOW_REPLAY_EVIDENCE",
-        "schema_version": 1,
+        "schema_version": 2,
         "replay_id": replay_id,
         "generated_at_utc": generated_at_utc,
         "input": input_record,
         "validation": validation,
         "outcomes": [
-            _outcome_record(index, outcome, replay.steps[index - 1])
+            _outcome_record(
+                index,
+                outcome,
+                replay.steps[index - 1],
+                guard_divergences.get(index),
+            )
             for index, outcome in enumerate(report.outcomes, start=1)
         ],
     }
@@ -322,7 +488,10 @@ def _stream_evidence(
     replay_id: str,
     generated_at_utc: str,
 ) -> tuple[dict[str, Any], str, bool, bool]:
-    input_record, validation = _evidence_components(replay=replay, report=report)
+    input_record, validation, guard_divergences = _evidence_components(
+        replay=replay,
+        report=report,
+    )
     artifact_type = "PEE_IU4_SHADOW_REPLAY_EVIDENCE"
     base_prefix = (
         b'{"artifact_type":'
@@ -336,7 +505,7 @@ def _stream_evidence(
     base_suffix = (
         b'],"replay_id":'
         + _canonical_json(replay_id)
-        + b',"schema_version":1,"validation":'
+        + b',"schema_version":2,"validation":'
         + _canonical_json(validation)
         + b'}'
     )
@@ -370,7 +539,12 @@ def _stream_evidence(
                     handle.write(b",")
                     fingerprint_hash.update(b",")
                 payload = _canonical_json(
-                    _outcome_record(index, outcome, replay.steps[index - 1])
+                    _outcome_record(
+                        index,
+                        outcome,
+                        replay.steps[index - 1],
+                        guard_divergences.get(index),
+                    )
                 )
                 handle.write(payload)
                 fingerprint_hash.update(payload)
@@ -406,7 +580,7 @@ def _stream_evidence(
             os.close(directory_descriptor)
         summary = {
             "artifact_type": artifact_type,
-            "schema_version": 1,
+            "schema_version": 2,
             "replay_id": replay_id,
             "generated_at_utc": generated_at_utc,
             "input": input_record,

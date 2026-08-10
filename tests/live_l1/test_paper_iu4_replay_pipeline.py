@@ -210,6 +210,15 @@ class PaperIU4ReplayPipelineSmokeTests(unittest.TestCase):
         self.assertFalse(receipt["iu4_enforced_enabled"])
         self.assertFalse(receipt["exchange_enabled"])
         self.assertFalse(receipt["live_enabled"])
+        self.assertEqual(receipt["result"]["guard_divergence_count"], 0)
+        self.assertEqual(
+            receipt["result"]["autonomous_exit_guard_suppressed_count"],
+            0,
+        )
+        self.assertEqual(
+            receipt["result"]["autonomous_exit_accounted_count"],
+            receipt["result"]["autonomous_exit_step_count"],
+        )
         for name in ("replay", "input_manifest", "evidence"):
             artifact = receipt["artifacts"][name]
             path = self.artifacts / artifact["logical_name"]

@@ -13,7 +13,7 @@ import json
 import os
 import shutil
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -52,6 +52,9 @@ class IU4ShadowHarnessReasonCode:
 SOURCE_EVENT_INTENT = "INTENT"
 SOURCE_EVENT_AUTONOMOUS_EXIT = "AUTONOMOUS_EXIT_EXECUTION"
 RESTART_FAULT_SNAPSHOT_TRUNCATED = "SNAPSHOT_TRUNCATED"
+GUARD_DIVERGENCE_EXIT_SUPPRESSED = (
+    "PEE_IU4_SHADOW_GUARD_DIVERGENCE_EXIT_SUPPRESSED"
+)
 
 
 class IU4ShadowHarnessError(RuntimeError):
@@ -297,6 +300,35 @@ class IU4ShadowSourceFileV1:
 
 
 @dataclass(frozen=True)
+class IU4ShadowGuardDivergenceV1:
+    schema_version: int
+    position_side: str
+    first_rejected_step_index: int
+    first_rejected_source_intent_id: str
+    last_rejected_step_index: int
+    last_rejected_source_intent_id: str
+    rejected_entry_count: int
+    guard_reason_codes: tuple[str, ...]
+    sandbox_state_fingerprint: str
+    suppressed_exit_step_index: int
+    suppressed_exit_source_intent_id: str
+    suppressed_exit_action: str
+    suppressed_exit_sequence: int
+
+
+@dataclass(frozen=True)
+class _PendingGuardDivergence:
+    position_side: str
+    first_rejected_step_index: int
+    first_rejected_source_intent_id: str
+    last_rejected_step_index: int
+    last_rejected_source_intent_id: str
+    rejected_entry_count: int
+    guard_reason_codes: tuple[str, ...]
+    sandbox_state_fingerprint: str
+
+
+@dataclass(frozen=True)
 class IU4ShadowDryRunReportV1:
     schema_version: int
     source_manifest_fingerprint: str
@@ -326,6 +358,8 @@ class IU4ShadowDryRunReportV1:
     continuation_blocked: bool
     source_unchanged: bool
     sandbox_consistent: bool
+    guard_divergence_count: int
+    guard_divergences: tuple[IU4ShadowGuardDivergenceV1, ...]
     outcomes: tuple[IU4AdapterResultV1, ...]
 
 
@@ -515,6 +549,27 @@ class PaperIU4ShadowDryRunHarness:
             trade_id=trade_id,
         )
 
+    @staticmethod
+    def _guard_divergence_noop_request(
+        step: IU4ShadowIntentStepV1,
+        sandbox: PaperAtomicCoordinator,
+    ) -> IU4AdapterRequestV1:
+        state = sandbox.load_state()
+        return IU4AdapterRequestV1(
+            schema_version=1,
+            request_id="",
+            source_intent_id=step.source_intent_id,
+            intent_final="HOLD",
+            intent_reason_code=step.intent_reason_code,
+            expected_state_fingerprint=state.state_fingerprint,
+            target_system_state_id=state.position.system_state_id,
+            timestamp_utc=step.timestamp_utc,
+            tick_id=step.tick_id,
+            reference_price=step.reference_price,
+            reference_stop_price=None,
+            trade_id="",
+        )
+
     def run(
         self,
         steps: Sequence[IU4ShadowIntentStepV1],
@@ -623,6 +678,8 @@ class PaperIU4ShadowDryRunHarness:
                 )
             adapter = PaperIU4Adapter(sandbox)
             outcome_values: list[IU4AdapterResultV1] = []
+            pending_guard_divergences: dict[str, _PendingGuardDivergence] = {}
+            guard_divergence_values: list[IU4ShadowGuardDivergenceV1] = []
             restart_position = ""
             restart_state_fingerprint = ""
             restart_transaction_sequence = 0
@@ -636,9 +693,162 @@ class PaperIU4ShadowDryRunHarness:
                 progress_callback(0, len(step_values))
             for index, step in enumerate(step_values, start=1):
                 try:
-                    outcome_values.append(
-                        adapter.execute(self._request_for(step, sandbox))
+                    state_before = sandbox.load_state()
+                    position_before = state_before.position.position
+                    required_position = (
+                        "LONG"
+                        if step.source_execution_action == "CLOSE_LONG"
+                        else "SHORT"
                     )
+                    unmatched_autonomous_exit = (
+                        step.source_event_kind == SOURCE_EVENT_AUTONOMOUS_EXIT
+                        and position_before != required_position
+                    )
+                    if unmatched_autonomous_exit:
+                        pending = pending_guard_divergences.get(required_position)
+                        current_reasons = sandbox.evaluate_entry_block_reasons(
+                            entry_timestamp_utc=step.timestamp_utc,
+                        )
+                        shared_reasons = (
+                            ()
+                            if pending is None
+                            else tuple(
+                                reason
+                                for reason in pending.guard_reason_codes
+                                if reason in current_reasons
+                            )
+                        )
+                        if (
+                            position_before != "FLAT"
+                            or pending is None
+                            or state_before.state_fingerprint
+                            != pending.sandbox_state_fingerprint
+                            or not shared_reasons
+                        ):
+                            raise IU4ShadowHarnessError(
+                                IU4ShadowHarnessReasonCode.STEP_INVALID,
+                                "autonomous exit execution does not match the sandbox position",
+                            )
+                        noop = adapter.execute(
+                            self._guard_divergence_noop_request(step, sandbox)
+                        )
+                        if (
+                            noop.status != STATUS_NOOP
+                            or noop.state != state_before
+                            or noop.action != "NOOP"
+                        ):
+                            raise IU4ShadowHarnessError(
+                                IU4ShadowHarnessReasonCode.SANDBOX_INVALID,
+                                "guard-divergence exit suppression must be a state-exact NOOP",
+                            )
+                        outcome = replace(
+                            noop,
+                            reason_code=GUARD_DIVERGENCE_EXIT_SUPPRESSED,
+                        )
+                        guard_divergence_values.append(
+                            IU4ShadowGuardDivergenceV1(
+                                schema_version=1,
+                                position_side=required_position,
+                                first_rejected_step_index=(
+                                    pending.first_rejected_step_index
+                                ),
+                                first_rejected_source_intent_id=(
+                                    pending.first_rejected_source_intent_id
+                                ),
+                                last_rejected_step_index=(
+                                    pending.last_rejected_step_index
+                                ),
+                                last_rejected_source_intent_id=(
+                                    pending.last_rejected_source_intent_id
+                                ),
+                                rejected_entry_count=pending.rejected_entry_count,
+                                guard_reason_codes=shared_reasons,
+                                sandbox_state_fingerprint=(
+                                    pending.sandbox_state_fingerprint
+                                ),
+                                suppressed_exit_step_index=index,
+                                suppressed_exit_source_intent_id=(
+                                    step.source_intent_id
+                                ),
+                                suppressed_exit_action=(
+                                    step.source_execution_action
+                                ),
+                                suppressed_exit_sequence=(
+                                    step.source_execution_sequence
+                                ),
+                            )
+                        )
+                        pending_guard_divergences.pop(required_position, None)
+                    else:
+                        candidate_guard_reasons = (
+                            sandbox.evaluate_entry_block_reasons(
+                                entry_timestamp_utc=step.timestamp_utc,
+                            )
+                            if position_before == "FLAT"
+                            and step.source_event_kind == SOURCE_EVENT_INTENT
+                            and step.intent_final in ("BUY", "SELL")
+                            else ()
+                        )
+                        outcome = adapter.execute(self._request_for(step, sandbox))
+                        opening_side = {
+                            "OPEN_LONG": "LONG",
+                            "OPEN_SHORT": "SHORT",
+                        }.get(outcome.action)
+                        if (
+                            outcome.status == STATUS_REJECTED
+                            and opening_side is not None
+                            and candidate_guard_reasons
+                            and outcome.reason_code in candidate_guard_reasons
+                        ):
+                            existing = pending_guard_divergences.get(opening_side)
+                            shared_reasons = (
+                                candidate_guard_reasons
+                                if existing is None
+                                else tuple(
+                                    reason
+                                    for reason in existing.guard_reason_codes
+                                    if reason in candidate_guard_reasons
+                                )
+                            )
+                            if (
+                                existing is None
+                                or existing.sandbox_state_fingerprint
+                                != state_before.state_fingerprint
+                                or not shared_reasons
+                            ):
+                                pending_guard_divergences[opening_side] = (
+                                    _PendingGuardDivergence(
+                                        position_side=opening_side,
+                                        first_rejected_step_index=index,
+                                        first_rejected_source_intent_id=(
+                                            step.source_intent_id
+                                        ),
+                                        last_rejected_step_index=index,
+                                        last_rejected_source_intent_id=(
+                                            step.source_intent_id
+                                        ),
+                                        rejected_entry_count=1,
+                                        guard_reason_codes=candidate_guard_reasons,
+                                        sandbox_state_fingerprint=(
+                                            state_before.state_fingerprint
+                                        ),
+                                    )
+                                )
+                            else:
+                                pending_guard_divergences[opening_side] = replace(
+                                    existing,
+                                    last_rejected_step_index=index,
+                                    last_rejected_source_intent_id=(
+                                        step.source_intent_id
+                                    ),
+                                    rejected_entry_count=(
+                                        existing.rejected_entry_count + 1
+                                    ),
+                                    guard_reason_codes=shared_reasons,
+                                )
+                        elif outcome.status == STATUS_COMMITTED:
+                            pending_guard_divergences.clear()
+                    outcome_values.append(outcome)
                 except PaperIU4AdapterError as exc:
                     raise IU4ShadowHarnessError(
                         IU4ShadowHarnessReasonCode.STEP_INVALID,
@@ -777,6 +987,8 @@ class PaperIU4ShadowDryRunHarness:
             continuation_blocked=continuation_blocked,
             source_unchanged=True,
             sandbox_consistent=sandbox_consistent,
+            guard_divergence_count=len(guard_divergence_values),
+            guard_divergences=tuple(guard_divergence_values),
             outcomes=outcomes,
         )
 
@@ -785,7 +997,9 @@ __all__ = [
     "IU4ShadowDryRunReportV1",
     "IU4ShadowHarnessError",
     "IU4ShadowHarnessReasonCode",
+    "IU4ShadowGuardDivergenceV1",
     "IU4ShadowIntentStepV1",
+    "GUARD_DIVERGENCE_EXIT_SUPPRESSED",
     "PaperIU4ShadowDryRunHarness",
     "RESTART_FAULT_SNAPSHOT_TRUNCATED",
     "SOURCE_EVENT_AUTONOMOUS_EXIT",

@@ -16,12 +16,14 @@ from live_l1.core.paper_entry_throttle import (
 )
 from live_l1.core.paper_economics import authorize_entry
 from live_l1.core.paper_iu4_shadow_harness import (
+    GUARD_DIVERGENCE_EXIT_SUPPRESSED,
     IU4ShadowHarnessError,
     IU4ShadowHarnessReasonCode,
     IU4ShadowIntentStepV1,
     PaperIU4ShadowDryRunHarness,
     RESTART_FAULT_SNAPSHOT_TRUNCATED,
 )
+from live_l1.core.paper_iu4_adapter import PaperIU4Adapter
 from live_l1.core.paper_iu4_startup_gate import (
     IU4StartupModeRequestV1,
     MODE_SHADOW,
@@ -142,6 +144,39 @@ class PaperIU4ShadowDryRunHarnessTests(unittest.TestCase):
             path.relative_to(self.root).as_posix(): path.read_bytes()
             for path in paths
         }
+
+    def _settle_source_loss(self) -> None:
+        adapter = PaperIU4Adapter(self.coordinator)
+        opened = adapter.execute(
+            PaperIU4ShadowDryRunHarness._request_for(
+                self._step(
+                    source_intent_id="SOURCE-LOSS-OPEN",
+                    trade_id="SOURCE-LOSS-TRADE",
+                ),
+                self.coordinator,
+            )
+        )
+        closed = adapter.execute(
+            PaperIU4ShadowDryRunHarness._request_for(
+                self._step(
+                    intent="SELL",
+                    source_intent_id="SOURCE-LOSS-CLOSE",
+                    reason="SOURCE_LOSS_EXIT",
+                    system_state_id="SYSTEM-LOSS-CLOSED",
+                    timestamp="2026-08-09T11:00:00Z",
+                    tick_id=160,
+                    price=D("1"),
+                    stop=None,
+                ),
+                self.coordinator,
+            )
+        )
+        self.assertEqual(opened.status, "COMMITTED")
+        self.assertEqual(closed.status, "COMMITTED")
+        self.assertIn(
+            "PEE_RISK_DAILY_LOSS_LIMIT",
+            closed.state.risk.reason_codes,
+        )
 
     def test_open_prediction_changes_only_disposable_sandbox(self) -> None:
         before_bytes = self._source_bytes()
@@ -358,6 +393,108 @@ class PaperIU4ShadowDryRunHarnessTests(unittest.TestCase):
             IU4ShadowHarnessReasonCode.STEP_INVALID,
         )
         self.assertEqual(self.coordinator.load_state().position.position, "FLAT")
+
+    def test_guard_rejected_entry_binds_autonomous_exit_to_state_exact_noop(self) -> None:
+        self._settle_source_loss()
+        rejected_open = self._step(
+            source_intent_id="GUARD-REJECTED-OPEN",
+            trade_id="GUARD-REJECTED-TRADE",
+            timestamp="2026-08-09T12:00:00Z",
+            tick_id=220,
+        )
+        autonomous_close = IU4ShadowIntentStepV1(
+            schema_version=2,
+            source_intent_id="GUARD-SOURCE-AUTONOMOUS-CLOSE",
+            intent_final="SELL",
+            intent_reason_code="LONG_TIME_STOP_HIT",
+            target_system_state_id="SYSTEM-GUARD-CLOSE",
+            timestamp_utc="2026-08-09T13:00:00Z",
+            tick_id=280,
+            reference_price=D("100"),
+            reference_stop_price=None,
+            trade_id="",
+            source_event_kind="AUTONOMOUS_EXIT_EXECUTION",
+            source_intent_final="HOLD",
+            source_execution_action="CLOSE_LONG",
+            source_execution_sequence=42,
+        )
+        harness = PaperIU4ShadowDryRunHarness(
+            self.coordinator,
+            self._shadow_decision(),
+        )
+
+        uninterrupted = harness.run((rejected_open, autonomous_close))
+        restarted = harness.run(
+            (rejected_open, autonomous_close),
+            restart_after_steps=1,
+        )
+
+        for report in (uninterrupted, restarted):
+            self.assertEqual(
+                tuple(outcome.status for outcome in report.outcomes),
+                ("REJECTED", "NOOP"),
+            )
+            self.assertEqual(
+                report.outcomes[-1].reason_code,
+                GUARD_DIVERGENCE_EXIT_SUPPRESSED,
+            )
+            self.assertEqual(report.outcomes[-1].state.position.position, "FLAT")
+            self.assertEqual(report.guard_divergence_count, 1)
+            divergence = report.guard_divergences[0]
+            self.assertEqual(divergence.position_side, "LONG")
+            self.assertEqual(divergence.first_rejected_step_index, 1)
+            self.assertEqual(divergence.last_rejected_step_index, 1)
+            self.assertEqual(divergence.rejected_entry_count, 1)
+            self.assertEqual(divergence.suppressed_exit_step_index, 2)
+            self.assertEqual(divergence.suppressed_exit_action, "CLOSE_LONG")
+            self.assertEqual(divergence.suppressed_exit_sequence, 42)
+            self.assertEqual(
+                divergence.guard_reason_codes,
+                ("PEE_RISK_DAILY_LOSS_LIMIT",),
+            )
+            self.assertEqual(report.simulated_transaction_count, 0)
+        self.assertTrue(restarted.restart_state_restored)
+        self.assertEqual(restarted.outcomes, uninterrupted.outcomes)
+        self.assertEqual(
+            self.coordinator.load_state().transaction_sequence,
+            2,
+        )
+
+    def test_expired_guard_cannot_suppress_later_autonomous_exit(self) -> None:
+        self._settle_source_loss()
+        rejected_open = self._step(
+            source_intent_id="EXPIRING-GUARD-OPEN",
+            trade_id="EXPIRING-GUARD-TRADE",
+            timestamp="2026-08-09T23:59:00Z",
+            tick_id=939,
+        )
+        next_day_close = IU4ShadowIntentStepV1(
+            schema_version=2,
+            source_intent_id="UNBOUND-NEXT-DAY-CLOSE",
+            intent_final="SELL",
+            intent_reason_code="LONG_TIME_STOP_HIT",
+            target_system_state_id="SYSTEM-NEXT-DAY-CLOSE",
+            timestamp_utc="2026-08-10T00:01:00Z",
+            tick_id=941,
+            reference_price=D("100"),
+            reference_stop_price=None,
+            trade_id="",
+            source_event_kind="AUTONOMOUS_EXIT_EXECUTION",
+            source_intent_final="HOLD",
+            source_execution_action="CLOSE_LONG",
+            source_execution_sequence=43,
+        )
+
+        with self.assertRaises(IU4ShadowHarnessError) as caught:
+            PaperIU4ShadowDryRunHarness(
+                self.coordinator,
+                self._shadow_decision(),
+            ).run((rejected_open, next_day_close))
+
+        self.assertEqual(
+            caught.exception.reason_code,
+            IU4ShadowHarnessReasonCode.STEP_INVALID,
+        )
 
     def test_repeated_run_is_deterministic(self) -> None:
         harness = PaperIU4ShadowDryRunHarness(

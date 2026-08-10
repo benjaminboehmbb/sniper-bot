@@ -470,6 +470,18 @@ def run_iu4_replay_pipeline_smoke(
             "autonomous_exit_committed_count": validation.get(
                 "autonomous_exit_committed_count"
             ),
+            "autonomous_exit_guard_suppressed_count": validation.get(
+                "autonomous_exit_guard_suppressed_count"
+            ),
+            "autonomous_exit_accounted_count": validation.get(
+                "autonomous_exit_accounted_count"
+            ),
+            "guard_divergence_count": validation.get(
+                "guard_divergence_count"
+            ),
+            "guard_divergence_rejected_entry_count": validation.get(
+                "guard_divergence_rejected_entry_count"
+            ),
             "restart_enabled": validation.get("restart_enabled"),
             "restart_after_step": validation.get("restart_after_step"),
             "restart_count": validation.get("restart_count"),

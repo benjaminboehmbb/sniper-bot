@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from live_l1.core.paper_entry_throttle import PaperEntryThrottleState
+from live_l1.core.paper_iu4_adapter import PaperIU4Adapter
 from live_l1.core.paper_iu4_shadow_harness import (
     IU4ShadowIntentStepV1,
     PaperIU4ShadowDryRunHarness,
@@ -78,7 +79,7 @@ class PaperIU4ReplayEvidenceTests(unittest.TestCase):
                 utc_day="2026-08-09",
             ),
         )
-        request = IU4StartupModeRequestV1(
+        self.startup_request = IU4StartupModeRequestV1(
             schema_version=1,
             mode=MODE_SHADOW,
             startup_timestamp_utc="2026-08-09T09:00:00Z",
@@ -97,7 +98,7 @@ class PaperIU4ReplayEvidenceTests(unittest.TestCase):
             authorization=None,
         )
         decision = evaluate_iu4_startup_gate(
-            request,
+            self.startup_request,
             self.coordinator,
             running_repository_commit_sha=COMMIT_SHA,
         )
@@ -141,6 +142,38 @@ class PaperIU4ReplayEvidenceTests(unittest.TestCase):
             path.relative_to(self.source_root).as_posix(): path.read_bytes()
             for path in paths
         }
+
+    def _settle_source_loss_and_refresh_harness(self) -> None:
+        adapter = PaperIU4Adapter(self.coordinator)
+        adapter.execute(
+            PaperIU4ShadowDryRunHarness._request_for(
+                self._step(1, "BUY"),
+                self.coordinator,
+            )
+        )
+        adapter.execute(
+            PaperIU4ShadowDryRunHarness._request_for(
+                IU4ShadowIntentStepV1(
+                    schema_version=1,
+                    source_intent_id="SOURCE-LOSS-CLOSE",
+                    intent_final="SELL",
+                    intent_reason_code="SOURCE_LOSS_EXIT",
+                    target_system_state_id="SYSTEM-LOSS-CLOSED",
+                    timestamp_utc="2026-08-09T11:30:00Z",
+                    tick_id=150,
+                    reference_price=D("1"),
+                    reference_stop_price=None,
+                    trade_id="TRADE-1",
+                ),
+                self.coordinator,
+            )
+        )
+        decision = evaluate_iu4_startup_gate(
+            self.startup_request,
+            self.coordinator,
+            running_repository_commit_sha=COMMIT_SHA,
+        )
+        self.harness = PaperIU4ShadowDryRunHarness(self.coordinator, decision)
 
     def test_strict_jsonl_loads_canonical_steps_and_metadata(self) -> None:
         source = self._write_steps(self._step(1), self._step(2, "HOLD"))
@@ -280,6 +313,71 @@ class PaperIU4ReplayEvidenceTests(unittest.TestCase):
             1,
         )
         self.assertTrue(evidence["validation"]["restart_state_restored"])
+
+    def test_evidence_binds_guard_rejection_to_suppressed_autonomous_exit(self) -> None:
+        self._settle_source_loss_and_refresh_harness()
+        rejected_open = IU4ShadowIntentStepV1(
+            schema_version=1,
+            source_intent_id="GUARD-REJECTED-OPEN",
+            intent_final="BUY",
+            intent_reason_code="REPLAY_TEST",
+            target_system_state_id="SYSTEM-GUARD-OPEN",
+            timestamp_utc="2026-08-09T12:00:00Z",
+            tick_id=200,
+            reference_price=D("100"),
+            reference_stop_price=D("95"),
+            trade_id="GUARD-REJECTED-TRADE",
+        )
+        autonomous_close = IU4ShadowIntentStepV1(
+            schema_version=2,
+            source_intent_id="GUARD-AUTONOMOUS-CLOSE",
+            intent_final="SELL",
+            intent_reason_code="LONG_TIME_STOP_HIT",
+            target_system_state_id="SYSTEM-GUARD-CLOSE",
+            timestamp_utc="2026-08-09T13:00:00Z",
+            tick_id=300,
+            reference_price=D("100"),
+            reference_stop_price=None,
+            trade_id="",
+            source_event_kind="AUTONOMOUS_EXIT_EXECUTION",
+            source_intent_final="HOLD",
+            source_execution_action="CLOSE_LONG",
+            source_execution_sequence=99,
+        )
+        source = self._write_steps(rejected_open, autonomous_close)
+        output = self.artifacts / "guard-divergence-evidence.json"
+
+        export_iu4_replay_evidence(
+            input_path=source,
+            output_path=output,
+            harness=self.harness,
+            replay_id="REPLAY-GUARD-DIVERGENCE",
+            generated_at_utc="2026-08-09T14:00:00Z",
+            restart_after_steps=1,
+            stream_output=True,
+        )
+        evidence = json.loads(output.read_text(encoding="utf-8"))
+
+        self.assertEqual(evidence["schema_version"], 2)
+        validation = evidence["validation"]
+        self.assertEqual(validation["guard_divergence_count"], 1)
+        self.assertEqual(validation["guard_divergence_rejected_entry_count"], 1)
+        self.assertEqual(validation["autonomous_exit_step_count"], 1)
+        self.assertEqual(validation["autonomous_exit_committed_count"], 0)
+        self.assertEqual(validation["autonomous_exit_guard_suppressed_count"], 1)
+        self.assertEqual(validation["autonomous_exit_accounted_count"], 1)
+        outcome = evidence["outcomes"][-1]
+        self.assertEqual(outcome["status"], "NOOP")
+        self.assertEqual(outcome["action"], "NOOP")
+        divergence = outcome["guard_divergence"]
+        self.assertEqual(divergence["position_side"], "LONG")
+        self.assertEqual(divergence["first_rejected_step_index"], 1)
+        self.assertEqual(divergence["suppressed_exit_step_index"], 2)
+        self.assertEqual(divergence["suppressed_exit_sequence"], 99)
+        self.assertEqual(
+            divergence["guard_reason_codes"],
+            ["PEE_RISK_DAILY_LOSS_LIMIT"],
+        )
 
     def test_identical_export_is_idempotent(self) -> None:
         source = self._write_steps(self._step(1))
