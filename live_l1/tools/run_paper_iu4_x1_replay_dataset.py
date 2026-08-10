@@ -338,6 +338,7 @@ def run_x1_replay_dataset(
     restart_after_steps: int | None = None,
     restart_fault_injection: str | None = None,
     resume_existing_output: bool = False,
+    expected_iu3_git_commit: str | None = None,
     progress_interval_steps: int = 10_000,
 ) -> IU4X1DatasetRunV1:
     output_candidate = output_directory
@@ -378,6 +379,20 @@ def run_x1_replay_dataset(
             IU4X1DatasetReasonCode.INPUT_INVALID,
             f"execution_host must be one of {EXECUTION_HOSTS}",
         )
+    if resume_existing_output:
+        if expected_iu3_git_commit is None:
+            expected_iu3_git_commit = _git_head()
+        if (
+            len(expected_iu3_git_commit) != 40
+            or any(
+                character not in "0123456789abcdef"
+                for character in expected_iu3_git_commit
+            )
+        ):
+            raise IU4X1DatasetError(
+                IU4X1DatasetReasonCode.INPUT_INVALID,
+                "resume requires a lowercase 40-character expected IU3 git commit",
+            )
     if restart_after_steps is not None and (
         isinstance(restart_after_steps, bool)
         or not isinstance(restart_after_steps, int)
@@ -429,7 +444,7 @@ def run_x1_replay_dataset(
             max_ticks=max_ticks,
             valid_row_offset=valid_row_offset,
             source_id=source_id,
-            git_commit=git_commit,
+            git_commit=expected_iu3_git_commit,
         )
         if resume_existing_output
         else run_validation(
@@ -559,6 +574,7 @@ def run_x1_replay_dataset(
         "iu3_manifest": {
             "relative_path": "iu3_source/run_manifest.json",
             "sha256": _sha256_file(iu3_directory / "run_manifest.json"),
+            "source_git_commit": iu3_manifest["git_commit"],
             "issues": iu3_manifest["sidecar"]["issues"],
         },
         "atomic_source": {
@@ -616,6 +632,7 @@ def _parser() -> argparse.ArgumentParser:
         choices=(RESTART_FAULT_SNAPSHOT_TRUNCATED,),
     )
     parser.add_argument("--resume-existing-output", action="store_true")
+    parser.add_argument("--expected-iu3-git-commit")
     parser.add_argument("--progress-interval-steps", type=int, default=10_000)
     return parser
 
@@ -640,6 +657,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         restart_after_steps=args.restart_after_steps,
         restart_fault_injection=args.restart_fault_injection,
         resume_existing_output=args.resume_existing_output,
+        expected_iu3_git_commit=args.expected_iu3_git_commit,
         progress_interval_steps=args.progress_interval_steps,
     )
     evidence = result.pipeline.evidence_export.evidence

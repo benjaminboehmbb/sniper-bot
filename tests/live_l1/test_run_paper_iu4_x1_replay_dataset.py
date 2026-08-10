@@ -213,6 +213,12 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
         )
         replay_hash = hashlib.sha256(replay_path.read_bytes()).hexdigest()
         evidence_hash = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+        iu3_manifest_path = first.output_directory / "iu3_source" / "run_manifest.json"
+        iu3_manifest = json.loads(iu3_manifest_path.read_text(encoding="utf-8"))
+        iu3_manifest["git_commit"] = "0" * 40
+        iu3_manifest_path.write_text(
+            json.dumps(iu3_manifest, sort_keys=True), encoding="utf-8"
+        )
         evidence_path.unlink()
         (first.output_directory / "iu4_replay" / "pipeline_receipt.json").unlink()
         first.run_manifest_path.unlink()
@@ -220,6 +226,7 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
         resumed = run_x1_replay_dataset(
             **arguments,
             resume_existing_output=True,
+            expected_iu3_git_commit="0" * 40,
             progress_interval_steps=1,
         )
         progress = json.loads(
@@ -239,6 +246,10 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
         self.assertEqual(progress["total_steps"], 3)
         self.assertEqual(progress["percentage"], 100.0)
         self.assertEqual(progress["status"], "COMPLETE")
+        top_manifest = json.loads(
+            resumed.run_manifest_path.read_text(encoding="utf-8")
+        )
+        self.assertEqual(top_manifest["iu3_manifest"]["source_git_commit"], "0" * 40)
 
     def test_resume_rejects_modified_replay_input(self) -> None:
         arguments = self._arguments()
