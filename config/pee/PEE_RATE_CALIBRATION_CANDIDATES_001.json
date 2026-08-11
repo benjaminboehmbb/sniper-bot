@@ -1,0 +1,36 @@
+{
+  "artifact_type": "pee_rate_calibration_candidate_set",
+  "schema_version": 1,
+  "calibration_only": true,
+  "operationally_approved": false,
+  "candidate_set_id": "PEE_RATE_CALIBRATION_CANDIDATES_001",
+  "rolling_window_seconds": 21600,
+  "sensitivity": {
+    "max_entries_per_utc_day": [1, 2, 3, 4, 8],
+    "max_entries_per_rolling_window": [1, 2, 3, 4, 8],
+    "min_reentry_cooldown_seconds": [180, 3600, 10800, 12720, 14400, 21600]
+  },
+  "profiles": [
+    {
+      "policy_profile_id": "PEE_RATE_OBSERVED_BOUNDARY_CANDIDATE_001",
+      "max_entries_per_utc_day": 2,
+      "max_entries_per_rolling_window": 2,
+      "min_reentry_cooldown_seconds": 10800,
+      "classification": "OBSERVED_BOUNDARY"
+    },
+    {
+      "policy_profile_id": "PEE_RATE_BUFFERED_CANDIDATE_001",
+      "max_entries_per_utc_day": 4,
+      "max_entries_per_rolling_window": 3,
+      "min_reentry_cooldown_seconds": 3600,
+      "classification": "BUFFERED_NON_DISTORTING"
+    },
+    {
+      "policy_profile_id": "PEE_RATE_STRICT_STRESS_CANDIDATE_001",
+      "max_entries_per_utc_day": 1,
+      "max_entries_per_rolling_window": 1,
+      "min_reentry_cooldown_seconds": 14400,
+      "classification": "STRICT_STRESS"
+    }
+  ]
+}
