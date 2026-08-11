@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from live_l1.tools.run_paper_iu4_x1_replay_dataset import (
     EXECUTION_HOST_WORKSTATION,
@@ -148,6 +150,55 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
         self.assertFalse(manifest["iu4_enforced_enabled"])
         self.assertFalse(manifest["exchange_enabled"])
         self.assertFalse(manifest["live_enabled"])
+
+    def test_approved_profile_enforces_cooldown_and_keeps_exits_allowed(self) -> None:
+        self.source.write_text(
+            "timestamp_utc,open,high,low,close,volume,allow_long,allow_short,regime_v2\n"
+            "2026-08-11T11:00:00Z,100,100,100,100,1,1,1,0\n"
+            "2026-08-11T11:01:00Z,101,101,101,101,1,1,1,0\n"
+            "2026-08-11T11:02:00Z,102,102,102,102,1,1,1,0\n"
+            "2026-08-11T11:03:00Z,103,103,103,103,1,1,1,0\n"
+            "2026-08-11T11:04:00Z,104,104,104,104,1,1,1,0\n"
+            "2026-08-11T11:05:00Z,105,105,105,105,1,1,1,0\n",
+            encoding="utf-8",
+        )
+        arguments = self._approved_arguments()
+        arguments["expected_source_sha256"] = hashlib.sha256(
+            self.source.read_bytes()
+        ).hexdigest()
+        arguments["max_ticks"] = 6
+        with patch.dict(
+            os.environ,
+            {
+                "L1_TEST_FORCE_INTENTS": "1",
+                "L1_TEST_FORCE_BUY_EVERY": "2",
+                "L1_TEST_FORCE_SELL_EVERY": "3",
+                "L1_TEST_FORCE_WARMUP_TICKS": "0",
+            },
+        ):
+            result = run_x1_replay_dataset(**arguments)
+
+        receipt = json.loads(result.pipeline.receipt_path.read_text(encoding="utf-8"))
+        evidence = json.loads(
+            (result.output_directory / "iu4_replay" / "replay_evidence.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(receipt["result"]["committed_step_count"], 2)
+        self.assertEqual(receipt["result"]["noop_step_count"], 2)
+        self.assertEqual(receipt["result"]["rejected_step_count"], 2)
+        rejected = [
+            outcome
+            for outcome in evidence["outcomes"]
+            if outcome["status"] == "REJECTED"
+        ]
+        self.assertEqual(
+            [outcome["reason_code"] for outcome in rejected],
+            ["PEE_RATE_REENTRY_COOLDOWN", "PEE_RATE_REENTRY_COOLDOWN"],
+        )
+        self.assertTrue(all(outcome["exit_allowed"] for outcome in evidence["outcomes"]))
+        self.assertTrue(all(receipt["chain_checks"].values()))
+        self.assertFalse(receipt["result"]["continuation_blocked"])
 
     def test_both_throttle_policy_inputs_are_rejected_before_output(self) -> None:
         arguments = self._arguments()
