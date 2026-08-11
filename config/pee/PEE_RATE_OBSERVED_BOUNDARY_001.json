@@ -1,0 +1,27 @@
+{
+  "artifact_type": "pee_rate_approved_policy_profile",
+  "schema_version": 1,
+  "approval_id": "IU4-THROTTLE-PROFIL-OBSERVED-BOUNDARY-2026-08-11",
+  "profile_approved": true,
+  "runtime_activated": false,
+  "iu4_enforced_authorized": false,
+  "exchange_authorized": false,
+  "live_authorized": false,
+  "calibration_binding": {
+    "report_sha256": "c7ecc33ff559ab8c57b15928bc0ad0f98a466bd15130ac9f30f763918454afe8",
+    "report_fingerprint": "22da65f4b9752f71cd26807a798f7e674f1236a02aec73a190e5252c8d40092d",
+    "candidate_policy_profile_id": "PEE_RATE_OBSERVED_BOUNDARY_CANDIDATE_001",
+    "candidate_policy_fingerprint": "e70b2051a211934a7e276bc1488c516e0ecf1b9444ce5f41f81c276458f3b225",
+    "decision_replay_sha256": "65f47adaace62a9d9073bc28695d58b09bd7c943f3df94b23f2c67f70ea8114b"
+  },
+  "policy": {
+    "schema_version": 1,
+    "policy_model_version": "PEE_RATE_V1",
+    "policy_profile_id": "PEE_RATE_OBSERVED_BOUNDARY_001",
+    "max_entries_per_utc_day": 2,
+    "max_entries_per_rolling_window": 2,
+    "rolling_window_seconds": 21600,
+    "min_reentry_cooldown_seconds": 10800
+  },
+  "policy_fingerprint": "ed6e55744ce76d4f2e159832a2aeebcd4dbeb0f5dc1cdbbfda6177af119d1ada"
+}
