@@ -28,6 +28,9 @@ POLICY_PATH = (
     / "pee"
     / "PEE_RATE_X1_REPLAY_OBSERVATION_001.json"
 )
+APPROVED_POLICY_PATH = (
+    PROJECT_ROOT / "config" / "pee" / "PEE_RATE_OBSERVED_BOUNDARY_001.json"
+)
 SEED_PATH = PROJECT_ROOT / "seeds" / "5m" / "btcusdt_5m_timing_core_v2.csv"
 
 
@@ -65,6 +68,12 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
             "replay_id": "PEE-IU4-X1-DATASET-TEST",
             "generated_at_utc": "2026-08-09T16:00:00Z",
         }
+
+    def _approved_arguments(self) -> dict[str, object]:
+        arguments = self._arguments()
+        arguments["throttle_observation_policy_json"] = None
+        arguments["approved_throttle_policy_json"] = APPROVED_POLICY_PATH
+        return arguments
 
     def test_three_tick_run_writes_bound_evidence_without_activation(self) -> None:
         result = run_x1_replay_dataset(**self._arguments())
@@ -115,6 +124,74 @@ class PaperIU4X1ReplayDatasetTests(unittest.TestCase):
             "IU4-WORKSTATION-REPLAY",
             receipt["atomic_source"]["coordinator_id"],
         )
+
+    def test_approved_profile_runs_offline_shadow_with_exact_binding(self) -> None:
+        result = run_x1_replay_dataset(**self._approved_arguments())
+        manifest = json.loads(result.run_manifest_path.read_text(encoding="utf-8"))
+        receipt = json.loads(result.pipeline.receipt_path.read_text(encoding="utf-8"))
+
+        approved = manifest["throttle_approved_policy"]
+        self.assertNotIn("throttle_observation_policy", manifest)
+        self.assertEqual(approved["profile_id"], "PEE_RATE_OBSERVED_BOUNDARY_001")
+        self.assertEqual(approved["policy_model_version"], "PEE_RATE_V1")
+        self.assertEqual(
+            approved["policy_fingerprint"],
+            "ed6e55744ce76d4f2e159832a2aeebcd4dbeb0f5dc1cdbbfda6177af119d1ada",
+        )
+        self.assertTrue(approved["profile_approved"])
+        self.assertFalse(approved["runtime_activated"])
+        self.assertEqual(
+            approved["calibration_binding"]["report_sha256"],
+            "c7ecc33ff559ab8c57b15928bc0ad0f98a466bd15130ac9f30f763918454afe8",
+        )
+        self.assertTrue(all(receipt["chain_checks"].values()))
+        self.assertFalse(manifest["iu4_enforced_enabled"])
+        self.assertFalse(manifest["exchange_enabled"])
+        self.assertFalse(manifest["live_enabled"])
+
+    def test_both_throttle_policy_inputs_are_rejected_before_output(self) -> None:
+        arguments = self._arguments()
+        arguments["approved_throttle_policy_json"] = APPROVED_POLICY_PATH
+
+        with self.assertRaises(IU4X1DatasetError) as raised:
+            run_x1_replay_dataset(**arguments)
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+        )
+        self.assertFalse((self.root / "run").exists())
+
+    def test_approved_policy_activation_flag_fails_closed(self) -> None:
+        unsafe_policy = self.root / "unsafe-approved-policy.json"
+        record = json.loads(APPROVED_POLICY_PATH.read_text(encoding="utf-8"))
+        record["runtime_activated"] = True
+        unsafe_policy.write_text(json.dumps(record), encoding="utf-8")
+        arguments = self._approved_arguments()
+        arguments["approved_throttle_policy_json"] = unsafe_policy
+
+        with self.assertRaises(IU4X1DatasetError) as raised:
+            run_x1_replay_dataset(**arguments)
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+        )
+        self.assertFalse((self.root / "run").exists())
+
+    def test_approved_policy_fingerprint_mismatch_fails_closed(self) -> None:
+        unsafe_policy = self.root / "mismatched-approved-policy.json"
+        record = json.loads(APPROVED_POLICY_PATH.read_text(encoding="utf-8"))
+        record["policy"]["max_entries_per_utc_day"] = 3
+        unsafe_policy.write_text(json.dumps(record), encoding="utf-8")
+        arguments = self._approved_arguments()
+        arguments["approved_throttle_policy_json"] = unsafe_policy
+
+        with self.assertRaises(IU4X1DatasetError) as raised:
+            run_x1_replay_dataset(**arguments)
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+        )
+        self.assertFalse((self.root / "run").exists())
 
     def test_unknown_execution_host_is_rejected_before_output_creation(self) -> None:
         arguments = self._arguments()

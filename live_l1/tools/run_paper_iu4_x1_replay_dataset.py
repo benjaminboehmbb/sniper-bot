@@ -63,6 +63,13 @@ class IU4X1DatasetRunV1:
     run_manifest_sha256: str
 
 
+@dataclass(frozen=True)
+class ThrottlePolicySelectionV1:
+    policy: PaperEntryThrottlePolicy
+    manifest_key: str
+    manifest_record: Mapping[str, Any]
+
+
 def _sha256_bytes(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
@@ -144,6 +151,150 @@ def _load_calibration_policy(path: Path) -> PaperEntryThrottlePolicy:
             "throttle policy fields are missing or unknown",
         )
     return PaperEntryThrottlePolicy.from_record(policy_record)
+
+
+def _is_lower_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _load_approved_policy(
+    path: Path,
+) -> tuple[PaperEntryThrottlePolicy, Mapping[str, Any]]:
+    record = _json_object(path)
+    expected = {
+        "artifact_type",
+        "schema_version",
+        "approval_id",
+        "profile_approved",
+        "runtime_activated",
+        "iu4_enforced_authorized",
+        "exchange_authorized",
+        "live_authorized",
+        "calibration_binding",
+        "policy",
+        "policy_fingerprint",
+    }
+    if set(record) != expected:
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "approved policy fields are missing or unknown",
+        )
+    binding = record.get("calibration_binding")
+    policy_record = record.get("policy")
+    approval_id = record.get("approval_id")
+    if (
+        record.get("artifact_type") != "pee_rate_approved_policy_profile"
+        or record.get("schema_version") != 1
+        or not isinstance(approval_id, str)
+        or not approval_id.strip()
+        or record.get("profile_approved") is not True
+        or record.get("runtime_activated") is not False
+        or record.get("iu4_enforced_authorized") is not False
+        or record.get("exchange_authorized") is not False
+        or record.get("live_authorized") is not False
+        or not isinstance(binding, Mapping)
+        or not isinstance(policy_record, Mapping)
+    ):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "approved policy must remain explicitly non-activated and offline-only",
+        )
+    expected_binding_fields = {
+        "report_sha256",
+        "report_fingerprint",
+        "candidate_policy_profile_id",
+        "candidate_policy_fingerprint",
+        "decision_replay_sha256",
+    }
+    if set(binding) != expected_binding_fields or not all(
+        _is_lower_sha256(binding.get(field))
+        for field in (
+            "report_sha256",
+            "report_fingerprint",
+            "candidate_policy_fingerprint",
+            "decision_replay_sha256",
+        )
+    ):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "approved policy calibration binding is invalid",
+        )
+    candidate_profile_id = binding.get("candidate_policy_profile_id")
+    if not isinstance(candidate_profile_id, str) or not candidate_profile_id.strip():
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "approved policy candidate identity is invalid",
+        )
+    expected_policy_fields = set(PaperEntryThrottlePolicy.__dataclass_fields__)
+    if set(policy_record) != expected_policy_fields:
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "approved throttle policy fields are missing or unknown",
+        )
+    try:
+        policy = PaperEntryThrottlePolicy.from_record(policy_record)
+    except Exception as exc:
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "approved throttle policy record is invalid",
+        ) from exc
+    if (
+        policy.policy_model_version != "PEE_RATE_V1"
+        or not _is_lower_sha256(record.get("policy_fingerprint"))
+        or record.get("policy_fingerprint") != policy.policy_fingerprint
+    ):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "approved throttle policy identity or fingerprint mismatch",
+        )
+    return policy, record
+
+
+def _select_throttle_policy(
+    *,
+    observation_path: Path | None,
+    approved_path: Path | None,
+) -> ThrottlePolicySelectionV1:
+    if (observation_path is None) == (approved_path is None):
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "exactly one calibration observation or approved throttle policy is required",
+        )
+    if observation_path is not None:
+        policy = _load_calibration_policy(observation_path)
+        return ThrottlePolicySelectionV1(
+            policy=policy,
+            manifest_key="throttle_observation_policy",
+            manifest_record={
+                "logical_name": observation_path.name,
+                "file_sha256": _sha256_file(observation_path),
+                "profile_id": policy.policy_profile_id,
+                "policy_fingerprint": policy.policy_fingerprint,
+                "calibration_only": True,
+                "operationally_approved": False,
+            },
+        )
+    assert approved_path is not None
+    policy, record = _load_approved_policy(approved_path)
+    return ThrottlePolicySelectionV1(
+        policy=policy,
+        manifest_key="throttle_approved_policy",
+        manifest_record={
+            "logical_name": approved_path.name,
+            "file_sha256": _sha256_file(approved_path),
+            "profile_id": policy.policy_profile_id,
+            "policy_model_version": policy.policy_model_version,
+            "policy_fingerprint": policy.policy_fingerprint,
+            "profile_approved": True,
+            "runtime_activated": False,
+            "approval_id": record["approval_id"],
+            "calibration_binding": dict(record["calibration_binding"]),
+        },
+    )
 
 
 def _initial_atomic_coordinator(
@@ -326,7 +477,8 @@ def run_x1_replay_dataset(
     source_csv: Path,
     expected_source_sha256: str,
     economics_profile_json: Path,
-    throttle_observation_policy_json: Path,
+    throttle_observation_policy_json: Path | None = None,
+    approved_throttle_policy_json: Path | None = None,
     seed_csv: Path,
     output_directory: Path,
     max_ticks: int,
@@ -411,18 +563,30 @@ def run_x1_replay_dataset(
             IU4X1DatasetReasonCode.INPUT_INVALID,
             "restart fault injection requires SNAPSHOT_TRUNCATED and a valid boundary",
         )
-    for path in (
-        source_csv,
-        economics_profile_json,
-        throttle_observation_policy_json,
-        seed_csv,
-    ):
+    policy_paths = tuple(
+        path
+        for path in (
+            throttle_observation_policy_json,
+            approved_throttle_policy_json,
+        )
+        if path is not None
+    )
+    if len(policy_paths) != 1:
+        raise IU4X1DatasetError(
+            IU4X1DatasetReasonCode.POLICY_INVALID,
+            "exactly one throttle policy input is required",
+        )
+    for path in (source_csv, economics_profile_json, seed_csv, *policy_paths):
         if not path.is_file() or path.is_symlink():
             raise IU4X1DatasetError(
                 IU4X1DatasetReasonCode.INPUT_INVALID,
                 f"input must be a regular, non-symlink file: {path}",
             )
-    policy = _load_calibration_policy(throttle_observation_policy_json)
+    policy_selection = _select_throttle_policy(
+        observation_path=throttle_observation_policy_json,
+        approved_path=approved_throttle_policy_json,
+    )
+    policy = policy_selection.policy
     settings = load_settings_json(economics_profile_json)
     if not settings.ready or settings.config is None or settings.reference_stop_rate is None:
         raise IU4X1DatasetError(
@@ -563,14 +727,7 @@ def run_x1_replay_dataset(
             "profile_id": config.economics_profile_id,
             "config_fingerprint": config.config_fingerprint,
         },
-        "throttle_observation_policy": {
-            "logical_name": throttle_observation_policy_json.name,
-            "file_sha256": _sha256_file(throttle_observation_policy_json),
-            "profile_id": policy.policy_profile_id,
-            "policy_fingerprint": policy.policy_fingerprint,
-            "calibration_only": True,
-            "operationally_approved": False,
-        },
+        policy_selection.manifest_key: dict(policy_selection.manifest_record),
         "iu3_manifest": {
             "relative_path": "iu3_source/run_manifest.json",
             "sha256": _sha256_file(iu3_directory / "run_manifest.json"),
@@ -613,7 +770,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-csv", required=True)
     parser.add_argument("--expected-source-sha256", required=True)
     parser.add_argument("--economics-profile-json", required=True)
-    parser.add_argument("--throttle-observation-policy-json", required=True)
+    throttle_group = parser.add_mutually_exclusive_group(required=True)
+    throttle_group.add_argument("--throttle-observation-policy-json")
+    throttle_group.add_argument("--approved-throttle-policy-json")
     parser.add_argument("--seed-csv", required=True)
     parser.add_argument("--output-directory", required=True)
     parser.add_argument("--max-ticks", type=int, required=True)
@@ -643,8 +802,15 @@ def main(argv: Iterable[str] | None = None) -> int:
         source_csv=Path(args.source_csv),
         expected_source_sha256=args.expected_source_sha256,
         economics_profile_json=Path(args.economics_profile_json),
-        throttle_observation_policy_json=Path(
-            args.throttle_observation_policy_json
+        throttle_observation_policy_json=(
+            Path(args.throttle_observation_policy_json)
+            if args.throttle_observation_policy_json
+            else None
+        ),
+        approved_throttle_policy_json=(
+            Path(args.approved_throttle_policy_json)
+            if args.approved_throttle_policy_json
+            else None
         ),
         seed_csv=Path(args.seed_csv),
         output_directory=Path(args.output_directory),
