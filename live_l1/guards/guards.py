@@ -88,6 +88,9 @@ def evaluate_guards(*, cfg, state):
     if gate_mode == "closed":
         return ("guard_gate_closed", _max_level(current_kill, "HARD"))
 
+    if current_kill in ("HARD", "EMERGENCY"):
+        return (f"guard_kill_level_block:{current_kill}", current_kill)
+
     if gate_mode in ("auto", "open"):
         return ("guard_ok", current_kill)
 

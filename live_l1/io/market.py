@@ -12,6 +12,7 @@ from __future__ import annotations
 import csv
 import os
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from typing import Dict, Optional, TextIO
 
 
@@ -63,6 +64,24 @@ def _to_text(value: object, default: str = "") -> str:
     return str(value).strip()
 
 
+def _canonical_positive_decimal_text(value: object) -> str:
+    """Return exact canonical decimal text without a binary-float round trip."""
+
+    raw = _to_text(value, "")
+    if raw == "":
+        return ""
+    try:
+        parsed = Decimal(raw)
+    except (InvalidOperation, ValueError):
+        return ""
+    if not parsed.is_finite() or parsed <= 0:
+        return ""
+    result = format(parsed, "f")
+    if "." in result:
+        result = result.rstrip("0").rstrip(".")
+    return result
+
+
 def _snapshot_id_from_index(index_1based: int) -> str:
     return f"CSV-{index_1based:08d}"
 
@@ -98,6 +117,7 @@ class MarketSnapshot:
     low: float = 0.0
     close: float = 0.0
     volume: float = 0.0
+    reference_price_text: str = ""
 
 
 class DummyMarketFeed:
@@ -126,6 +146,7 @@ class DummyMarketFeed:
             symbol=self.symbol,
             price=price,
             signals=signals,
+            reference_price_text=_canonical_positive_decimal_text(str(price)),
         )
 
     def close(self) -> None:
@@ -190,7 +211,8 @@ class CSVMarketFeed:
         self.tick += 1
 
         timestamp_utc = _to_text(row.get("timestamp_utc", ""), "")
-        price = _to_float(row.get("close"), 0.0)
+        close_text = _to_text(row.get("close"), "")
+        price = _to_float(close_text, 0.0)
 
         signals: Dict[str, int] = {}
         for col in SIGNAL_COLUMNS:
@@ -210,6 +232,7 @@ class CSVMarketFeed:
             open=_to_float(row.get("open"), 0.0),
             high=_to_float(row.get("high"), 0.0),
             low=_to_float(row.get("low"), 0.0),
-            close=_to_float(row.get("close"), 0.0),
+            close=price,
             volume=_to_float(row.get("volume"), 0.0),
+            reference_price_text=_canonical_positive_decimal_text(close_text),
         )

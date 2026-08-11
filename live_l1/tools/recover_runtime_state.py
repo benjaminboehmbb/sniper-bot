@@ -14,11 +14,10 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import argparse
-import json
 from dataclasses import dataclass
-from pathlib import Path
 
 from live_l1.tools.replay_execution_state import replay_execution_state
+from live_l1.state.loss_cluster import LossClusterStateError, LossClusterStateStore
 
 
 @dataclass(frozen=True)
@@ -33,29 +32,14 @@ class RecoveredRuntimeState:
     loss_cluster_state_loaded: int
 
 
-def _safe_int(value: object, default: int = 0) -> int:
-    try:
-        return int(value)
-    except Exception:
-        return default
-
-
 def _load_pause_entries_remaining(path: str | Path) -> tuple[int, int]:
-    p = Path(path)
-
-    if not p.exists():
-        return 0, 0
-
     try:
-        obj = json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
+        loaded = LossClusterStateStore(path).load()
+    except LossClusterStateError:
         return 0, 0
-
-    if not isinstance(obj, dict):
+    if loaded.state is None:
         return 0, 0
-
-    pause = max(0, _safe_int(obj.get("pause_entries_remaining"), 0))
-    return pause, 1
+    return loaded.state.pause_entries_remaining, 1
 
 
 def recover_runtime_state(

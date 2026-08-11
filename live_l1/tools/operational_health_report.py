@@ -103,7 +103,10 @@ def main() -> int:
     replay_pass = replay.bad_json_lines == 0
     s2_pass = s2_bad == 0
     trade_pass = trade_bad == 0
-    loss_pass = loss_bad == 0
+    loss_reconciliation = next(
+        item for item in reconciliation if item.name == "loss_cluster_state"
+    )
+    loss_pass = loss_bad == 0 and loss_reconciliation.passed
 
     overall_pass = all([
         startup_pass,

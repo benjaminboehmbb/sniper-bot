@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from live_l1.tools.replay_execution_state import replay_execution_state
+from live_l1.state.loss_cluster import LossClusterStateError, LossClusterStateStore
 
 
 @dataclass(frozen=True)
@@ -35,13 +36,6 @@ def _safe_text(value: object, default: str = "") -> str:
 def _safe_float(value: object, default: float = 0.0) -> float:
     try:
         return float(value)
-    except Exception:
-        return default
-
-
-def _safe_int(value: object, default: int = 0) -> int:
-    try:
-        return int(value)
     except Exception:
         return default
 
@@ -69,21 +63,6 @@ def _read_jsonl(path: Path) -> tuple[list[dict[str, Any]], int]:
             rows.append(obj)
 
     return rows, bad
-
-
-def _read_json(path: Path) -> tuple[dict[str, Any] | None, int]:
-    if not path.exists():
-        return None, 0
-
-    try:
-        obj = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
-        return None, 1
-
-    if not isinstance(obj, dict):
-        return None, 1
-
-    return obj, 0
 
 
 def _last_jsonl_object(path: Path) -> tuple[dict[str, Any] | None, int]:
@@ -264,33 +243,26 @@ def check_trade_time_order(trades_path: Path) -> CheckResult:
 
 
 def check_loss_cluster(loss_path: Path) -> CheckResult:
-    obj, bad = _read_json(loss_path)
-
-    if bad != 0:
-        return CheckResult("loss_cluster_state", False, "loss_cluster_bad_json")
-
-    if obj is None:
+    try:
+        loaded = LossClusterStateStore(loss_path).load()
+    except LossClusterStateError as exc:
+        return CheckResult(
+            "loss_cluster_state",
+            False,
+            f"loss_cluster_invalid:{exc.reason_code}",
+        )
+    if loaded.state is None:
         return CheckResult("loss_cluster_state", True, "missing_allowed")
-
-    pause = _safe_int(obj.get("pause_entries_remaining"), 0)
-    pnls = obj.get("recent_closed_trade_pnls", [])
-
-    if pause < 0:
-        return CheckResult("loss_cluster_state", False, f"negative_pause_entries_remaining={pause}")
-
-    if not isinstance(pnls, list):
-        return CheckResult("loss_cluster_state", False, "recent_closed_trade_pnls_not_list")
-
-    for i, value in enumerate(pnls, start=1):
-        try:
-            float(value)
-        except Exception:
-            return CheckResult("loss_cluster_state", False, f"pnl_{i}_not_float")
-
+    state = loaded.state
     return CheckResult(
         "loss_cluster_state",
         True,
-        f"pause_entries_remaining={pause} recent_closed_trade_pnls={len(pnls)}",
+        "pause_entries_remaining={} recent_closed_trade_pnls={} schema={} legacy_migration={}".format(
+            state.pause_entries_remaining,
+            len(state.recent_closed_trade_pnls),
+            state.schema_version,
+            int(loaded.migrated_legacy_v1),
+        ),
     )
 
 

@@ -67,6 +67,7 @@ class FeatureSnapshot:
     allow_short: int
     regime_v2: int
     signals: Dict[str, int]
+    reference_price_text: str = ""
 
     def signal(self, name: str, default: int = 0) -> int:
         return _to_int(self.signals.get(name), default)
@@ -105,4 +106,7 @@ def build_feature_snapshot(snapshot) -> FeatureSnapshot:
         allow_short=_to_int(getattr(snapshot, "allow_short", 0), 0),
         regime_v2=_to_int(getattr(snapshot, "regime_v2", 0), 0),
         signals=signals,
+        reference_price_text=str(
+            getattr(snapshot, "reference_price_text", "")
+        ).strip(),
     )
