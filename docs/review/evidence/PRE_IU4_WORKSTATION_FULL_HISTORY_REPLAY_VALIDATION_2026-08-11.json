@@ -1,0 +1,150 @@
+{
+  "artifact_type": "PRE_IU4_WORKSTATION_FULL_HISTORY_REPLAY_VALIDATION",
+  "schema_version": 1,
+  "status": "PASS",
+  "validated_at_utc": "2026-08-11T05:49:39Z",
+  "execution": {
+    "windows_task": "Codex-IU4-Full-History-20260810",
+    "windows_task_last_result": 0,
+    "linux_exit_code": 0,
+    "completed_steps": 1042658,
+    "total_steps": 1042658,
+    "percentage": "100.00",
+    "execution_host": "WORKSTATION",
+    "x1_only": false,
+    "workstation_only": true,
+    "iu4_enforced_enabled": false,
+    "exchange_enabled": false,
+    "live_enabled": false
+  },
+  "identity": {
+    "git_commit": "2635918695169b765375e7ffbde273bafa994ed8",
+    "iu3_source_commit": "74cc2fc9701d6ce0038a2e9d8759e78f8251c629",
+    "source_id": "PEE-IU4-WS-FULL-HISTORY-1042658-20260810",
+    "replay_id": "PEE-IU4-WS-FULL-HISTORY-1042658-20260810"
+  },
+  "source": {
+    "logical_name": "price_data_with_signals_regime.sha256-2896badb.csv",
+    "sha256_before": "2896badb62e3236df301a1ccf56b878916c48b22ff57483e86b9fc32bffaf104",
+    "sha256_after": "2896badb62e3236df301a1ccf56b878916c48b22ff57483e86b9fc32bffaf104",
+    "valid_minutes": 1042658,
+    "first_timestamp_utc": "2017-08-17T04:00:00Z",
+    "last_timestamp_utc": "2019-08-15T01:59:00Z",
+    "invalid_rows_skipped": 5542
+  },
+  "iu3": {
+    "return_code": 0,
+    "sidecar_issues": 0,
+    "observation_count": 397,
+    "observation_id_parity": true,
+    "executed_open_long": 111,
+    "executed_close_long": 111,
+    "executed_transition_count": 222
+  },
+  "iu4": {
+    "outcome_count": 1042658,
+    "committed_count": 122,
+    "noop_count": 1042340,
+    "rejected_count": 196,
+    "committed_open_long_count": 61,
+    "committed_close_long_count": 61,
+    "autonomous_exit_step_count": 111,
+    "autonomous_exit_committed_count": 61,
+    "autonomous_exit_guard_suppressed_count": 50,
+    "autonomous_exit_accounted_count": 111,
+    "guard_divergence_count": 50,
+    "guard_divergence_rejected_entry_count": 190,
+    "unbound_guard_suppression_count": 0,
+    "replay_outcome_id_parity": true,
+    "pipeline_chain_checks_passed": 16,
+    "pipeline_chain_checks_total": 16,
+    "source_unchanged": true,
+    "sandbox_consistent": true,
+    "source_initial_transaction_sequence": 0,
+    "sandbox_final_transaction_sequence": 122,
+    "source_initial_state_fingerprint": "5924c0563a1f4ff8204a05ec7cc50eff11efbba47b8685513bd5464db91b94b4",
+    "source_final_state_fingerprint": "5924c0563a1f4ff8204a05ec7cc50eff11efbba47b8685513bd5464db91b94b4",
+    "sandbox_final_state_fingerprint": "b53293e9e880aa77de444b252b95591fbc7d1701a41d7ea1c16ac28ee48631d4",
+    "final_position": "FLAT"
+  },
+  "fingerprints": {
+    "run_manifest": "3186dae8427a032a8ca8576781f92120e118706019176f1b6c698121a3c77be6",
+    "replay_input_manifest": "831d4a7f32b23e6d02ce4ab38018a261161f0694a3b5e87bd55655ee20065f44",
+    "replay_evidence": "4b8830a2dd391ce69979eef834470962ffc34edbe91adddbd3832fd2822ff65f",
+    "pipeline_receipt": "7442b30a26270c45d114f33829e52241cbe54098202f986bae39e9257c326304"
+  },
+  "sha256": {
+    "launcher": "a20486c7ad30a130082168cd5ba455cb9d8eb573261f7e6f719890146a2d2f52",
+    "run_manifest.json": "966706644d3d9d6b3ee96129b42a5b77771190ec40fb521f82018f4d2a81397a",
+    "iu3_source/run_manifest.json": "250a8c3b19e7b3f270d93625544db6441b607f27eeed4affe973cfd53b4c8eb9",
+    "iu3_source/data/market.csv": "902d10b1d7678777bd23140ff459b9c5eaa9ef7d968bab7ab6e09926bfbfba8a",
+    "iu3_source/live_logs/l1.log": "e58ecfe836c9e3f4641404ce9d06a082c7d0c8f958f3677ea36fdc2533f85013",
+    "iu3_source/live_logs/stdout.log": "e58ecfe836c9e3f4641404ce9d06a082c7d0c8f958f3677ea36fdc2533f85013",
+    "iu3_source/live_logs/sidecar_report.json": "de9abb45215e07fce10e42d00ec0d29a33406a9ba2065584bca0d83bc3267e95",
+    "iu3_source/live_state/s2_position.jsonl": "bbb72f228d166461305d0928572a884864582ae7f498d7c5ac4138142a3eb67b",
+    "iu3_source/live_state/s4_risk.jsonl": "9c7bf239fc6ca9ee37bb496c31c5b6af4cffcd9fb46fe0be8ca6b8c99c465387",
+    "iu4_replay/replay.jsonl": "ea65eeeee476fe4c3e4b0302f0811fc3182c9ded562a4b5328727cae07f20a8a",
+    "iu4_replay/replay_input_manifest.json": "01b0a30dc76e2c8acb88db11e7ce5ec3a3194cf8aaee90ad4618a6ceda9b7bfc",
+    "iu4_replay/replay_evidence.json": "5d869537ceaf4c9e4c0ea42544ebc3b19b81a5758adf47e7aaaf75db14a95587",
+    "iu4_replay/pipeline_receipt.json": "e80255eb56201137254416e7e4e92ad2c6bc949644eb620f93b047df30d688dd",
+    "atomic_source/paper_atomic_state.json": "984cdc25591f6eb13e840fccfd0234a6affa1fc051bcd3db0d4462aa90d1da41"
+  },
+  "large_artifact_cleanup": {
+    "completed": true,
+    "completed_at_utc": "2026-08-11T05:52:35Z",
+    "removed_file_count": 7,
+    "removed_bytes": 6697839245,
+    "source_csv_preserved": true,
+    "small_manifests_and_receipts_preserved": true
+  },
+  "large_artifact_cleanup_ledger": [
+    {
+      "path": "iu3_source/live_logs/l1.log",
+      "size_bytes": 2067305165,
+      "sha256": "e58ecfe836c9e3f4641404ce9d06a082c7d0c8f958f3677ea36fdc2533f85013"
+    },
+    {
+      "path": "iu3_source/live_logs/stdout.log",
+      "size_bytes": 2067305165,
+      "sha256": "e58ecfe836c9e3f4641404ce9d06a082c7d0c8f958f3677ea36fdc2533f85013"
+    },
+    {
+      "path": "iu3_source/data/market.csv",
+      "size_bytes": 444495117,
+      "sha256": "902d10b1d7678777bd23140ff459b9c5eaa9ef7d968bab7ab6e09926bfbfba8a"
+    },
+    {
+      "path": "iu3_source/live_state/s2_position.jsonl",
+      "size_bytes": 362982558,
+      "sha256": "bbb72f228d166461305d0928572a884864582ae7f498d7c5ac4138142a3eb67b"
+    },
+    {
+      "path": "iu3_source/live_state/s4_risk.jsonl",
+      "size_bytes": 170995912,
+      "sha256": "9c7bf239fc6ca9ee37bb496c31c5b6af4cffcd9fb46fe0be8ca6b8c99c465387"
+    },
+    {
+      "path": "iu4_replay/replay.jsonl",
+      "size_bytes": 414545334,
+      "sha256": "ea65eeeee476fe4c3e4b0302f0811fc3182c9ded562a4b5328727cae07f20a8a"
+    },
+    {
+      "path": "iu4_replay/replay_evidence.json",
+      "size_bytes": 1170209994,
+      "sha256": "5d869537ceaf4c9e4c0ea42544ebc3b19b81a5758adf47e7aaaf75db14a95587"
+    }
+  ],
+  "verification": {
+    "live_l1_tests_passed": 265,
+    "live_l1_tests_total": 265,
+    "regression_tests_passed": 170,
+    "regression_tests_total": 170,
+    "validation_script_sha256": "5b75751c043e00ee918c1fe48b5785b3a176539bdcab1541aceb9e33b639e1f8"
+  },
+  "scope_boundary": {
+    "iu4_enforced_authorized": false,
+    "exchange_authorized": false,
+    "live_authorized": false,
+    "throttle_policy_operationally_approved": false
+  }
+}
