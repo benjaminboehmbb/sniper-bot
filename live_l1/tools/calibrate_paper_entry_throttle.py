@@ -30,6 +30,13 @@ from live_l1.core.paper_entry_throttle import (
 
 ARTIFACT_TYPE = "PEE_RATE_FULL_HISTORY_CALIBRATION"
 MODEL_VERSION = "PEE_RATE_CALIBRATION_V1"
+AUXILIARY_EXECUTION_EVENTS = frozenset(
+    {
+        "ENTRY_BLOCKED",
+        "LOSS_CLUSTER_ACTIVE",
+        "LOSS_CLUSTER_TRIGGERED",
+    }
+)
 
 
 class ThrottleCalibrationError(RuntimeError):
@@ -141,9 +148,10 @@ def _positive_decimal(value: object, field_name: str) -> Decimal:
 def _load_source_trades(
     execution_path: Path,
     trades_path: Path,
-) -> tuple[tuple[SourceTrade, ...], int, int]:
+) -> tuple[tuple[SourceTrade, ...], int, int, dict[str, int]]:
     executions = _jsonl(execution_path)
     trades = _jsonl(trades_path)
+    event_counts = Counter(str(record.get("event")) for record in executions)
     entries = [record for record in executions if record.get("event") == "ENTRY_ACCEPTED"]
     exits = [record for record in executions if record.get("event") == "EXIT_EXECUTED"]
     if len(entries) != len(exits) or len(entries) != len(trades):
@@ -153,7 +161,8 @@ def _load_source_trades(
     unknown_events = {
         str(record.get("event"))
         for record in executions
-        if record.get("event") not in ("ENTRY_ACCEPTED", "EXIT_EXECUTED")
+        if record.get("event")
+        not in AUXILIARY_EXECUTION_EVENTS | {"ENTRY_ACCEPTED", "EXIT_EXECUTED"}
     }
     if unknown_events:
         raise ThrottleCalibrationError(
@@ -215,7 +224,12 @@ def _load_source_trades(
         seen_trade_ids.add(trade_id)
         previous_entry = entry_dt
         previous_exit = exit_dt
-    return tuple(normalized), len(entries), len(exits)
+    return (
+        tuple(normalized),
+        len(entries),
+        len(exits),
+        dict(sorted(event_counts.items())),
+    )
 
 
 def _integer_list(value: object, name: str) -> tuple[int, ...]:
@@ -605,7 +619,9 @@ def build_calibration_report(
     if settings.config is None or settings.reference_stop_rate is None:
         raise ThrottleCalibrationError("economics profile is invalid")
     candidate_set = _load_candidate_set(candidates_path)
-    trades, entry_count, exit_count = _load_source_trades(execution_path, trades_path)
+    trades, entry_count, exit_count, execution_event_counts = _load_source_trades(
+        execution_path, trades_path
+    )
     if runtime.get("executed_actions") != {
         "CLOSE_LONG": exit_count,
         "OPEN_LONG": entry_count,
@@ -686,6 +702,7 @@ def build_calibration_report(
             "entry_count": entry_count,
             "exit_count": exit_count,
             "closed_trade_count": len(trades),
+            "execution_event_counts": execution_event_counts,
         },
         "distribution": _source_distribution(
             trades, int(candidate_set["rolling_window_seconds"])

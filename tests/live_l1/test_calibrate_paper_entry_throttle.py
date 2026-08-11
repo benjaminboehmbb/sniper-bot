@@ -77,6 +77,13 @@ class ThrottleCalibrationTests(unittest.TestCase):
                     "trade_id": f"TRADE-{index}",
                 }
             )
+        execution_records.extend(
+            (
+                {"event": "ENTRY_BLOCKED"},
+                {"event": "LOSS_CLUSTER_ACTIVE"},
+                {"event": "LOSS_CLUSTER_TRIGGERED"},
+            )
+        )
         self.execution.write_text(
             "".join(json.dumps(record, sort_keys=True) + "\n" for record in execution_records),
             encoding="utf-8",
@@ -199,6 +206,16 @@ class ThrottleCalibrationTests(unittest.TestCase):
         self.assertEqual(first["distribution"]["max_entries_per_utc_day"], 2)
         self.assertEqual(first["distribution"]["max_entries_per_rolling_window"], 2)
         self.assertEqual(first["distribution"]["inter_entry_gap_seconds"]["minimum"], 10800)
+        self.assertEqual(
+            first["source_scope"]["execution_event_counts"],
+            {
+                "ENTRY_ACCEPTED": 3,
+                "ENTRY_BLOCKED": 1,
+                "EXIT_EXECUTED": 3,
+                "LOSS_CLUSTER_ACTIVE": 1,
+                "LOSS_CLUSTER_TRIGGERED": 1,
+            },
+        )
         exact, strict = first["candidate_profiles"]
         self.assertEqual(exact["blocked_entry_count"], 0)
         self.assertEqual(strict["blocked_entry_count"], 1)
@@ -237,6 +254,12 @@ class ThrottleCalibrationTests(unittest.TestCase):
     def test_execution_trade_parity_mismatch_fails_closed(self) -> None:
         lines = self.trades.read_text(encoding="utf-8").splitlines()
         self.trades.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
+        with self.assertRaises(ThrottleCalibrationError):
+            self.build()
+
+    def test_unknown_execution_event_fails_closed(self) -> None:
+        with self.execution.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"event": "UNRECOGNIZED"}) + "\n")
         with self.assertRaises(ThrottleCalibrationError):
             self.build()
 
