@@ -619,6 +619,35 @@ class PaperIU4ShadowObservationGateTests(unittest.TestCase):
             IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
         )
 
+    def test_100k_hard_boundary_is_exact_and_still_requires_explicit_bound(self) -> None:
+        environment = dict(self.environment)
+        environment[ENV_OBSERVATION_MAX_RECORDS] = "100000"
+        gate = self._evaluate(environment=environment, max_ticks=100_000)
+        try:
+            self.assertTrue(gate.enabled)
+            self.assertEqual(gate.max_records, 100_000)
+            assert gate.observer is not None
+            checkpoint = json.loads(
+                self.evidence_path.read_text(encoding="utf-8")
+            )
+            self.assertEqual(checkpoint["max_records"], 100_000)
+            self.assertEqual(checkpoint["record_count"], 0)
+            self.assertFalse(checkpoint["exchange_enabled"])
+            self.assertFalse(checkpoint["live_enabled"])
+        finally:
+            assert gate.observer is not None
+            gate.observer.close()
+
+        environment[ENV_OBSERVATION_MAX_RECORDS] = "100001"
+        self.evidence_path.unlink()
+        self.records_journal_path.unlink()
+        with self.assertRaises(IU4ShadowObservationError) as excessive:
+            self._evaluate(environment=environment, max_ticks=100_001)
+        self.assertEqual(
+            excessive.exception.reason_code,
+            IU4ShadowObservationReasonCode.CONFIG_INVALID,
+        )
+
     def test_observation_requires_shadow_runtime_gate(self) -> None:
         off = self.runtime_gate.__class__(
             mode="OFF",
