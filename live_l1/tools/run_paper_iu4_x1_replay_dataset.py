@@ -16,6 +16,10 @@ from live_l1.core.paper_entry_throttle import (
     PaperEntryThrottlePolicy,
     PaperEntryThrottleState,
 )
+from live_l1.core.paper_entry_throttle_profile import (
+    ApprovedThrottleProfileError,
+    load_approved_paper_entry_throttle_profile,
+)
 from live_l1.core.paper_iu4_startup_gate import (
     IU4StartupModeRequestV1,
     MODE_SHADOW,
@@ -164,94 +168,17 @@ def _is_lower_sha256(value: object) -> bool:
 def _load_approved_policy(
     path: Path,
 ) -> tuple[PaperEntryThrottlePolicy, Mapping[str, Any]]:
-    record = _json_object(path)
-    expected = {
-        "artifact_type",
-        "schema_version",
-        "approval_id",
-        "profile_approved",
-        "runtime_activated",
-        "iu4_enforced_authorized",
-        "exchange_authorized",
-        "live_authorized",
-        "calibration_binding",
-        "policy",
-        "policy_fingerprint",
-    }
-    if set(record) != expected:
-        raise IU4X1DatasetError(
-            IU4X1DatasetReasonCode.POLICY_INVALID,
-            "approved policy fields are missing or unknown",
-        )
-    binding = record.get("calibration_binding")
-    policy_record = record.get("policy")
-    approval_id = record.get("approval_id")
-    if (
-        record.get("artifact_type") != "pee_rate_approved_policy_profile"
-        or record.get("schema_version") != 1
-        or not isinstance(approval_id, str)
-        or not approval_id.strip()
-        or record.get("profile_approved") is not True
-        or record.get("runtime_activated") is not False
-        or record.get("iu4_enforced_authorized") is not False
-        or record.get("exchange_authorized") is not False
-        or record.get("live_authorized") is not False
-        or not isinstance(binding, Mapping)
-        or not isinstance(policy_record, Mapping)
-    ):
-        raise IU4X1DatasetError(
-            IU4X1DatasetReasonCode.POLICY_INVALID,
-            "approved policy must remain explicitly non-activated and offline-only",
-        )
-    expected_binding_fields = {
-        "report_sha256",
-        "report_fingerprint",
-        "candidate_policy_profile_id",
-        "candidate_policy_fingerprint",
-        "decision_replay_sha256",
-    }
-    if set(binding) != expected_binding_fields or not all(
-        _is_lower_sha256(binding.get(field))
-        for field in (
-            "report_sha256",
-            "report_fingerprint",
-            "candidate_policy_fingerprint",
-            "decision_replay_sha256",
-        )
-    ):
-        raise IU4X1DatasetError(
-            IU4X1DatasetReasonCode.POLICY_INVALID,
-            "approved policy calibration binding is invalid",
-        )
-    candidate_profile_id = binding.get("candidate_policy_profile_id")
-    if not isinstance(candidate_profile_id, str) or not candidate_profile_id.strip():
-        raise IU4X1DatasetError(
-            IU4X1DatasetReasonCode.POLICY_INVALID,
-            "approved policy candidate identity is invalid",
-        )
-    expected_policy_fields = set(PaperEntryThrottlePolicy.__dataclass_fields__)
-    if set(policy_record) != expected_policy_fields:
-        raise IU4X1DatasetError(
-            IU4X1DatasetReasonCode.POLICY_INVALID,
-            "approved throttle policy fields are missing or unknown",
-        )
     try:
-        policy = PaperEntryThrottlePolicy.from_record(policy_record)
-    except Exception as exc:
+        approved = load_approved_paper_entry_throttle_profile(path)
+    except ApprovedThrottleProfileError as exc:
         raise IU4X1DatasetError(
             IU4X1DatasetReasonCode.POLICY_INVALID,
-            "approved throttle policy record is invalid",
+            exc.detail,
         ) from exc
-    if (
-        policy.policy_model_version != "PEE_RATE_V1"
-        or not _is_lower_sha256(record.get("policy_fingerprint"))
-        or record.get("policy_fingerprint") != policy.policy_fingerprint
-    ):
-        raise IU4X1DatasetError(
-            IU4X1DatasetReasonCode.POLICY_INVALID,
-            "approved throttle policy identity or fingerprint mismatch",
-        )
-    return policy, record
+    return approved.policy, {
+        "approval_id": approved.approval_id,
+        "calibration_binding": dict(approved.calibration_binding),
+    }
 
 
 def _select_throttle_policy(

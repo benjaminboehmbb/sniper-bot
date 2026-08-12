@@ -32,6 +32,10 @@ from live_l1.core.paper_economics_shadow_runtime import (
     observe_runtime_shadow,
     shadow_startup_log_fields,
 )
+from live_l1.core.paper_iu4_shadow_runtime_gate import (
+    IU4ShadowRuntimeGateError,
+    IU4ShadowRuntimeGateV1,
+)
 from live_l1.tools.recover_runtime_state import recover_runtime_state
 from live_l1.tools.reconcile_runtime_state import run_reconciliation
 from live_l1.tools.startup_validator import validate_startup
@@ -858,12 +862,36 @@ def run_l1_loop_step1234567(
     repo_root: str,
     max_ticks: int = 6,
     max_run_seconds: float | None = None,
+    iu4_shadow_runtime_gate: IU4ShadowRuntimeGateV1 | None = None,
 ) -> int:
     system_state_id = f"L1P-{uuid.uuid4().hex[:11]}"
 
     cfg = load_runtime_config(repo_root)
     log = L1Logger(cfg.log_path)
     pee_shadow_settings = load_runtime_shadow_settings(os.environ)
+    iu4_startup_fields = (
+        {}
+        if iu4_shadow_runtime_gate is None
+        else iu4_shadow_runtime_gate.startup_log_fields()
+    )
+
+    if iu4_shadow_runtime_gate is not None:
+        try:
+            iu4_shadow_runtime_gate.assert_current_binding()
+        except IU4ShadowRuntimeGateError as exc:
+            log.log(
+                category="L1",
+                event="system_stop",
+                severity="ERROR",
+                system_state_id=system_state_id,
+                fields={
+                    "reason": "iu4_shadow_runtime_binding_failed",
+                    "iu4_reason_code": exc.reason_code,
+                    "iu4_detail": exc.detail,
+                },
+            )
+            log.close()
+            return 1
 
     startup_validation = validate_startup(
         repo_root=Path(cfg.repo_root),
@@ -961,6 +989,7 @@ def run_l1_loop_step1234567(
                 "startup_recovery_reason": str(startup_recovery.get("reason", "")),
                 "startup_recovery_position": str(startup_recovery.get("position", "")),
                 **shadow_startup_log_fields(pee_shadow_settings),
+                **iu4_startup_fields,
             },
         )
 

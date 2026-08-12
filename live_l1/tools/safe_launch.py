@@ -16,6 +16,10 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from live_l1.core.loop import run_l1_loop_step1234567
+from live_l1.core.paper_iu4_shadow_runtime_gate import (
+    IU4ShadowRuntimeGateError,
+    evaluate_iu4_shadow_runtime_gate,
+)
 from live_l1.tools.reconcile_runtime_state import run_reconciliation
 from live_l1.tools.startup_validator import validate_startup
 from live_l1.operational_profiles import profile_summary
@@ -122,6 +126,33 @@ def main() -> int:
         return 1
 
     print("REQUIRED_SAFETY_FLAGS: PASS")
+
+    print("STEP 4: IU4 shadow runtime gate")
+    try:
+        iu4_gate = evaluate_iu4_shadow_runtime_gate(
+            repo_root=repo,
+            environment=os.environ,
+            operational_profile=profile["profile"],
+            startup_recovery_enabled=startup_recovery,
+            reconciliation_gate_enabled=reconciliation_gate,
+        )
+    except IU4ShadowRuntimeGateError as exc:
+        print("SAFE_LAUNCH: FAIL")
+        print("FAILED_STEP: iu4_shadow_runtime_gate")
+        print("IU4_GATE_ISSUE:", exc.reason_code, exc.detail)
+        return 1
+
+    print("IU4_SHADOW_RUNTIME_GATE: PASS")
+    print("IU4_MODE:", iu4_gate.mode)
+    print("IU4_SHADOW_ENABLED:", int(iu4_gate.shadow_enabled))
+    print(
+        "IU4_ADAPTER_EXECUTION_ENABLED:",
+        int(iu4_gate.decision.adapter_execution_enabled),
+    )
+    print(
+        "IU4_STATE_MUTATION_ALLOWED:",
+        int(iu4_gate.decision.state_mutation_allowed),
+    )
     print("SAFE_LAUNCH: PASS")
     print("STARTING LIVE L1")
 
@@ -133,6 +164,7 @@ def main() -> int:
         repo_root=str(repo),
         max_ticks=int(args.max_ticks),
         max_run_seconds=max_run_seconds,
+        iu4_shadow_runtime_gate=iu4_gate,
     )
 
     print("RUNTIME_RC:", rc)
