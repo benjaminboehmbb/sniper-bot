@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 import tempfile
 from dataclasses import dataclass
 from decimal import Decimal
@@ -84,6 +85,33 @@ def _atomic_write(path: Path, payload: Mapping[str, Any]) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary_path, path)
+        directory_descriptor = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    except Exception:
+        temporary_path.unlink(missing_ok=True)
+        raise
+
+
+def _atomic_create(path: Path, payload: Mapping[str, Any]) -> None:
+    """Publish a new JSON artifact atomically without replacing an existing path."""
+
+    encoded = _canonical_json(payload) + b"\n"
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=str(path.parent),
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.link(temporary_path, path)
+        temporary_path.unlink()
         directory_descriptor = os.open(path.parent, os.O_RDONLY)
         try:
             os.fsync(directory_descriptor)
@@ -205,7 +233,17 @@ class PaperIU4ShadowRuntimeObserver:
         self.reference_stop_rate = reference_stop_rate
         self.records: list[dict[str, Any]] = []
         self.source_intent_ids: set[str] = set()
-        self._last_evidence_sha256 = ""
+        self.records_journal_path = evidence_path.with_name(
+            f"{evidence_path.name}.records.jsonl"
+        )
+        self._last_checkpoint_sha256 = ""
+        self._last_journal_entry_sha256 = ""
+        self._journal_sha256 = hashlib.sha256()
+        self._journal_stat: tuple[int, int, int, int, int] | None = None
+        self._journal_handle = None
+        self._writer_ready = False
+        self._writer_poisoned = False
+        self._closed = False
         self.source_entries = _source_entries(self.source)
         self.source_manifest_fingerprint = _manifest_fingerprint(self.source_entries)
         self.source_state = self.source.load_state()
@@ -242,11 +280,52 @@ class PaperIU4ShadowRuntimeObserver:
                 "runtime sandbox is not an exact reconciled source clone",
             )
         self.adapter = PaperIU4Adapter(self.sandbox)
-        self._publish()
+        self._initialize_writer()
 
     def _payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "artifact_type": "PEE_IU4_SHADOW_RUNTIME_OBSERVATION_EVIDENCE",
+            "schema_version": 2,
+            "repository_commit_sha": self.runtime_gate.running_repository_commit_sha,
+            "source_manifest_fingerprint": self.source_manifest_fingerprint,
+            "source_initial_state_fingerprint": self.source_state.state_fingerprint,
+            "source_initial_transaction_sequence": self.source_state.transaction_sequence,
+            "max_records": self.max_records,
+            "record_count": len(self.records),
+            "adapter_execution_scope": "DISPOSABLE_SANDBOX_ONLY",
+            "source_state_mutation_allowed": False,
+            "exchange_enabled": False,
+            "live_enabled": False,
+            "writer_contract": {
+                "mode": "HASH_CHAINED_APPEND_JOURNAL",
+                "records_journal_filename": self.records_journal_path.name,
+                "records_journal_sha256": self._journal_sha256.hexdigest(),
+                "records_journal_size_bytes": (
+                    0 if self._journal_stat is None else self._journal_stat[2]
+                ),
+                "records_journal_entry_count": len(self.records),
+                "last_journal_entry_sha256": self._last_journal_entry_sha256,
+                "chain_algorithm": "SHA256_CANONICAL_JSON_V1",
+                "finalized": True,
+            },
+            "records": self.records,
+        }
+        payload["evidence_fingerprint"] = _sha256(_canonical_json(payload))
+        return payload
+
+    @staticmethod
+    def _stat_identity(result: os.stat_result) -> tuple[int, int, int, int, int]:
+        return (
+            result.st_dev,
+            result.st_ino,
+            result.st_size,
+            result.st_mtime_ns,
+            result.st_ctime_ns,
+        )
+
+    def _checkpoint_payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "artifact_type": "PEE_IU4_SHADOW_RUNTIME_OBSERVATION_CHECKPOINT",
             "schema_version": 1,
             "repository_commit_sha": self.runtime_gate.running_repository_commit_sha,
             "source_manifest_fingerprint": self.source_manifest_fingerprint,
@@ -258,32 +337,176 @@ class PaperIU4ShadowRuntimeObserver:
             "source_state_mutation_allowed": False,
             "exchange_enabled": False,
             "live_enabled": False,
-            "records": self.records,
+            "writer_mode": "HASH_CHAINED_APPEND_JOURNAL",
+            "records_journal_filename": self.records_journal_path.name,
+            "records_journal_sha256": self._journal_sha256.hexdigest(),
+            "records_journal_size_bytes": (
+                0 if self._journal_stat is None else self._journal_stat[2]
+            ),
+            "last_journal_entry_sha256": self._last_journal_entry_sha256,
+            "finalized": False,
         }
-        payload["evidence_fingerprint"] = _sha256(_canonical_json(payload))
+        payload["checkpoint_fingerprint"] = _sha256(_canonical_json(payload))
         return payload
 
-    def _publish(self) -> None:
+    def _initialize_writer(self) -> None:
         try:
-            if self.evidence_path.exists():
-                current_sha256 = _sha256(self.evidence_path.read_bytes())
-                if (
-                    not self._last_evidence_sha256
-                    or current_sha256 != self._last_evidence_sha256
-                ):
-                    raise IU4ShadowObservationError(
-                        IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
-                        "observation evidence changed outside the active observer",
-                    )
-            _atomic_write(self.evidence_path, self._payload())
-            self._last_evidence_sha256 = _sha256(self.evidence_path.read_bytes())
+            flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_EXCL
+            descriptor = os.open(self.records_journal_path, flags, 0o600)
+            self._journal_handle = os.fdopen(descriptor, "ab", buffering=0)
+            self._journal_stat = self._stat_identity(os.fstat(descriptor))
+            checkpoint = self._checkpoint_payload()
+            _atomic_create(self.evidence_path, checkpoint)
+            self._last_checkpoint_sha256 = _sha256(
+                _canonical_json(checkpoint) + b"\n"
+            )
+            self._writer_ready = True
         except IU4ShadowObservationError:
+            self._writer_poisoned = True
+            self.close()
             raise
         except Exception as exc:
+            self._writer_poisoned = True
+            self.close()
             raise IU4ShadowObservationError(
                 IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
                 str(exc),
             ) from exc
+
+    def _assert_writer_unchanged(self) -> None:
+        if not self._writer_ready or self._journal_handle is None:
+            raise IU4ShadowObservationError(
+                IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                "observation writer is not ready",
+            )
+        if (
+            not self.evidence_path.is_file()
+            or self.evidence_path.is_symlink()
+            or _sha256(self.evidence_path.read_bytes())
+            != self._last_checkpoint_sha256
+        ):
+            raise IU4ShadowObservationError(
+                IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                "observation checkpoint changed outside the active observer",
+            )
+        try:
+            path_stat = os.stat(self.records_journal_path, follow_symlinks=False)
+            handle_stat = os.fstat(self._journal_handle.fileno())
+        except OSError as exc:
+            raise IU4ShadowObservationError(
+                IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                f"observation records journal is unavailable: {exc}",
+            ) from exc
+        if (
+            not stat.S_ISREG(path_stat.st_mode)
+            or self._stat_identity(path_stat) != self._journal_stat
+            or self._stat_identity(handle_stat) != self._journal_stat
+        ):
+            raise IU4ShadowObservationError(
+                IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                "observation records journal changed outside the active observer",
+            )
+
+    def _publish_checkpoint(self) -> None:
+        checkpoint = self._checkpoint_payload()
+        _atomic_write(self.evidence_path, checkpoint)
+        self._last_checkpoint_sha256 = _sha256(
+            _canonical_json(checkpoint) + b"\n"
+        )
+
+    def _append_record(self, record: dict[str, Any]) -> None:
+        try:
+            self._assert_writer_unchanged()
+            previous_size = 0 if self._journal_stat is None else self._journal_stat[2]
+            envelope: dict[str, Any] = {
+                "artifact_type": "PEE_IU4_SHADOW_RUNTIME_OBSERVATION_RECORD",
+                "schema_version": 1,
+                "sequence": record["sequence"],
+                "previous_entry_sha256": self._last_journal_entry_sha256,
+                "record": record,
+            }
+            envelope["entry_sha256"] = _sha256(_canonical_json(envelope))
+            encoded = _canonical_json(envelope) + b"\n"
+            assert self._journal_handle is not None
+            self._journal_handle.write(encoded)
+            os.fsync(self._journal_handle.fileno())
+            self._journal_stat = self._stat_identity(
+                os.fstat(self._journal_handle.fileno())
+            )
+            if self._journal_stat[2] != previous_size + len(encoded):
+                raise IU4ShadowObservationError(
+                    IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                    "observation records journal grew outside the active append",
+                )
+            self._journal_sha256.update(encoded)
+            self._last_journal_entry_sha256 = str(envelope["entry_sha256"])
+            self._publish_checkpoint()
+        except IU4ShadowObservationError:
+            self._writer_poisoned = True
+            raise
+        except Exception as exc:
+            self._writer_poisoned = True
+            raise IU4ShadowObservationError(
+                IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                str(exc),
+            ) from exc
+
+    def _validate_journal(self) -> None:
+        encoded = self.records_journal_path.read_bytes()
+        if _sha256(encoded) != self._journal_sha256.hexdigest():
+            raise IU4ShadowObservationError(
+                IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                "observation records journal SHA-256 does not match",
+            )
+        lines = encoded.splitlines(keepends=True)
+        if len(lines) != len(self.records):
+            raise IU4ShadowObservationError(
+                IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                "observation records journal count does not match",
+            )
+        previous_entry_sha256 = ""
+        for expected_sequence, (line, expected_record) in enumerate(
+            zip(lines, self.records),
+            start=1,
+        ):
+            if not line.endswith(b"\n"):
+                raise IU4ShadowObservationError(
+                    IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                    "observation records journal has an incomplete final entry",
+                )
+            try:
+                envelope = json.loads(line)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise IU4ShadowObservationError(
+                    IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                    "observation records journal contains invalid JSON",
+                ) from exc
+            if _canonical_json(envelope) + b"\n" != line:
+                raise IU4ShadowObservationError(
+                    IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                    "observation records journal entry is not canonical JSON",
+                )
+            entry_sha256 = str(envelope.pop("entry_sha256", ""))
+            if (
+                envelope.get("artifact_type")
+                != "PEE_IU4_SHADOW_RUNTIME_OBSERVATION_RECORD"
+                or envelope.get("schema_version") != 1
+                or envelope.get("sequence") != expected_sequence
+                or envelope.get("previous_entry_sha256")
+                != previous_entry_sha256
+                or envelope.get("record") != expected_record
+                or entry_sha256 != _sha256(_canonical_json(envelope))
+            ):
+                raise IU4ShadowObservationError(
+                    IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                    "observation records journal chain is invalid",
+                )
+            previous_entry_sha256 = entry_sha256
+        if previous_entry_sha256 != self._last_journal_entry_sha256:
+            raise IU4ShadowObservationError(
+                IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                "observation records journal head does not match",
+            )
 
     def _assert_source_unchanged(self) -> None:
         self.runtime_gate.assert_current_binding()
@@ -318,6 +541,11 @@ class PaperIU4ShadowRuntimeObserver:
                 IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
                 "duplicate source intent ID in runtime observation",
             )
+        try:
+            self._assert_writer_unchanged()
+        except IU4ShadowObservationError:
+            self._writer_poisoned = True
+            raise
         self._assert_source_unchanged()
         try:
             before = self.sandbox.load_state()
@@ -456,14 +684,42 @@ class PaperIU4ShadowRuntimeObserver:
         }
         self.source_intent_ids.add(source_intent_id)
         self.records.append(record)
-        self._publish()
+        self._append_record(record)
         return record
 
     def close(self) -> None:
+        if getattr(self, "_closed", False):
+            return
+        self._closed = True
+        close_error: IU4ShadowObservationError | None = None
+        if self._writer_ready and not self._writer_poisoned:
+            try:
+                self._assert_writer_unchanged()
+                self._validate_journal()
+                final_payload = self._payload()
+                _atomic_write(self.evidence_path, final_payload)
+                self._last_checkpoint_sha256 = _sha256(
+                    _canonical_json(final_payload) + b"\n"
+                )
+            except IU4ShadowObservationError as exc:
+                self._writer_poisoned = True
+                close_error = exc
+            except Exception as exc:
+                self._writer_poisoned = True
+                close_error = IU4ShadowObservationError(
+                    IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                    str(exc),
+                )
+        journal_handle = getattr(self, "_journal_handle", None)
+        if journal_handle is not None:
+            journal_handle.close()
+            self._journal_handle = None
         temporary = getattr(self, "_temporary_directory", None)
         if temporary is not None:
             temporary.cleanup()
             self._temporary_directory = None
+        if close_error is not None:
+            raise close_error
 
 
 @dataclass(frozen=True)
@@ -543,10 +799,13 @@ def evaluate_iu4_shadow_observation_gate(
     if not evidence_path.is_absolute():
         evidence_path = root / evidence_path
     evidence_path = evidence_path.absolute()
-    if evidence_path.exists():
+    records_journal_path = evidence_path.with_name(
+        f"{evidence_path.name}.records.jsonl"
+    )
+    if evidence_path.exists() or records_journal_path.exists():
         raise IU4ShadowObservationError(
             IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
-            "observation evidence path already exists",
+            "observation evidence or records-journal path already exists",
         )
     parent = evidence_path.parent
     if not parent.is_dir() or parent.is_symlink() or parent.resolve() != parent.absolute():

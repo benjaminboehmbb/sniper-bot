@@ -97,6 +97,9 @@ class PaperIU4ShadowObservationGateTests(unittest.TestCase):
             ),
         )
         self.evidence_path = self.root / "evidence" / "iu4-shadow.json"
+        self.records_journal_path = self.evidence_path.with_name(
+            f"{self.evidence_path.name}.records.jsonl"
+        )
         self.evidence_path.parent.mkdir()
         self.environment.update(
             {
@@ -244,6 +247,80 @@ class PaperIU4ShadowObservationGateTests(unittest.TestCase):
         self.assertEqual(evidence["record_count"], 2)
         self.assertEqual(evidence["max_records"], 3)
         self.assertFalse(evidence["source_state_mutation_allowed"])
+        self.assertEqual(evidence["schema_version"], 2)
+        self.assertEqual(
+            evidence["writer_contract"]["mode"],
+            "HASH_CHAINED_APPEND_JOURNAL",
+        )
+        self.assertTrue(evidence["writer_contract"]["finalized"])
+        self.assertEqual(
+            evidence["writer_contract"]["records_journal_entry_count"],
+            2,
+        )
+        self.assertEqual(
+            evidence["writer_contract"]["records_journal_sha256"],
+            hashlib.sha256(self.records_journal_path.read_bytes()).hexdigest(),
+        )
+
+    def test_active_checkpoint_is_constant_shape_and_records_are_append_only(self) -> None:
+        environment = dict(self.environment)
+        environment[ENV_OBSERVATION_MAX_RECORDS] = "20"
+        gate = self._evaluate(environment=environment, max_ticks=20)
+        checkpoint_sizes: list[int] = []
+        journal_prefix = b""
+        try:
+            for tick in range(1, 21):
+                self._observe(
+                    gate,
+                    tick=tick,
+                    intent="HOLD",
+                    action="NOOP",
+                    executed=False,
+                    before="FLAT",
+                    after="FLAT",
+                )
+                checkpoint = json.loads(
+                    self.evidence_path.read_text(encoding="utf-8")
+                )
+                current_journal = self.records_journal_path.read_bytes()
+                self.assertEqual(
+                    checkpoint["artifact_type"],
+                    "PEE_IU4_SHADOW_RUNTIME_OBSERVATION_CHECKPOINT",
+                )
+                self.assertEqual(checkpoint["record_count"], tick)
+                self.assertNotIn("records", checkpoint)
+                self.assertFalse(checkpoint["finalized"])
+                self.assertTrue(current_journal.startswith(journal_prefix))
+                journal_prefix = current_journal
+                checkpoint_sizes.append(self.evidence_path.stat().st_size)
+        finally:
+            assert gate.observer is not None
+            gate.observer.close()
+
+        self.assertLessEqual(max(checkpoint_sizes) - min(checkpoint_sizes), 8)
+        lines = self.records_journal_path.read_bytes().splitlines()
+        self.assertEqual(len(lines), 20)
+        previous_entry_sha256 = ""
+        for sequence, line in enumerate(lines, start=1):
+            envelope = json.loads(line)
+            entry_sha256 = envelope.pop("entry_sha256")
+            self.assertEqual(envelope["sequence"], sequence)
+            self.assertEqual(
+                envelope["previous_entry_sha256"],
+                previous_entry_sha256,
+            )
+            canonical = json.dumps(
+                envelope,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+                allow_nan=False,
+            ).encode("utf-8")
+            self.assertEqual(entry_sha256, hashlib.sha256(canonical).hexdigest())
+            previous_entry_sha256 = entry_sha256
+        evidence = json.loads(self.evidence_path.read_text(encoding="utf-8"))
+        self.assertEqual(evidence["record_count"], 20)
+        self.assertEqual(len(evidence["records"]), 20)
 
     def test_limit_reached_fails_closed_without_extra_record(self) -> None:
         environment = dict(self.environment)
@@ -395,6 +472,125 @@ class PaperIU4ShadowObservationGateTests(unittest.TestCase):
             "foreign-change\n",
         )
 
+    def test_external_journal_append_fails_closed_without_checkpoint_advance(self) -> None:
+        gate = self._evaluate()
+        self._observe(
+            gate,
+            tick=1,
+            intent="HOLD",
+            action="NOOP",
+            executed=False,
+            before="FLAT",
+            after="FLAT",
+        )
+        checkpoint_before = self.evidence_path.read_bytes()
+        with self.records_journal_path.open("ab") as handle:
+            handle.write(b"foreign-change\n")
+        try:
+            with self.assertRaises(IU4ShadowObservationError) as raised:
+                self._observe(
+                    gate,
+                    tick=2,
+                    intent="HOLD",
+                    action="NOOP",
+                    executed=False,
+                    before="FLAT",
+                    after="FLAT",
+                )
+        finally:
+            assert gate.observer is not None
+            gate.observer.close()
+
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+        )
+        self.assertEqual(self.evidence_path.read_bytes(), checkpoint_before)
+        checkpoint = json.loads(checkpoint_before)
+        self.assertEqual(checkpoint["record_count"], 1)
+        self.assertFalse(checkpoint["finalized"])
+
+    def test_same_size_journal_mutation_fails_closed(self) -> None:
+        gate = self._evaluate()
+        self._observe(
+            gate,
+            tick=1,
+            intent="HOLD",
+            action="NOOP",
+            executed=False,
+            before="FLAT",
+            after="FLAT",
+        )
+        with self.records_journal_path.open("r+b") as handle:
+            first = handle.read(1)
+            handle.seek(0)
+            handle.write(b"X" if first != b"X" else b"Y")
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            with self.assertRaises(IU4ShadowObservationError) as raised:
+                self._observe(
+                    gate,
+                    tick=2,
+                    intent="HOLD",
+                    action="NOOP",
+                    executed=False,
+                    before="FLAT",
+                    after="FLAT",
+                )
+        finally:
+            assert gate.observer is not None
+            gate.observer.close()
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+        )
+
+    def test_close_validates_journal_and_is_idempotent(self) -> None:
+        gate = self._evaluate()
+        assert gate.observer is not None
+        self._observe(
+            gate,
+            tick=1,
+            intent="HOLD",
+            action="NOOP",
+            executed=False,
+            before="FLAT",
+            after="FLAT",
+        )
+        gate.observer.close()
+        evidence_before = self.evidence_path.read_bytes()
+        gate.observer.close()
+        self.assertEqual(self.evidence_path.read_bytes(), evidence_before)
+        evidence = json.loads(evidence_before)
+        self.assertTrue(evidence["writer_contract"]["finalized"])
+
+    def test_close_rejects_truncated_journal_and_keeps_checkpoint(self) -> None:
+        gate = self._evaluate()
+        assert gate.observer is not None
+        self._observe(
+            gate,
+            tick=1,
+            intent="HOLD",
+            action="NOOP",
+            executed=False,
+            before="FLAT",
+            after="FLAT",
+        )
+        checkpoint_before = self.evidence_path.read_bytes()
+        journal_size = self.records_journal_path.stat().st_size
+        with self.records_journal_path.open("r+b") as handle:
+            handle.truncate(journal_size - 1)
+            handle.flush()
+            os.fsync(handle.fileno())
+        with self.assertRaises(IU4ShadowObservationError) as raised:
+            gate.observer.close()
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+        )
+        self.assertEqual(self.evidence_path.read_bytes(), checkpoint_before)
+
     def test_invalid_enable_limit_and_existing_evidence_fail_closed(self) -> None:
         invalid = dict(self.environment)
         invalid[ENV_OBSERVATION_ENABLED] = "true"
@@ -411,6 +607,15 @@ class PaperIU4ShadowObservationGateTests(unittest.TestCase):
             self._evaluate()
         self.assertEqual(
             existing.exception.reason_code,
+            IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+        )
+
+        self.evidence_path.unlink()
+        self.records_journal_path.write_text("foreign\n", encoding="utf-8")
+        with self.assertRaises(IU4ShadowObservationError) as journal_existing:
+            self._evaluate()
+        self.assertEqual(
+            journal_existing.exception.reason_code,
             IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
         )
 
