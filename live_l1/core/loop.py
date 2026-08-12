@@ -36,6 +36,10 @@ from live_l1.core.paper_iu4_shadow_runtime_gate import (
     IU4ShadowRuntimeGateError,
     IU4ShadowRuntimeGateV1,
 )
+from live_l1.core.paper_iu4_shadow_observation_gate import (
+    IU4ShadowObservationError,
+    IU4ShadowObservationGateV1,
+)
 from live_l1.tools.recover_runtime_state import recover_runtime_state
 from live_l1.tools.reconcile_runtime_state import run_reconciliation
 from live_l1.tools.startup_validator import validate_startup
@@ -863,6 +867,7 @@ def run_l1_loop_step1234567(
     max_ticks: int = 6,
     max_run_seconds: float | None = None,
     iu4_shadow_runtime_gate: IU4ShadowRuntimeGateV1 | None = None,
+    iu4_shadow_observation_gate: IU4ShadowObservationGateV1 | None = None,
 ) -> int:
     system_state_id = f"L1P-{uuid.uuid4().hex[:11]}"
 
@@ -873,6 +878,11 @@ def run_l1_loop_step1234567(
         {}
         if iu4_shadow_runtime_gate is None
         else iu4_shadow_runtime_gate.startup_log_fields()
+    )
+    iu4_observation_fields = (
+        {}
+        if iu4_shadow_observation_gate is None
+        else iu4_shadow_observation_gate.startup_log_fields()
     )
 
     if iu4_shadow_runtime_gate is not None:
@@ -892,6 +902,28 @@ def run_l1_loop_step1234567(
             )
             log.close()
             return 1
+
+    if (
+        iu4_shadow_observation_gate is not None
+        and iu4_shadow_observation_gate.enabled
+        and (
+            iu4_shadow_runtime_gate is None
+            or not iu4_shadow_runtime_gate.shadow_enabled
+            or iu4_shadow_observation_gate.observer is None
+        )
+    ):
+        log.log(
+            category="L1",
+            event="system_stop",
+            severity="ERROR",
+            system_state_id=system_state_id,
+            fields={
+                "reason": "iu4_shadow_observation_binding_failed",
+                "iu4_reason_code": "PEE_IU4_SHADOW_OBSERVATION_GATE_INVALID",
+            },
+        )
+        log.close()
+        return 1
 
     startup_validation = validate_startup(
         repo_root=Path(cfg.repo_root),
@@ -990,6 +1022,7 @@ def run_l1_loop_step1234567(
                 "startup_recovery_position": str(startup_recovery.get("position", "")),
                 **shadow_startup_log_fields(pee_shadow_settings),
                 **iu4_startup_fields,
+                **iu4_observation_fields,
             },
         )
 
@@ -1282,6 +1315,81 @@ def run_l1_loop_step1234567(
                 },
             )
 
+            if (
+                iu4_shadow_observation_gate is not None
+                and iu4_shadow_observation_gate.enabled
+            ):
+                observer = iu4_shadow_observation_gate.observer
+                if observer is None:
+                    log.log(
+                        category="IU4",
+                        event="shadow_observation_failed",
+                        severity="ERROR",
+                        system_state_id=state.system_state_id,
+                        intent_id=fused.intent_id,
+                        fields={
+                            "tick": tick.tick_id,
+                            "iu4_reason_code": "PEE_IU4_SHADOW_OBSERVATION_GATE_INVALID",
+                            "iu4_detail": "enabled observation gate has no observer",
+                        },
+                    )
+                    return 1
+                try:
+                    observation = observer.observe_tick(
+                        system_state_id=state.system_state_id,
+                        tick_id=tick.tick_id,
+                        snapshot_id=str(features.snapshot_id),
+                        timestamp_utc=str(features.timestamp_utc),
+                        source_intent_id=str(fused.intent_id),
+                        intent_final=str(fused.intent_final),
+                        intent_reason_code=str(fused.reason_code),
+                        reference_price_text=str(features.reference_price_text).strip(),
+                        legacy_execution=exec_decision,
+                        guard_reason=guard_reason,
+                        s4_kill_level=s4_kill_level,
+                    )
+                except (IU4ShadowObservationError, IU4ShadowRuntimeGateError) as exc:
+                    log.log(
+                        category="IU4",
+                        event="shadow_observation_failed",
+                        severity="ERROR",
+                        system_state_id=state.system_state_id,
+                        intent_id=fused.intent_id,
+                        fields={
+                            "tick": tick.tick_id,
+                            "iu4_reason_code": exc.reason_code,
+                            "iu4_detail": exc.detail,
+                        },
+                    )
+                    return 1
+                log.log(
+                    category="IU4",
+                    event="shadow_observation",
+                    severity="INFO",
+                    system_state_id=state.system_state_id,
+                    intent_id=fused.intent_id,
+                    fields={
+                        "tick": tick.tick_id,
+                        "iu4_observation_sequence": observation["sequence"],
+                        "iu4_status": observation["iu4"]["status"],
+                        "iu4_action": observation["iu4"]["action"],
+                        "iu4_reason_code": observation["iu4"]["reason_code"],
+                        "iu4_position_after": observation["iu4"]["position_after"],
+                        "iu4_legacy_position_before_equal": int(
+                            observation["parity"]["position_before_equal"]
+                        ),
+                        "iu4_legacy_action_equal": int(
+                            observation["parity"]["action_equal"]
+                        ),
+                        "iu4_legacy_position_after_equal": int(
+                            observation["parity"]["position_after_equal"]
+                        ),
+                        "iu4_source_state_mutation_allowed": 0,
+                        "iu4_exchange_enabled": 0,
+                        "iu4_live_enabled": 0,
+                    },
+                )
+
         log.log(
             category="L1",
             event="system_stop",
@@ -1292,6 +1400,10 @@ def run_l1_loop_step1234567(
         return 0
 
     finally:
+        if iu4_shadow_observation_gate is not None:
+            observer = iu4_shadow_observation_gate.observer
+            if observer is not None:
+                observer.close()
         try:
             market.close()
         except Exception:

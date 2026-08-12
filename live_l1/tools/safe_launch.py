@@ -20,6 +20,10 @@ from live_l1.core.paper_iu4_shadow_runtime_gate import (
     IU4ShadowRuntimeGateError,
     evaluate_iu4_shadow_runtime_gate,
 )
+from live_l1.core.paper_iu4_shadow_observation_gate import (
+    IU4ShadowObservationError,
+    evaluate_iu4_shadow_observation_gate,
+)
 from live_l1.tools.reconcile_runtime_state import run_reconciliation
 from live_l1.tools.startup_validator import validate_startup
 from live_l1.operational_profiles import profile_summary
@@ -153,6 +157,23 @@ def main() -> int:
         "IU4_STATE_MUTATION_ALLOWED:",
         int(iu4_gate.decision.state_mutation_allowed),
     )
+    print("STEP 5: IU4 shadow observation gate")
+    try:
+        iu4_observation_gate = evaluate_iu4_shadow_observation_gate(
+            repo_root=repo,
+            environment=os.environ,
+            runtime_gate=iu4_gate,
+            requested_max_ticks=int(args.max_ticks),
+        )
+    except IU4ShadowObservationError as exc:
+        print("SAFE_LAUNCH: FAIL")
+        print("FAILED_STEP: iu4_shadow_observation_gate")
+        print("IU4_OBSERVATION_ISSUE:", exc.reason_code, exc.detail)
+        return 1
+
+    print("IU4_SHADOW_OBSERVATION_GATE: PASS")
+    print("IU4_SHADOW_OBSERVATION_ENABLED:", int(iu4_observation_gate.enabled))
+    print("IU4_SHADOW_OBSERVATION_MAX_RECORDS:", iu4_observation_gate.max_records)
     print("SAFE_LAUNCH: PASS")
     print("STARTING LIVE L1")
 
@@ -160,12 +181,17 @@ def main() -> int:
     if args.max_run_seconds > 0.0:
         max_run_seconds = float(args.max_run_seconds)
 
-    rc = run_l1_loop_step1234567(
-        repo_root=str(repo),
-        max_ticks=int(args.max_ticks),
-        max_run_seconds=max_run_seconds,
-        iu4_shadow_runtime_gate=iu4_gate,
-    )
+    try:
+        rc = run_l1_loop_step1234567(
+            repo_root=str(repo),
+            max_ticks=int(args.max_ticks),
+            max_run_seconds=max_run_seconds,
+            iu4_shadow_runtime_gate=iu4_gate,
+            iu4_shadow_observation_gate=iu4_observation_gate,
+        )
+    finally:
+        if iu4_observation_gate.observer is not None:
+            iu4_observation_gate.observer.close()
 
     print("RUNTIME_RC:", rc)
     return int(rc)
