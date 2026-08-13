@@ -169,6 +169,7 @@ class PaperIU4ShadowObservationGateTests(unittest.TestCase):
         executed: bool,
         before: str,
         after: str,
+        reason: str = "TEST_EXECUTION",
     ):
         assert gate.observer is not None
         return gate.observer.observe_tick(
@@ -185,7 +186,7 @@ class PaperIU4ShadowObservationGateTests(unittest.TestCase):
                 executed=executed,
                 before=before,
                 after=after,
-                reason="TEST_EXECUTION",
+                reason=reason,
             ),
             guard_reason="guard_ok",
             s4_kill_level="NONE",
@@ -386,6 +387,82 @@ class PaperIU4ShadowObservationGateTests(unittest.TestCase):
         self.assertFalse(second["parity"]["position_after_equal"])
         self.assertEqual(second["iu4"]["position_after"], "LONG")
         self.assertEqual(self.coordinator.state_path.read_bytes(), source_before)
+
+    def test_loss_cluster_blocked_entry_is_bound_to_state_exact_hold(self) -> None:
+        source_before = self.coordinator.state_path.read_bytes()
+        gate = self._evaluate()
+        try:
+            blocked_long = self._observe(
+                gate,
+                tick=1,
+                intent="BUY",
+                action="NOOP",
+                executed=False,
+                before="FLAT",
+                after="FLAT",
+                reason="LOSS_CLUSTER_GATE_BLOCKED_ENTRY",
+            )
+            blocked_short = self._observe(
+                gate,
+                tick=2,
+                intent="SELL",
+                action="NOOP",
+                executed=False,
+                before="FLAT",
+                after="FLAT",
+                reason="LOSS_CLUSTER_GATE_BLOCKED_ENTRY",
+            )
+            following_hold = self._observe(
+                gate,
+                tick=3,
+                intent="HOLD",
+                action="NOOP",
+                executed=False,
+                before="FLAT",
+                after="FLAT",
+            )
+        finally:
+            assert gate.observer is not None
+            gate.observer.close()
+
+        for blocked, source_intent in (
+            (blocked_long, "BUY"),
+            (blocked_short, "SELL"),
+        ):
+            self.assertEqual(blocked["source_intent_final"], source_intent)
+            self.assertEqual(blocked["observed_intent_final"], "HOLD")
+            self.assertEqual(
+                blocked["legacy"]["reason"],
+                "LOSS_CLUSTER_GATE_BLOCKED_ENTRY",
+            )
+            self.assertEqual(blocked["iu4"]["action"], "NOOP")
+            self.assertEqual(blocked["iu4"]["position_after"], "FLAT")
+            self.assertTrue(all(blocked["parity"].values()))
+        self.assertTrue(all(following_hold["parity"].values()))
+        self.assertEqual(self.coordinator.state_path.read_bytes(), source_before)
+
+    def test_malformed_loss_cluster_veto_fails_closed(self) -> None:
+        gate = self._evaluate()
+        try:
+            with self.assertRaises(IU4ShadowObservationError) as raised:
+                self._observe(
+                    gate,
+                    tick=1,
+                    intent="BUY",
+                    action="OPEN_LONG",
+                    executed=True,
+                    before="FLAT",
+                    after="LONG",
+                    reason="LOSS_CLUSTER_GATE_BLOCKED_ENTRY",
+                )
+        finally:
+            assert gate.observer is not None
+            gate.observer.close()
+
+        self.assertEqual(
+            raised.exception.reason_code,
+            IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+        )
 
     def test_unmatched_autonomous_exit_is_never_converted_to_entry(self) -> None:
         gate = self._evaluate()

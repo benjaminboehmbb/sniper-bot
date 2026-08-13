@@ -37,6 +37,7 @@ ENV_OBSERVATION_EVIDENCE_PATH = "L1_IU4_SHADOW_OBSERVATION_EVIDENCE_PATH"
 ENV_OBSERVATION_MAX_RECORDS = "L1_IU4_SHADOW_OBSERVATION_MAX_RECORDS"
 ENV_OBSERVATION_WORK_DIRECTORY = "L1_IU4_SHADOW_OBSERVATION_WORK_DIRECTORY"
 MAX_OBSERVATION_RECORDS = 100_000
+LOSS_CLUSTER_ENTRY_VETO_REASON = "LOSS_CLUSTER_GATE_BLOCKED_ENTRY"
 
 
 class IU4ShadowObservationReasonCode:
@@ -555,9 +556,27 @@ class PaperIU4ShadowRuntimeObserver:
                 str(exc),
             ) from exc
         legacy_before = str(getattr(legacy_execution, "position_before", "")).strip().upper()
-        intent = str(intent_final).strip().upper()
+        legacy_after = str(getattr(legacy_execution, "position_after", "")).strip().upper()
+        source_intent = str(intent_final).strip().upper()
+        intent = source_intent
         legacy_action = str(getattr(legacy_execution, "action", "")).strip().upper()
         legacy_executed = bool(getattr(legacy_execution, "executed", False))
+        legacy_reason = str(getattr(legacy_execution, "reason", "")).strip()
+        loss_cluster_entry_veto = legacy_reason == LOSS_CLUSTER_ENTRY_VETO_REASON
+        if loss_cluster_entry_veto:
+            # The established Legacy loss-cluster gate remains the entry authority.
+            if not (
+                source_intent in ("BUY", "SELL")
+                and legacy_action == "NOOP"
+                and not legacy_executed
+                and legacy_before == "FLAT"
+                and legacy_after == "FLAT"
+            ):
+                raise IU4ShadowObservationError(
+                    IU4ShadowObservationReasonCode.EVIDENCE_INVALID,
+                    "legacy loss-cluster entry veto has an invalid execution shape",
+                )
+            intent = "HOLD"
         autonomous_exit = intent == "HOLD" and legacy_executed and legacy_action in (
             "CLOSE_LONG",
             "CLOSE_SHORT",
@@ -610,8 +629,8 @@ class PaperIU4ShadowRuntimeObserver:
             source_intent_id=source_intent_id,
             intent_final=intent,
             intent_reason_code=(
-                str(getattr(legacy_execution, "reason", intent_reason_code))
-                if intent != intent_final and closes
+                legacy_reason
+                if loss_cluster_entry_veto or (intent != source_intent and closes)
                 else intent_reason_code
             ),
             expected_state_fingerprint=before.state_fingerprint,
@@ -654,10 +673,8 @@ class PaperIU4ShadowRuntimeObserver:
                 "action": legacy_action,
                 "executed": legacy_executed,
                 "position_before": legacy_before,
-                "position_after": str(
-                    getattr(legacy_execution, "position_after", "")
-                ).strip().upper(),
-                "reason": str(getattr(legacy_execution, "reason", "")),
+                "position_after": legacy_after,
+                "reason": legacy_reason,
                 "guard_reason": str(guard_reason),
                 "s4_kill_level": str(s4_kill_level),
             },
@@ -676,10 +693,7 @@ class PaperIU4ShadowRuntimeObserver:
             "parity": {
                 "position_before_equal": legacy_before == before.position.position,
                 "action_equal": legacy_action == result.action,
-                "position_after_equal": str(
-                    getattr(legacy_execution, "position_after", "")
-                ).strip().upper()
-                == after.position.position,
+                "position_after_equal": legacy_after == after.position.position,
             },
         }
         self.source_intent_ids.add(source_intent_id)
