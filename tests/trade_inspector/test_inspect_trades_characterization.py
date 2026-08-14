@@ -60,6 +60,16 @@ S5D_AGGREGATE_ARTIFACT_SHA256 = {
 S5D_AGGREGATE_MANIFEST_SHA256 = "64e371f979cffe4ca2e01ad18d94fba14f0fea2a90755cb26f1de1a3b1ae1e98"
 S5D_EMPTY_GLOBAL_SUMMARY_SHA256 = "4e0fcbcd6382b7330f800a27e4bee758b36434729406735abe18183d3b41870e"
 S5D_EMPTY_MANIFEST_SHA256 = "94705901ba1a8aa982a011665f71480d353a066e83919fc930a429474a13a6c4"
+S5E_ML_DATASET_ARTIFACT_SHA256 = {
+    "trade_dataset_v4a.csv": "76b41d4813d9512fd660086866ce89c162cdfdeeb90740e758a5a9eac1f61df4",
+    "trade_dataset_v4a_manifest.csv": "5d3df016b5266ada50bc4a56204d18cc7c70375715cc48fac980f009d1cd9629",
+    "trade_dataset_v4a_test.csv": "5f08ba7342a7ff83fe050a77770f89e45b8f9300b8390c51fd96d58834654919",
+    "trade_dataset_v4a_train.csv": "1c6274a814db00ffff5ab5f35d63aaa1bc660eef43185ce792109b29b2c1c969",
+    "trade_dataset_v4a_validation.csv": "4cc320bf485a15e321c4e25303c7a8efbbf8b3aba38e38b323f2ec4dec196eec",
+}
+S5E_ML_DATASET_MANIFEST_SHA256 = "e9203c8dbef4325350d293e922b9968c417bf1089a822142d9ddd05765663686"
+S5E_EMPTY_ML_MANIFEST_CSV_SHA256 = "5aa677b6250500aa3986259da909b636b6d8218d8c2fcf719eb66ecf9c8cadd2"
+S5E_EMPTY_ML_DATASET_MANIFEST_SHA256 = "5b6728110f59af120e350655e535d98f16f7325f2cf50a9928bcc8a7037b76c8"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -252,6 +262,60 @@ def s5d_aggregate_rows() -> list[dict[str, object]]:
     ]
 
 
+def s5e_ml_dataset_rows() -> list[dict[str, object]]:
+    base = build_sample_row()
+    specs = [
+        {
+            "trade_id": "A",
+            "human_label": "train-row",
+            "pnl": 2.0,
+            "pnl_pct": 0.02,
+            "overall_score": 80,
+            "exit_efficiency_24h_pct": 0.70,
+            "opportunity_loss_24h_pct": 0.01,
+            "mae_pct": -0.005,
+            "mfe_pct": 0.02,
+            "cf_return_24h_pct": 0.01,
+            "cf_return_72h_pct": 0.02,
+            "cf_return_168h_pct": 0.03,
+        },
+        {
+            "trade_id": "K",
+            "human_label": "validation-row",
+            "pnl": -1.5,
+            "pnl_pct": -0.015,
+            "overall_score": 30,
+            "exit_efficiency_24h_pct": 0.20,
+            "opportunity_loss_24h_pct": 0.04,
+            "mae_pct": -0.02,
+            "mfe_pct": 0.0,
+            "cf_return_24h_pct": -0.01,
+            "cf_return_72h_pct": -0.02,
+            "cf_return_168h_pct": -0.03,
+        },
+        {
+            "trade_id": "Z",
+            "human_label": "test-row",
+            "pnl": 0.0,
+            "pnl_pct": 0.0,
+            "overall_score": 50,
+            "exit_efficiency_24h_pct": 0.40,
+            "opportunity_loss_24h_pct": 0.03,
+            "mae_pct": -0.01,
+            "mfe_pct": 0.01,
+            "cf_return_24h_pct": 0.0,
+            "cf_return_72h_pct": 0.01,
+            "cf_return_168h_pct": 0.02,
+        },
+    ]
+    rows: list[dict[str, object]] = []
+    for spec in specs:
+        row = dict(base)
+        row.update(spec)
+        rows.append(row)
+    return rows
+
+
 def build_s3_snapshot(
     trade: dict[str, object],
     timestamps: list[str],
@@ -307,6 +371,33 @@ def canonical_sha256(value: object, *, sort_keys: bool = True) -> str:
         ensure_ascii=True,
     ).encode("ascii")
     return hashlib.sha256(payload).hexdigest()
+
+
+def s5e_expected_stdout(
+    output_dir: Path,
+    artifact_names: list[str],
+    split_quality: dict[str, object],
+) -> str:
+    keys = [
+        "split_quality_status",
+        "split_quality_warnings",
+        "rows_total",
+        "rows_train",
+        "rows_validation",
+        "rows_test",
+        "train_share",
+        "validation_share",
+        "test_share",
+    ]
+    return (
+        "\nML SPLIT QUALITY\n"
+        + "-" * 80
+        + "\n"
+        + "".join(f"{key}: {split_quality[key]}\n" for key in keys)
+        + f"ML dataset export directory: {output_dir}\n"
+        + "files:\n"
+        + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
+    )
 
 
 class TradeInspectorCharacterizationTests(unittest.TestCase):
@@ -920,6 +1011,150 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                 + "".join(f"- {output_dir / name}\n" for name in listed_names)
             )
             self.assertEqual(stdout.getvalue(), expected_stdout)
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5e_ml_dataset_complete_artifact_split_and_output_contract(self) -> None:
+        self.assertEqual(inspector.dataset_split_from_trade_id("A"), "train")
+        self.assertEqual(inspector.dataset_split_from_trade_id("K"), "validation")
+        self.assertEqual(inspector.dataset_split_from_trade_id("Z"), "test")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "dataset"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_ml_dataset(s5e_ml_dataset_rows(), output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            self.assertEqual(artifact_hashes, S5E_ML_DATASET_ARTIFACT_SHA256)
+            self.assertEqual(canonical_sha256(artifact_hashes), S5E_ML_DATASET_MANIFEST_SHA256)
+
+            split_quality = {
+                "split_quality_status": "PASS",
+                "split_quality_warnings": "dataset_too_small_for_reliable_ml",
+                "rows_total": 3,
+                "rows_train": 1,
+                "rows_validation": 1,
+                "rows_test": 1,
+                "train_share": 1 / 3,
+                "validation_share": 1 / 3,
+                "test_share": 1 / 3,
+            }
+            self.assertEqual(
+                stdout.getvalue(),
+                s5e_expected_stdout(output_dir, list(artifact_hashes), split_quality),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+            expected_ids = {
+                "trade_dataset_v4a.csv": ["A", "K", "Z"],
+                "trade_dataset_v4a_train.csv": ["A"],
+                "trade_dataset_v4a_validation.csv": ["K"],
+                "trade_dataset_v4a_test.csv": ["Z"],
+            }
+            for name, trade_ids in expected_ids.items():
+                with self.subTest(artifact=name):
+                    with (output_dir / name).open("r", encoding="utf-8", newline="") as handle:
+                        rows = list(csv.DictReader(handle))
+                    self.assertEqual([row["trade_id"] for row in rows], trade_ids)
+                    self.assertEqual(
+                        [row["ml_split"] for row in rows],
+                        [inspector.dataset_split_from_trade_id(trade_id) for trade_id in trade_ids],
+                    )
+
+            with (output_dir / "trade_dataset_v4a_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(len(manifest), 1)
+            self.assertEqual(manifest[0]["ml_dataset_version"], "v4a")
+            self.assertEqual(manifest[0]["split_quality_status"], "PASS")
+            self.assertEqual(manifest[0]["rows_train"], "1")
+            self.assertEqual(manifest[0]["rows_validation"], "1")
+            self.assertEqual(manifest[0]["rows_test"], "1")
+
+    def test_s5e_ml_dataset_empty_input_artifact_and_warning_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "empty" / "dataset"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_ml_dataset([], output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            expected_hashes = {
+                name: hashlib.sha256(b"").hexdigest()
+                for name in S5E_ML_DATASET_ARTIFACT_SHA256
+            }
+            expected_hashes["trade_dataset_v4a_manifest.csv"] = S5E_EMPTY_ML_MANIFEST_CSV_SHA256
+            self.assertEqual(artifact_hashes, expected_hashes)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5E_EMPTY_ML_DATASET_MANIFEST_SHA256,
+            )
+
+            split_quality = {
+                "split_quality_status": "WARN",
+                "split_quality_warnings": (
+                    "dataset_too_small_for_reliable_ml|empty_train_split|"
+                    "empty_validation_split|empty_test_split"
+                ),
+                "rows_total": 0,
+                "rows_train": 0,
+                "rows_validation": 0,
+                "rows_test": 0,
+                "train_share": 0.0,
+                "validation_share": 0.0,
+                "test_share": 0.0,
+            }
+            self.assertEqual(
+                stdout.getvalue(),
+                s5e_expected_stdout(output_dir, list(artifact_hashes), split_quality),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5e_ml_dataset_overwrite_and_foreign_csv_listing_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "dataset"
+            output_dir.mkdir(parents=True)
+            all_path = output_dir / "trade_dataset_v4a.csv"
+            all_path.write_bytes(b"stale")
+            foreign_path = output_dir / "foreign.csv"
+            foreign_path.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_ml_dataset(s5e_ml_dataset_rows(), output_dir)
+
+            self.assertEqual(
+                hashlib.sha256(all_path.read_bytes()).hexdigest(),
+                S5E_ML_DATASET_ARTIFACT_SHA256[all_path.name],
+            )
+            self.assertEqual(foreign_path.read_bytes(), b"foreign")
+
+            split_quality = {
+                "split_quality_status": "PASS",
+                "split_quality_warnings": "dataset_too_small_for_reliable_ml",
+                "rows_total": 3,
+                "rows_train": 1,
+                "rows_validation": 1,
+                "rows_test": 1,
+                "train_share": 1 / 3,
+                "validation_share": 1 / 3,
+                "test_share": 1 / 3,
+            }
+            listed_names = [*S5E_ML_DATASET_ARTIFACT_SHA256, foreign_path.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5e_expected_stdout(output_dir, listed_names, split_quality),
+            )
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
