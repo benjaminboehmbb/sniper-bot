@@ -71,6 +71,17 @@ S5E_ML_DATASET_ARTIFACT_SHA256 = {
 S5E_ML_DATASET_MANIFEST_SHA256 = "e9203c8dbef4325350d293e922b9968c417bf1089a822142d9ddd05765663686"
 S5E_EMPTY_ML_MANIFEST_CSV_SHA256 = "5aa677b6250500aa3986259da909b636b6d8218d8c2fcf719eb66ecf9c8cadd2"
 S5E_EMPTY_ML_DATASET_MANIFEST_SHA256 = "5b6728110f59af120e350655e535d98f16f7325f2cf50a9928bcc8a7037b76c8"
+S5F_FEATURE_PREPARATION_ARTIFACT_SHA256 = {
+    "trade_dataset_v4b_feature_catalog.csv": "e1a9817db5033c910f3e6c89b4becdcee0f35f8f03af05ccb3e35bb8dfb07667",
+    "trade_dataset_v4b_feature_manifest.csv": "5f4ddd082187a4dde4b5686356760b877034127596ce556fdaac0000d9b820eb",
+    "trade_dataset_v4b_model_ready.csv": "f381baf1d039ded694828552dd90f8e37796ef13d95257cfb4e697a066beaa4f",
+    "trade_dataset_v4b_model_ready_test.csv": "814ea2f70122edeecb0f36b4c339d78d7aa0818275d3e805876603cbda4b889b",
+    "trade_dataset_v4b_model_ready_train.csv": "5892adcd003f2fc0726bbf7ecd01fc1b637f68a147b1b3f194de45c3eec89f3e",
+    "trade_dataset_v4b_model_ready_validation.csv": "ef987f0557ebcdea1c3dbc08ffb6c1d272d38d5669154e854019fefe0a74a624",
+}
+S5F_FEATURE_PREPARATION_MANIFEST_SHA256 = "627951215e9fe327e64f450234f09f376966a970a0fbdc20551876b5da604e9e"
+S5F_EMPTY_FEATURE_MANIFEST_CSV_SHA256 = "b86ec7a1b1873770c10015c990c4aea583e9bc57631a5b9c1131d2a2455ade82"
+S5F_EMPTY_FEATURE_PREPARATION_MANIFEST_SHA256 = "806b317c5793aa295f6648634e71031d49d4a6aa5af744998c8ee187cfdf4120"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -397,6 +408,14 @@ def s5e_expected_stdout(
         + "".join(f"{key}: {split_quality[key]}\n" for key in keys)
         + f"ML dataset export directory: {output_dir}\n"
         + "files:\n"
+        + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
+    )
+
+
+def s5f_expected_stdout(output_dir: Path, artifact_names: list[str]) -> str:
+    return (
+        f"Feature preparation export directory: {output_dir}\n"
+        "files:\n"
         + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
     )
 
@@ -1167,6 +1186,229 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(
                 stdout.getvalue(),
                 s5e_expected_stdout(output_dir, listed_names, split_quality),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5f_feature_catalog_encoding_and_missing_value_contract(self) -> None:
+        self.assertFalse(inspector.is_number_like(None))
+        self.assertFalse(inspector.is_number_like(""))
+        self.assertTrue(inspector.is_number_like("1e3"))
+        self.assertTrue(inspector.is_number_like("nan"))
+        self.assertFalse(inspector.is_number_like("not-a-number"))
+
+        rows = [
+            {
+                "trade_id": "T1",
+                "human_label": "one",
+                "ml_split": "train",
+                "target_winner": 1,
+                "flags": "excluded",
+                "numeric": "2.5",
+                "sparse_numeric": "",
+                "category": "beta",
+                "empty_all": "",
+            },
+            {
+                "trade_id": "T2",
+                "human_label": "two",
+                "ml_split": "validation",
+                "target_winner": 0,
+                "flags": "excluded",
+                "numeric": "",
+                "sparse_numeric": "3",
+                "category": "alpha",
+                "empty_all": "",
+                "late_only": "ignored",
+            },
+            {
+                "trade_id": "T3",
+                "human_label": "three",
+                "ml_split": "test",
+                "target_winner": 0,
+                "flags": "excluded",
+                "numeric": None,
+                "sparse_numeric": 4,
+                "category": "",
+                "empty_all": "",
+            },
+        ]
+
+        catalog, category_maps = inspector.build_feature_catalog(rows)
+        self.assertEqual(
+            catalog,
+            [
+                {
+                    "feature_name": "category",
+                    "feature_type": "categorical_label_encoded",
+                    "encoded_name": "category_encoded",
+                    "category_count": 2,
+                    "include_for_model": 1,
+                },
+                {
+                    "feature_name": "numeric",
+                    "feature_type": "numeric",
+                    "encoded_name": "numeric",
+                    "category_count": 0,
+                    "include_for_model": 1,
+                },
+                {
+                    "feature_name": "sparse_numeric",
+                    "feature_type": "numeric",
+                    "encoded_name": "sparse_numeric",
+                    "category_count": 0,
+                    "include_for_model": 1,
+                },
+            ],
+        )
+        self.assertEqual(category_maps, {"category": {"alpha": 0, "beta": 1}})
+
+        model_rows, model_catalog = inspector.build_model_ready_rows(rows)
+        self.assertEqual(model_catalog, catalog)
+        self.assertEqual(
+            [
+                (
+                    row["numeric"],
+                    row["sparse_numeric"],
+                    row["category_encoded"],
+                )
+                for row in model_rows
+            ],
+            [(2.5, 0.0, 1), (0.0, 3.0, 0), (0.0, 4.0, -1)],
+        )
+        self.assertNotIn("late_only", model_rows[0])
+        self.assertNotIn("empty_all", model_rows[0])
+        self.assertNotIn("flags", model_rows[0])
+        self.assertEqual(
+            list(model_rows[0]),
+            ["trade_id", "human_label", "ml_split"]
+            + sorted(inspector.TARGET_COLUMNS)
+            + ["category_encoded", "numeric", "sparse_numeric"],
+        )
+
+    def test_s5f_feature_preparation_complete_artifact_schema_split_and_output_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-preparation"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_preparation(s5e_ml_dataset_rows(), output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            self.assertEqual(artifact_hashes, S5F_FEATURE_PREPARATION_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5F_FEATURE_PREPARATION_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5f_expected_stdout(output_dir, list(artifact_hashes)),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+            with (output_dir / "trade_dataset_v4b_feature_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(
+                manifest,
+                [{
+                    "ml_dataset_version": "v4b",
+                    "rows_total": "3",
+                    "feature_count": "112",
+                    "numeric_feature_count": "90",
+                    "categorical_feature_count": "22",
+                    "target_count": "16",
+                    "purpose": "feature_importance_preparation",
+                    "model_training": "not_performed",
+                }],
+            )
+
+            with (output_dir / "trade_dataset_v4b_feature_catalog.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                catalog = list(csv.DictReader(handle))
+            self.assertEqual(len(catalog), 112)
+            self.assertEqual(
+                [row["encoded_name"] for row in catalog],
+                sorted(row["encoded_name"] for row in catalog),
+            )
+
+            expected_ids = {
+                "trade_dataset_v4b_model_ready.csv": [("A", "train"), ("K", "validation"), ("Z", "test")],
+                "trade_dataset_v4b_model_ready_train.csv": [("A", "train")],
+                "trade_dataset_v4b_model_ready_validation.csv": [("K", "validation")],
+                "trade_dataset_v4b_model_ready_test.csv": [("Z", "test")],
+            }
+            for name, expected in expected_ids.items():
+                with self.subTest(artifact=name):
+                    with (output_dir / name).open("r", encoding="utf-8", newline="") as handle:
+                        model_rows = list(csv.DictReader(handle))
+                    self.assertEqual(
+                        [(row["trade_id"], row["ml_split"]) for row in model_rows],
+                        expected,
+                    )
+                    self.assertEqual(len(model_rows[0]), 131)
+                    self.assertEqual(
+                        list(model_rows[0])[:19],
+                        ["trade_id", "human_label", "ml_split"] + sorted(inspector.TARGET_COLUMNS),
+                    )
+
+    def test_s5f_feature_preparation_empty_artifact_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "empty" / "feature-preparation"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_preparation([], output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            expected_hashes = {
+                name: hashlib.sha256(b"").hexdigest()
+                for name in S5F_FEATURE_PREPARATION_ARTIFACT_SHA256
+            }
+            expected_hashes["trade_dataset_v4b_feature_manifest.csv"] = (
+                S5F_EMPTY_FEATURE_MANIFEST_CSV_SHA256
+            )
+            self.assertEqual(artifact_hashes, expected_hashes)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5F_EMPTY_FEATURE_PREPARATION_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5f_expected_stdout(output_dir, list(artifact_hashes)),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5f_feature_preparation_overwrite_and_foreign_csv_listing_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-preparation"
+            output_dir.mkdir(parents=True)
+            model_path = output_dir / "trade_dataset_v4b_model_ready.csv"
+            model_path.write_bytes(b"stale")
+            foreign_path = output_dir / "foreign.csv"
+            foreign_path.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_preparation(s5e_ml_dataset_rows(), output_dir)
+
+            self.assertEqual(
+                hashlib.sha256(model_path.read_bytes()).hexdigest(),
+                S5F_FEATURE_PREPARATION_ARTIFACT_SHA256[model_path.name],
+            )
+            self.assertEqual(foreign_path.read_bytes(), b"foreign")
+            listed_names = [*S5F_FEATURE_PREPARATION_ARTIFACT_SHA256, foreign_path.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5f_expected_stdout(output_dir, listed_names),
             )
             self.assertEqual(stderr.getvalue(), "")
 
