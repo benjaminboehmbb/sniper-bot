@@ -18,6 +18,7 @@ from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import path_diagnosis
+from tools.trade_inspector import regime_identity_rows
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -270,6 +271,23 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         self.assertEqual(canonical_sha256(row, sort_keys=False), EXPECTED_ORDERED_ROW_SHA256)
 
     def test_s4_regime_index_and_feature_matrix(self) -> None:
+        for name in [
+            "find_matching_entry_exit",
+            "build_regime_index",
+            "extract_regime_features",
+            "compact_trade_time",
+            "chart_time",
+            "build_trade_id",
+            "build_trade_family",
+            "build_ml_row",
+            "build_rows",
+        ]:
+            with self.subTest(reexport=name):
+                self.assertIs(getattr(inspector, name), getattr(regime_identity_rows, name))
+        for registry_name in ["load_label_registry", "save_label_registry", "assign_human_labels"]:
+            with self.subTest(registry_boundary=registry_name):
+                self.assertFalse(hasattr(regime_identity_rows, registry_name))
+
         regime_rows = [
             {
                 "timestamp_utc": ENTRY_TS,
