@@ -42,6 +42,23 @@ S5_CSV_ROWS_SHA256 = "d1cf0f439a99544239b70e95fca11b48485fa190889083c92497d051ee
 S5_PARTIAL_CSV_SHA256 = "64c0dea2e1c321cbbcbf78285b8704a51abbc6b0be3117c8c3208ac6082a3284"
 S5_RAW_ML_CSV_SHA256 = "be6e308c2c2467a00f68a589f510e161d7414e4c815624c595c2aa8719173c29"
 S5_RAW_ML_HEADER_SHA256 = "6a8d64f5cf94ddb6d5d53fa2c73f8cd5fd00c2191cd12849d51d02a3f9d6f85c"
+S5D_AGGREGATE_ARTIFACT_SHA256 = {
+    "aggregate_by_entry_regime_label.csv": "444f3135104d5db59c25f9238278f8d2c3171753aa03df9086c5c906318e297e",
+    "aggregate_by_entry_risk_label.csv": "59635850e5544d1678b0900a207568a14c821d6f520e4c888c09baa4032a8ad4",
+    "aggregate_by_overall_score_band.csv": "ed40fed361d3e53871b76611a2e0902da143c052ffef58533b1b6ab835d423af",
+    "aggregate_by_priority.csv": "c04c2da04d8f90befd1facecc2dcb087cc707956de26ecabdd05ad52e76f4a2c",
+    "aggregate_by_quality_class.csv": "6059f1334518898da1fbe0f70a14fd823b35653c639bad46e75556d8d97af692",
+    "aggregate_by_regime_aligned.csv": "c963ddc782716568c05eaf0738193ff9378ea358e93bfec09bf5a08da793ab62",
+    "aggregate_by_root_cause.csv": "af43230e510123d1ec07dee94a97dce530086195492d02bfb282b0e6553fa673",
+    "aggregate_by_trade_family.csv": "07005bcfc3304fb9bf71233e0077d9560dff6b99150cdaaef1e7e93a9fe3dede",
+    "aggregate_by_trade_family_group.csv": "eeef423cc6d382559ce3ed4d66a7a626c8c6a4d2708a1f5ca38ea1fbb6d4cd47",
+    "aggregate_global_summary.csv": "59ea6e99813dd62b639afe7917b045fc37daa1317e7a41955db7be8c5cd8fa18",
+    "aggregate_root_cause_attribution.csv": "330e09660421e0b5a178b308a6458242c9f8676ac9ce3e6e6f73927d18eff468",
+    "aggregate_top_improvement_candidates.csv": "4e2b1fdc169e74a7695840eac490879014afec9b5f81825c9a3be47aea1b3ed9",
+}
+S5D_AGGREGATE_MANIFEST_SHA256 = "64e371f979cffe4ca2e01ad18d94fba14f0fea2a90755cb26f1de1a3b1ae1e98"
+S5D_EMPTY_GLOBAL_SUMMARY_SHA256 = "4e0fcbcd6382b7330f800a27e4bee758b36434729406735abe18183d3b41870e"
+S5D_EMPTY_MANIFEST_SHA256 = "94705901ba1a8aa982a011665f71480d353a066e83919fc930a429474a13a6c4"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -143,6 +160,95 @@ def build_sample_row() -> dict[str, object]:
         prices,
         {trade_id: "alpha"},
     )[0]
+
+
+def s5d_aggregate_rows() -> list[dict[str, object]]:
+    return [
+        {
+            "human_label": "alpha",
+            "trade_id": "T-A",
+            "root_cause": "early_exit",
+            "priority": "HIGH",
+            "priority_score": 90,
+            "impact_score": 80,
+            "root_cause_confidence": 85,
+            "opportunity_loss_24h_pct": 0.20,
+            "exit_efficiency_24h_pct": 0.30,
+            "pnl": -2.5,
+            "pnl_pct": -0.025,
+            "entry_regime_label": "TREND",
+            "entry_risk_label": "LOW",
+            "regime_aligned": 1,
+            "regime_changed_during_trade": 0,
+            "entry_score_at_entry": 75,
+            "entry_time_chart": "2026-01-01 00:00:00",
+            "exit_time_chart": "2026-01-01 00:02:00",
+            "quality_class": "GOOD",
+            "overall_score_band": "HIGH",
+            "trade_family_group": "MOMENTUM",
+            "trade_family": "TF-A",
+            "overall_score": 80,
+            "is_winner": 0,
+            "is_loser": 1,
+            "cause_weights": "early_exit=70|regime_mismatch=30",
+        },
+        {
+            "human_label": "beta",
+            "trade_id": "T-B",
+            "root_cause": "entry_quality",
+            "priority": "MEDIUM",
+            "priority_score": 60,
+            "impact_score": 50,
+            "root_cause_confidence": 70,
+            "opportunity_loss_24h_pct": 0.10,
+            "exit_efficiency_24h_pct": 0.50,
+            "pnl": 4.0,
+            "pnl_pct": 0.04,
+            "entry_regime_label": "RANGE",
+            "entry_risk_label": "HIGH",
+            "regime_aligned": 0,
+            "regime_changed_during_trade": 1,
+            "entry_score_at_entry": 40,
+            "entry_time_chart": "2026-01-02 00:00:00",
+            "exit_time_chart": "2026-01-02 00:03:00",
+            "quality_class": "WATCH",
+            "overall_score_band": "MID",
+            "trade_family_group": "REVERSION",
+            "trade_family": "TF-B",
+            "overall_score": 60,
+            "is_winner": 1,
+            "is_loser": 0,
+            "cause_weights": "entry_quality=100",
+        },
+        {
+            "human_label": "gamma",
+            "trade_id": "T-C",
+            "root_cause": "early_exit",
+            "priority": "HIGH",
+            "priority_score": 95,
+            "impact_score": 70,
+            "root_cause_confidence": 90,
+            "opportunity_loss_24h_pct": 0.25,
+            "exit_efficiency_24h_pct": 0.20,
+            "pnl": -1.0,
+            "pnl_pct": -0.01,
+            "entry_regime_label": "TREND",
+            "entry_risk_label": "LOW",
+            "regime_aligned": 1,
+            "regime_changed_during_trade": 0,
+            "entry_score_at_entry": 80,
+            "entry_time_chart": "2026-01-03 00:00:00",
+            "exit_time_chart": "2026-01-03 00:01:00",
+            "quality_class": "BAD",
+            "overall_score_band": "LOW",
+            "trade_family_group": "MOMENTUM",
+            "trade_family": "TF-A",
+            "overall_score": 40,
+            "is_winner": 0,
+            "is_loser": 1,
+            "cause_weights": "early_exit=50|regime_mismatch=50",
+        },
+    ]
 
 
 def build_s3_snapshot(
@@ -697,6 +803,109 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                     inspector.export_ml_csv([], existing_path)
             self.assertEqual(existing_path.read_bytes(), b"stale")
             self.assertEqual(existing_output.getvalue(), "")
+
+    def test_s5d_aggregate_csv_complete_artifact_manifest_ordering_and_output_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "aggregate"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_aggregate_csvs(s5d_aggregate_rows(), output_dir)
+
+            paths = sorted(output_dir.glob("*.csv"))
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in paths
+            }
+            self.assertEqual(artifact_hashes, S5D_AGGREGATE_ARTIFACT_SHA256)
+            self.assertEqual(canonical_sha256(artifact_hashes), S5D_AGGREGATE_MANIFEST_SHA256)
+
+            expected_stdout = (
+                f"Aggregate CSV export directory: {output_dir}\n"
+                "files:\n"
+                + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_hashes))
+            )
+            self.assertEqual(stdout.getvalue(), expected_stdout)
+            self.assertEqual(stderr.getvalue(), "")
+
+            with (output_dir / "aggregate_top_improvement_candidates.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                self.assertEqual(
+                    [row["trade_id"] for row in csv.DictReader(handle)],
+                    ["T-C", "T-A", "T-B"],
+                )
+            with (output_dir / "aggregate_by_root_cause.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                self.assertEqual(
+                    [row["group"] for row in csv.DictReader(handle)],
+                    ["entry_quality", "early_exit"],
+                )
+            with (output_dir / "aggregate_root_cause_attribution.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                self.assertEqual(
+                    [row["root_cause"] for row in csv.DictReader(handle)],
+                    ["early_exit", "regime_mismatch", "entry_quality"],
+                )
+
+    def test_s5d_aggregate_csv_empty_input_artifact_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "empty" / "aggregate"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_aggregate_csvs([], output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            expected_hashes = {
+                name: hashlib.sha256(b"").hexdigest()
+                for name in S5D_AGGREGATE_ARTIFACT_SHA256
+            }
+            expected_hashes["aggregate_global_summary.csv"] = S5D_EMPTY_GLOBAL_SUMMARY_SHA256
+            self.assertEqual(artifact_hashes, expected_hashes)
+            self.assertEqual(canonical_sha256(artifact_hashes), S5D_EMPTY_MANIFEST_SHA256)
+
+            expected_stdout = (
+                f"Aggregate CSV export directory: {output_dir}\n"
+                "files:\n"
+                + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_hashes))
+            )
+            self.assertEqual(stdout.getvalue(), expected_stdout)
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5d_aggregate_csv_overwrite_and_foreign_csv_listing_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "aggregate"
+            output_dir.mkdir(parents=True)
+            summary_path = output_dir / "aggregate_global_summary.csv"
+            summary_path.write_bytes(b"stale")
+            foreign_path = output_dir / "foreign.csv"
+            foreign_path.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_aggregate_csvs(s5d_aggregate_rows(), output_dir)
+
+            self.assertEqual(
+                hashlib.sha256(summary_path.read_bytes()).hexdigest(),
+                S5D_AGGREGATE_ARTIFACT_SHA256[summary_path.name],
+            )
+            self.assertEqual(foreign_path.read_bytes(), b"foreign")
+
+            listed_names = sorted([*S5D_AGGREGATE_ARTIFACT_SHA256, foreign_path.name])
+            expected_stdout = (
+                f"Aggregate CSV export directory: {output_dir}\n"
+                "files:\n"
+                + "".join(f"- {output_dir / name}\n" for name in listed_names)
+            )
+            self.assertEqual(stdout.getvalue(), expected_stdout)
+            self.assertEqual(stderr.getvalue(), "")
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
