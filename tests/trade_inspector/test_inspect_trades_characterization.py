@@ -19,6 +19,7 @@ from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import csv_persistence
 from tools.trade_inspector import feature_importance
 from tools.trade_inspector import feature_preparation
+from tools.trade_inspector import feature_stability
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import label_registry
@@ -1969,6 +1970,10 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5i_statistics_and_stability_class_boundaries(self) -> None:
+        for name in ("median", "std", "stability_class", "export_feature_stability"):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(feature_stability, name))
+
         self.assertEqual(inspector.median([]), 0.0)
         self.assertEqual(inspector.median([3.0]), 3.0)
         self.assertEqual(inspector.median([3.0, 1.0, 2.0]), 2.0)
