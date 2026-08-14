@@ -18,6 +18,7 @@ from tools.trade_inspector import aggregate_csv
 from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import csv_persistence
 from tools.trade_inspector import feature_importance
+from tools.trade_inspector import feature_discovery
 from tools.trade_inspector import feature_preparation
 from tools.trade_inspector import feature_stability
 from tools.trade_inspector import inspect_trades as inspector
@@ -2285,6 +2286,17 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5j_signal_group_scoring_support_reliability_and_pair_contract(self) -> None:
+        for name in (
+            "safe_rate",
+            "discover_signal_groups",
+            "classify_signal_support",
+            "classify_signal_reliability",
+            "discover_pair_groups",
+            "export_predictive_signal_discovery",
+        ):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(feature_discovery, name))
+
         self.assertEqual(inspector.safe_rate(3.0, 2.0), 1.5)
         self.assertEqual(inspector.safe_rate(3.0, 0.0), 0.0)
 
