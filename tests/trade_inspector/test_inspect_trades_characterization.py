@@ -17,6 +17,7 @@ import unittest
 from tools.trade_inspector import aggregate_csv
 from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import csv_persistence
+from tools.trade_inspector import feature_preparation
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import label_registry
@@ -1190,6 +1191,18 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5f_feature_catalog_encoding_and_missing_value_contract(self) -> None:
+        for name in (
+            "NON_FEATURE_COLUMNS",
+            "TARGET_COLUMNS",
+            "is_number_like",
+            "build_category_maps",
+            "build_feature_catalog",
+            "build_model_ready_rows",
+            "export_feature_preparation",
+        ):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(feature_preparation, name))
+
         self.assertFalse(inspector.is_number_like(None))
         self.assertFalse(inspector.is_number_like(""))
         self.assertTrue(inspector.is_number_like("1e3"))
