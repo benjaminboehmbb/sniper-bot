@@ -25,6 +25,13 @@ SCRIPT_PATH = REPO_ROOT / "tools" / "trade_inspector" / "inspect_trades.py"
 ENTRY_TS = "2026-01-01T00:00:00+00:00"
 EXIT_TS = "2026-01-01T00:02:00+00:00"
 EXPECTED_ROW_SHA256 = "54fc961343d463d4e55d6489c70ec9ffcf3892acc9155b45b95e5f9408a2ce24"
+S3_SCENARIO_SHA256 = {
+    "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
+    "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
+    "missing_path": "c54567d7b491ea7bf5f52d7b3bdb1a6a3c7df8e7d2815cb3efc07746ff7126f1",
+    "zero_pnl": "3ca07215b9a292188e019f10617e2c1537f384d049818b857cb7c583a3bb5f72",
+    "invalid_duration": "12d34e43c7117698ea579014b503e539a8dff6bd07c3095ecaa2d9cc78656987",
+}
 
 
 def sample_trade() -> dict[str, object]:
@@ -76,6 +83,12 @@ def sample_market_path() -> tuple[list[str], list[float]]:
     return timestamps, prices
 
 
+def sample_short_market_path() -> tuple[list[str], list[float]]:
+    timestamps, _ = sample_market_path()
+    prices = [100.0, 95.0, 98.0, 97.0, 96.0, 94.0, 92.0, 90.0, 88.0]
+    return timestamps, prices
+
+
 def sample_regime_index() -> dict[str, dict[str, object]]:
     return inspector.build_regime_index(
         [
@@ -113,6 +126,53 @@ def build_sample_row() -> dict[str, object]:
         prices,
         {trade_id: "alpha"},
     )[0]
+
+
+def build_s3_snapshot(
+    trade: dict[str, object],
+    timestamps: list[str],
+    prices: list[float],
+) -> dict[str, object]:
+    entry = {"event": "ENTRY_ACCEPTED"}
+    exit_row = {"event": "EXIT_EXECUTED"}
+    path = inspector.calculate_trade_path(trade, timestamps, prices)
+    counterfactuals = inspector.calculate_counterfactuals(trade, timestamps, prices)
+    quality_score, quality_band, positives, negatives = inspector.compute_quality_score(
+        trade,
+        entry,
+        exit_row,
+    )
+    interpretation = inspector.interpretation_flags(path, counterfactuals)
+    diagnosis = inspector.compute_diagnosis(path, counterfactuals, float(trade.get("pnl", 0.0)))
+    confidence = inspector.compute_confidence_layer(
+        {
+            "has_entry_audit": 1,
+            "has_exit_audit": 1,
+            **path,
+            **counterfactuals,
+            **interpretation,
+            **diagnosis,
+        }
+    )
+    return {
+        "quality_flags": inspector.quality_flags(trade, entry, exit_row),
+        "quality": {
+            "score": quality_score,
+            "band": quality_band,
+            "positives": positives,
+            "negatives": negatives,
+        },
+        "path": path,
+        "counterfactuals": counterfactuals,
+        "interpretation": interpretation,
+        "diagnosis": diagnosis,
+        "confidence": confidence,
+    }
+
+
+def s3_snapshot_sha256(snapshot: dict[str, object]) -> str:
+    payload = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
+    return hashlib.sha256(payload).hexdigest()
 
 
 class TradeInspectorCharacterizationTests(unittest.TestCase):
@@ -190,6 +250,82 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
 
         payload = json.dumps(row, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
         self.assertEqual(hashlib.sha256(payload).hexdigest(), EXPECTED_ROW_SHA256)
+
+    def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
+        timestamps, prices = sample_market_path()
+        snapshot = build_s3_snapshot(sample_trade(), timestamps, prices)
+
+        self.assertEqual(s3_snapshot_sha256(snapshot), S3_SCENARIO_SHA256["long"])
+        self.assertEqual(snapshot["quality"]["score"], 80)
+        self.assertEqual(snapshot["path"]["mfe_pct"], 0.05)
+        self.assertEqual(snapshot["diagnosis"]["root_cause"], "early_exit")
+        self.assertEqual(snapshot["confidence"]["priority"], "HIGH")
+
+    def test_s3_short_path_and_diagnosis_snapshot(self) -> None:
+        trade = dict(sample_trade())
+        trade.update({"side": "short", "exit_price": 98.0})
+        timestamps, prices = sample_short_market_path()
+        snapshot = build_s3_snapshot(trade, timestamps, prices)
+
+        self.assertEqual(s3_snapshot_sha256(snapshot), S3_SCENARIO_SHA256["short"])
+        self.assertEqual(inspector.trade_pnl_from_price("short", 100.0, 95.0), 5.0)
+        self.assertEqual(snapshot["path"]["best_price_during_trade"], 95.0)
+        self.assertEqual(snapshot["path"]["worst_price_during_trade"], 100.0)
+        self.assertEqual(snapshot["path"]["mfe_pct"], 0.05)
+
+    def test_s3_missing_path_snapshot(self) -> None:
+        snapshot = build_s3_snapshot(sample_trade(), [], [])
+
+        self.assertEqual(s3_snapshot_sha256(snapshot), S3_SCENARIO_SHA256["missing_path"])
+        self.assertEqual(snapshot["path"]["path_available"], 0)
+        self.assertEqual(snapshot["confidence"]["diagnosis_reliability"], 60)
+        for label in inspector.FUTURE_WINDOWS_MIN:
+            self.assertEqual(snapshot["counterfactuals"][f"counterfactual_available_{label}"], 0)
+
+    def test_s3_zero_pnl_snapshot(self) -> None:
+        trade = dict(sample_trade())
+        trade.update({"exit_price": 100.0, "pnl": 0.0, "pnl_pct": 0.0})
+        timestamps, prices = sample_market_path()
+        snapshot = build_s3_snapshot(trade, timestamps, prices)
+
+        self.assertEqual(s3_snapshot_sha256(snapshot), S3_SCENARIO_SHA256["zero_pnl"])
+        self.assertEqual(snapshot["quality_flags"], ["flat_trade"])
+        self.assertEqual(snapshot["quality"]["score"], 60)
+        self.assertEqual(snapshot["quality"]["band"], "acceptable")
+        self.assertEqual(snapshot["counterfactuals"]["exit_efficiency_24h_pct"], 0.0)
+        self.assertEqual(snapshot["counterfactuals"]["opportunity_loss_24h_pct"], 0.08)
+
+    def test_s3_invalid_duration_snapshot(self) -> None:
+        trade = dict(sample_trade())
+        trade["duration_sec"] = -1
+        timestamps, prices = sample_market_path()
+        snapshot = build_s3_snapshot(trade, timestamps, prices)
+
+        self.assertEqual(s3_snapshot_sha256(snapshot), S3_SCENARIO_SHA256["invalid_duration"])
+        self.assertEqual(snapshot["quality_flags"], ["negative_duration", "very_short_trade"])
+        self.assertEqual(snapshot["quality"]["score"], 20)
+        self.assertEqual(snapshot["quality"]["band"], "bad")
+        self.assertEqual(snapshot["quality"]["negatives"], ["invalid_duration"])
+
+    def test_s3_score_and_direction_boundaries(self) -> None:
+        cases = [
+            (39, "bad", -1),
+            (40, "weak", 0),
+            (59, "weak", 0),
+            (60, "acceptable", 0),
+            (74, "acceptable", 0),
+            (75, "good", 1),
+            (89, "good", 1),
+            (90, "excellent", 1),
+        ]
+        for score, expected_band, expected_diagnosis in cases:
+            with self.subTest(score=score):
+                self.assertEqual(inspector.score_band(score), expected_band)
+                self.assertEqual(inspector.signed_diagnosis(score), expected_diagnosis)
+
+        self.assertEqual(inspector.trade_pnl_from_price("long", 100.0, 105.0), 5.0)
+        self.assertEqual(inspector.trade_pnl_from_price("short", 100.0, 95.0), 5.0)
+        self.assertEqual(inspector.trade_pnl_from_price("unknown", 100.0, 105.0), 0.0)
 
     def test_missing_market_path_remains_explicitly_unavailable(self) -> None:
         trade = sample_trade()
