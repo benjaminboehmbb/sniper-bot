@@ -13,6 +13,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest import mock
 
 from tools.trade_inspector import aggregate_csv
 from tools.trade_inspector import archive_intake as intake
@@ -147,6 +148,15 @@ S5J_FEATURE_DISCOVERY_ARTIFACT_SHA256 = {
 S5J_FEATURE_DISCOVERY_MANIFEST_SHA256 = "6584edce59c245c9d269ff0e5bc9da94b2ec256f81ffab4761715c4bd7558da0"
 S5J_EMPTY_FEATURE_DISCOVERY_MANIFEST_CSV_SHA256 = "309dd83128ca34f11abee60ddc337db67364b08bba07e881adb34cdb1f508e00"
 S5J_EMPTY_FEATURE_DISCOVERY_MANIFEST_SHA256 = "f4a0db55691d25ce74b81075dfea479fff94a6bd0af18a777e4b134810438a3b"
+S5K_MULTI_ARCHIVE_NORMALIZED_ARTIFACT_SHA256 = {
+    "multi_archive_global_trades_v7g.csv": "b9b5554bfbaff03fb0aa1d567f5efde36a434b21cd403adb960e13e27c24c26d",
+    "multi_archive_loader_errors_v7g.csv": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "multi_archive_loader_v7g_manifest.csv": "c157dce37442446962a1fcb8eb9a023171a687117bbb3e055f2be6c4a73540fc",
+    "multi_archive_registry_loaded_v7g.csv": "4cac5cc63358aa015dc1b348fad1eb5abe3e2091ca84fdcf234cdf10d122003e",
+    "v7g_multi_archive_loader_summary.md": "d598dab0e7f9a907fad2ea853d632b2a9cc08043eae834da5becb0d5e7940194",
+}
+S5K_MULTI_ARCHIVE_NORMALIZED_MANIFEST_SHA256 = "91f811a59f9687770d03269879d161572c4e29af77c069b37eed3601bc697966"
+S5K_ENRICHED_ROW_SHA256 = "ed2db28c9d63e831e391cd042b7a4b246c4653837896fec8ce1b9995f0989eb3"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -248,6 +258,75 @@ def build_sample_row() -> dict[str, object]:
         prices,
         {trade_id: "alpha"},
     )[0]
+
+
+def write_s5k_archive(archive_dir: Path, *, invalid_trades: bool = False) -> None:
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    if invalid_trades:
+        trades_text = '{"id": 1}\nnot-json\n'
+    else:
+        trades_text = json.dumps(sample_trade(), sort_keys=True) + "\n"
+    (archive_dir / "trades_l1.jsonl").write_text(trades_text, encoding="utf-8")
+    (archive_dir / "execution_audit.jsonl").write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in sample_audit_rows()),
+        encoding="utf-8",
+    )
+    (archive_dir / "l1_paper.log").write_text(
+        " ".join(
+            [
+                "event=regime_snapshot",
+                f"timestamp_utc={ENTRY_TS}",
+                "regime_label=bull",
+                "risk_label=good_atr",
+                "entry_score=2",
+                "ma200_signal=1",
+                "mfi_signal=1",
+                "atr_signal=1",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def write_s5k_market_csv(path: Path) -> None:
+    timestamps, prices = sample_market_path()
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["timestamp_utc", "close"])
+        writer.writeheader()
+        writer.writerows(
+            {"timestamp_utc": timestamp, "close": price}
+            for timestamp, price in zip(timestamps, prices)
+        )
+
+
+def write_s5k_registry(path: Path, rows: list[dict[str, object]]) -> None:
+    fieldnames = [
+        "archive_id",
+        "archive_path",
+        "include_in_v7",
+        "run_label",
+        "created_at",
+        "source_device",
+        "strategy_profile",
+    ]
+    lines = [
+        "| " + " | ".join(fieldnames) + " |",
+        "| " + " | ".join("---" for _ in fieldnames) + " |",
+    ]
+    for row in rows:
+        lines.append("| " + " | ".join(str(row.get(name, "")) for name in fieldnames) + " |")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def normalized_s5k_artifact_hashes(output_dir: Path, root: Path) -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for path in sorted(output_dir.glob("*")):
+        if not path.is_file() or path.name == "foreign.keep":
+            continue
+        normalized = path.read_text(encoding="utf-8").replace(str(root), "<ROOT>")
+        hashes[path.name] = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return hashes
 
 
 def s5d_aggregate_rows() -> list[dict[str, object]]:
@@ -2580,6 +2659,395 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                 ),
             )
             self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5k_archive_registry_markdown_selection_and_failure_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            missing = root / "missing.md"
+            with self.assertRaises(SystemExit) as context:
+                inspector.load_archive_registry_md(missing)
+            self.assertEqual(str(context.exception), f"Archive registry not found: {missing}")
+
+            no_table = root / "no-table.md"
+            no_table.write_text("# registry\n\nnone\n", encoding="utf-8")
+            with self.assertRaises(SystemExit) as context:
+                inspector.load_archive_registry_md(no_table)
+            self.assertEqual(
+                str(context.exception),
+                f"No markdown table found in archive registry: {no_table}",
+            )
+
+            none_included = root / "none-included.md"
+            write_s5k_registry(
+                none_included,
+                [{
+                    "archive_id": "SKIP",
+                    "archive_path": root / "skip",
+                    "include_in_v7": "no",
+                }],
+            )
+            with self.assertRaises(SystemExit) as context:
+                inspector.load_archive_registry_md(none_included)
+            self.assertEqual(
+                str(context.exception),
+                f"No included archives found in registry: {none_included}",
+            )
+
+            selected = root / "selected.md"
+            write_s5k_registry(
+                selected,
+                [
+                    {"archive_id": "A", "archive_path": "/a", "include_in_v7": "yes"},
+                    {"archive_id": "B", "archive_path": "/b", "include_in_v7": "1"},
+                    {"archive_id": "C", "archive_path": "/c", "include_in_v7": "TRUE"},
+                    {"archive_id": "D", "archive_path": "/d", "include_in_v7": "y"},
+                    {"archive_id": "E", "archive_path": "/e", "include_in_v7": "no"},
+                ],
+            )
+            with selected.open("a", encoding="utf-8") as handle:
+                handle.write("| malformed | row |\n")
+
+            rows = inspector.load_archive_registry_md(selected)
+            self.assertEqual([row["archive_id"] for row in rows], ["A", "B", "C", "D"])
+            self.assertTrue(all(list(row) == [
+                "archive_id",
+                "archive_path",
+                "include_in_v7",
+                "run_label",
+                "created_at",
+                "source_device",
+                "strategy_profile",
+            ] for row in rows))
+
+    def test_s5k_load_rows_enrichment_identity_order_and_hash_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            archive_dir = root / "archive-a"
+            write_s5k_archive(archive_dir)
+            market_csv = root / "market.csv"
+            write_s5k_market_csv(market_csv)
+            label_list = root / "labels.txt"
+            label_list.write_text("alpha\n", encoding="utf-8")
+            label_registry = root / "label-registry.csv"
+
+            rows = inspector.load_rows_for_archive(
+                "ARCHIVE-A",
+                archive_dir,
+                market_csv,
+                label_list,
+                label_registry,
+            )
+
+            self.assertEqual(len(rows), 1)
+            row = rows[0]
+            self.assertEqual(len(row), 132)
+            self.assertEqual(row["archive_id"], "ARCHIVE-A")
+            self.assertEqual(row["archive_path"], str(archive_dir))
+            self.assertEqual(row["local_trade_id"], "T_20260101_000000_LONG_BTCUSDT")
+            self.assertEqual(
+                row["global_trade_id"],
+                "ARCHIVE-A::T_20260101_000000_LONG_BTCUSDT",
+            )
+            self.assertEqual(row["v7g_archive_row_index"], 1)
+            self.assertEqual(list(row)[-5:], [
+                "archive_id",
+                "archive_path",
+                "local_trade_id",
+                "global_trade_id",
+                "v7g_archive_row_index",
+            ])
+            normalized = dict(row)
+            normalized["archive_path"] = "<ARCHIVE>"
+            self.assertEqual(canonical_sha256(normalized, sort_keys=False), S5K_ENRICHED_ROW_SHA256)
+
+    def test_s5k_multi_archive_complete_artifacts_order_output_and_hash_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            archive_b = root / "archive-b"
+            archive_a = root / "archive-a"
+            write_s5k_archive(archive_b)
+            write_s5k_archive(archive_a)
+            market_csv = root / "market.csv"
+            write_s5k_market_csv(market_csv)
+            label_list = root / "labels.txt"
+            label_list.write_text("alpha\nbeta\n", encoding="utf-8")
+            label_registry = root / "label-registry.csv"
+            registry = root / "archives.md"
+            write_s5k_registry(
+                registry,
+                [
+                    {
+                        "archive_id": "B",
+                        "archive_path": archive_b,
+                        "include_in_v7": "yes",
+                        "run_label": "second-name-first-row",
+                        "created_at": "2026-02-02T00:00:00Z",
+                        "source_device": "X1-B",
+                        "strategy_profile": "profile-b",
+                    },
+                    {
+                        "archive_id": "A",
+                        "archive_path": archive_a,
+                        "include_in_v7": "yes",
+                        "run_label": "first-name-second-row",
+                        "created_at": "2026-01-01T00:00:00Z",
+                        "source_device": "X1-A",
+                        "strategy_profile": "profile-a",
+                    },
+                ],
+            )
+            output_dir = root / "output"
+            output_dir.mkdir()
+            foreign = output_dir / "foreign.keep"
+            foreign.write_text("preserve", encoding="utf-8")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_multi_archive_loader(
+                    registry,
+                    output_dir,
+                    market_csv,
+                    label_list,
+                    label_registry,
+                )
+
+            artifact_hashes = normalized_s5k_artifact_hashes(output_dir, root)
+            self.assertEqual(artifact_hashes, S5K_MULTI_ARCHIVE_NORMALIZED_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5K_MULTI_ARCHIVE_NORMALIZED_MANIFEST_SHA256,
+            )
+            self.assertEqual(foreign.read_text(encoding="utf-8"), "preserve")
+
+            with (output_dir / "multi_archive_global_trades_v7g.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                global_rows = list(csv.DictReader(handle))
+            self.assertEqual([row["archive_id"] for row in global_rows], ["B", "A"])
+            self.assertEqual([row["v7g_archive_row_index"] for row in global_rows], ["1", "1"])
+
+            with (output_dir / "multi_archive_registry_loaded_v7g.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                loaded_rows = list(csv.DictReader(handle))
+            self.assertEqual([row["archive_id"] for row in loaded_rows], ["B", "A"])
+            self.assertEqual([row["run_label"] for row in loaded_rows], [
+                "second-name-first-row",
+                "first-name-second-row",
+            ])
+
+            with (output_dir / "multi_archive_loader_v7g_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(manifest, [{
+                "engine_version": "v7g",
+                "registry_path": str(registry),
+                "archives_registered": "2",
+                "archives_loaded": "2",
+                "trade_count": "2",
+                "errors": "0",
+                "mode": "multi_archive_loader",
+                "statistical_interpretation_allowed": "no",
+                "minimum_recommended_archives": "2",
+                "minimum_recommended_trades": "30",
+            }])
+            self.assertEqual((output_dir / "multi_archive_loader_errors_v7g.csv").read_bytes(), b"")
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(
+                stdout.getvalue(),
+                "".join([
+                    f"Multi-archive loader export directory: {output_dir}\n",
+                    f"registry_path: {registry}\n",
+                    "archives_registered: 2\n",
+                    "archives_loaded: 2\n",
+                    "trade_count: 2\n",
+                    "errors: 0\n",
+                    *(
+                        f" - {path}\n"
+                        for path in sorted(output_dir.glob("*"))
+                    ),
+                ]),
+            )
+
+    def test_s5k_multi_archive_error_row_variants_and_continue_contract(self) -> None:
+        expected_hashes = {
+            "missing_archive_id": "e93b3cfef1c0a494ac7a148d3e42d4a99cbdb6a1a1b90b8a64b7738ed01771e1",
+            "archive_path_missing": "dd5014d19224ade97289dd010fdadcc52d2406186c8fab428ece8ae0dde2fafc",
+            "required_input_missing": "696b967ea5fb8e98bd4e3f964562485c73a3307df82917e8aa16391acb64adfc",
+            "ValueError": "034e77f01c2c16b18bc48b4d3dacddba40ece26116e4a722c8d6fba39666b020",
+        }
+        for variant in expected_hashes:
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                market_csv = root / "market.csv"
+                write_s5k_market_csv(market_csv)
+                label_list = root / "labels.txt"
+                label_list.write_text("alpha\n", encoding="utf-8")
+                label_registry = root / "label-registry.csv"
+                registry = root / "archives.md"
+
+                if variant == "missing_archive_id":
+                    archive_id = ""
+                    archive_path = root
+                elif variant == "archive_path_missing":
+                    archive_id = "MISSING"
+                    archive_path = root / "does-not-exist"
+                elif variant == "required_input_missing":
+                    archive_id = "INCOMPLETE"
+                    archive_path = root / "incomplete"
+                    archive_path.mkdir()
+                else:
+                    archive_id = "INVALID"
+                    archive_path = root / "invalid"
+                    write_s5k_archive(archive_path, invalid_trades=True)
+
+                write_s5k_registry(
+                    registry,
+                    [{
+                        "archive_id": archive_id,
+                        "archive_path": archive_path,
+                        "include_in_v7": "yes",
+                    }],
+                )
+                output_dir = root / "output"
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    inspector.export_multi_archive_loader(
+                        registry,
+                        output_dir,
+                        market_csv,
+                        label_list,
+                        label_registry,
+                    )
+
+                with (output_dir / "multi_archive_loader_errors_v7g.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    errors = list(csv.DictReader(handle))
+                self.assertEqual(len(errors), 1)
+                self.assertEqual(errors[0]["error"], variant)
+                normalized = {
+                    key: value.replace(str(root), "<ROOT>")
+                    for key, value in errors[0].items()
+                }
+                self.assertEqual(canonical_sha256(normalized), expected_hashes[variant])
+
+                with (output_dir / "multi_archive_loader_v7g_manifest.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    manifest = list(csv.DictReader(handle))[0]
+                self.assertEqual(manifest["archives_registered"], "1")
+                self.assertEqual(manifest["archives_loaded"], "0")
+                self.assertEqual(manifest["trade_count"], "0")
+                self.assertEqual(manifest["errors"], "1")
+
+    def test_s5k_multi_archive_heterogeneous_error_partial_write_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            incomplete = root / "incomplete"
+            incomplete.mkdir()
+            registry = root / "archives.md"
+            write_s5k_registry(
+                registry,
+                [
+                    {
+                        "archive_id": "MISSING",
+                        "archive_path": root / "does-not-exist",
+                        "include_in_v7": "yes",
+                    },
+                    {
+                        "archive_id": "INCOMPLETE",
+                        "archive_path": incomplete,
+                        "include_in_v7": "yes",
+                    },
+                ],
+            )
+            output_dir = root / "output"
+            with self.assertRaisesRegex(ValueError, "dict contains fields not in fieldnames"):
+                inspector.export_multi_archive_loader(
+                    registry,
+                    output_dir,
+                    root / "unused-market.csv",
+                    root / "unused-labels.txt",
+                    root / "unused-registry.csv",
+                )
+
+            self.assertTrue((output_dir / "multi_archive_global_trades_v7g.csv").exists())
+            self.assertTrue((output_dir / "multi_archive_registry_loaded_v7g.csv").exists())
+            errors_path = output_dir / "multi_archive_loader_errors_v7g.csv"
+            with errors_path.open("r", encoding="utf-8", newline="") as handle:
+                errors = list(csv.DictReader(handle))
+            self.assertEqual(errors, [{
+                "archive_id": "MISSING",
+                "archive_path": str(root / "does-not-exist"),
+                "error": "archive_path_missing",
+            }])
+            self.assertFalse((output_dir / "multi_archive_loader_v7g_manifest.csv").exists())
+            self.assertFalse((output_dir / "v7g_multi_archive_loader_summary.md").exists())
+
+    def test_s5k_multi_archive_exact_statistical_threshold_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            archive_a = root / "archive-a"
+            archive_b = root / "archive-b"
+            for archive in (archive_a, archive_b):
+                archive.mkdir()
+                for name in ("trades_l1.jsonl", "execution_audit.jsonl", "l1_paper.log"):
+                    (archive / name).write_text("", encoding="utf-8")
+            registry = root / "archives.md"
+            write_s5k_registry(
+                registry,
+                [
+                    {"archive_id": "A", "archive_path": archive_a, "include_in_v7": "yes"},
+                    {"archive_id": "B", "archive_path": archive_b, "include_in_v7": "yes"},
+                ],
+            )
+
+            counts = {"A": 15, "B": 14}
+
+            def synthetic_rows(archive_id: str, *args: object) -> list[dict[str, object]]:
+                count = counts[archive_id]
+                return [
+                    {"trade_id": f"{archive_id}-{index:02d}", "archive_id": archive_id}
+                    for index in range(count)
+                ]
+
+            with mock.patch.object(inspector, "load_rows_for_archive", side_effect=synthetic_rows):
+                output_29 = root / "output-29"
+                with contextlib.redirect_stdout(io.StringIO()):
+                    inspector.export_multi_archive_loader(
+                        registry,
+                        output_29,
+                        root / "unused-market.csv",
+                        root / "unused-labels.txt",
+                        root / "unused-registry.csv",
+                    )
+                counts["B"] = 15
+                output_30 = root / "output-30"
+                with contextlib.redirect_stdout(io.StringIO()):
+                    inspector.export_multi_archive_loader(
+                        registry,
+                        output_30,
+                        root / "unused-market.csv",
+                        root / "unused-labels.txt",
+                        root / "unused-registry.csv",
+                    )
+
+            for output_dir, trade_count, allowed in (
+                (output_29, "29", "no"),
+                (output_30, "30", "yes"),
+            ):
+                with (output_dir / "multi_archive_loader_v7g_manifest.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    manifest = list(csv.DictReader(handle))[0]
+                self.assertEqual(manifest["archives_registered"], "2")
+                self.assertEqual(manifest["archives_loaded"], "2")
+                self.assertEqual(manifest["trade_count"], trade_count)
+                self.assertEqual(manifest["statistical_interpretation_allowed"], allowed)
+                summary = (output_dir / "v7g_multi_archive_loader_summary.md").read_text(encoding="utf-8")
+                self.assertIn(f"statistical_interpretation_allowed: {allowed}\n", summary)
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
