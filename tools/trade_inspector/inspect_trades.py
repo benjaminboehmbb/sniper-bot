@@ -11,9 +11,14 @@ import argparse
 import bisect
 import csv
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+if __package__:
+    from .inspection_primitives import parse_ts, safe_float, safe_int, safe_text, ts_key
+else:
+    from inspection_primitives import parse_ts, safe_float, safe_int, safe_text, ts_key
 
 
 DEFAULT_ARCHIVE_DIR = Path("live_logs/archive/P79A_pre_run_2026-06-10")
@@ -27,45 +32,6 @@ FUTURE_WINDOWS_MIN = {
     "72h": 4320,
     "168h": 10080,
 }
-
-
-def safe_text(value: object) -> str:
-    if value is None:
-        return ""
-    return str(value).strip()
-
-
-def safe_float(value: object, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except Exception:
-        return default
-
-
-def safe_int(value: object, default: int = 0) -> int:
-    try:
-        return int(value)
-    except Exception:
-        return default
-
-
-def parse_ts(value: object) -> datetime | None:
-    s = safe_text(value).replace("_", " ")
-    if not s:
-        return None
-    try:
-        return datetime.fromisoformat(s)
-    except Exception:
-        return None
-
-
-def ts_key(value: object) -> str:
-    dt = parse_ts(value)
-    if dt is None:
-        return ""
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.isoformat()
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:

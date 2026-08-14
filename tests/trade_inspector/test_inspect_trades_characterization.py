@@ -15,6 +15,7 @@ from types import SimpleNamespace
 import unittest
 
 from tools.trade_inspector import inspect_trades as inspector
+from tools.trade_inspector import inspection_primitives as primitives
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -114,6 +115,26 @@ def build_sample_row() -> dict[str, object]:
 
 
 class TradeInspectorCharacterizationTests(unittest.TestCase):
+    def test_compatibility_primitives_are_reexported_with_exact_conversion_rules(self) -> None:
+        self.assertIs(inspector.safe_text, primitives.safe_text)
+        self.assertIs(inspector.safe_float, primitives.safe_float)
+        self.assertIs(inspector.safe_int, primitives.safe_int)
+        self.assertIs(inspector.parse_ts, primitives.parse_ts)
+        self.assertIs(inspector.ts_key, primitives.ts_key)
+
+        cases = [
+            (None, -9.0, -9),
+            ("", -9.0, -9),
+            ("1", 1.0, 1),
+            ("1.0", 1.0, -9),
+            ("bad", -9.0, -9),
+            (True, 1.0, 1),
+        ]
+        for value, expected_float, expected_int in cases:
+            with self.subTest(value=value):
+                self.assertEqual(primitives.safe_float(value, -9.0), expected_float)
+                self.assertEqual(primitives.safe_int(value, -9), expected_int)
+
     def test_jsonl_and_market_parsers_keep_current_acceptance_rules(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
