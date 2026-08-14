@@ -20,6 +20,7 @@ from tools.trade_inspector import csv_persistence
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import label_registry
+from tools.trade_inspector import ml_dataset
 from tools.trade_inspector import path_diagnosis
 from tools.trade_inspector import raw_ml_csv
 from tools.trade_inspector import regime_identity_rows
@@ -1014,6 +1015,18 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5e_ml_dataset_complete_artifact_split_and_output_contract(self) -> None:
+        for name in (
+            "print_kv",
+            "add_ml_targets",
+            "dataset_split_from_trade_id",
+            "build_ml_dataset_rows",
+            "evaluate_split_quality",
+            "print_split_quality",
+            "export_ml_dataset",
+        ):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(ml_dataset, name))
+
         self.assertEqual(inspector.dataset_split_from_trade_id("A"), "train")
         self.assertEqual(inspector.dataset_split_from_trade_id("K"), "validation")
         self.assertEqual(inspector.dataset_split_from_trade_id("Z"), "test")
