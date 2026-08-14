@@ -17,6 +17,7 @@ import unittest
 from tools.trade_inspector import aggregate_csv
 from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import csv_persistence
+from tools.trade_inspector import feature_importance
 from tools.trade_inspector import feature_preparation
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
@@ -1727,6 +1728,10 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5h_pearson_join_ranking_tie_and_degenerate_contract(self) -> None:
+        for name in ("pearson_abs", "feature_importance_rows", "export_feature_importance"):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(feature_importance, name))
+
         self.assertEqual(inspector.pearson_abs([], []), 0.0)
         self.assertEqual(inspector.pearson_abs([1.0], [1.0]), 0.0)
         self.assertEqual(inspector.pearson_abs([1.0, 2.0], [1.0]), 0.0)
