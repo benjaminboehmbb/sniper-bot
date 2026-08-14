@@ -83,6 +83,18 @@ S5F_FEATURE_PREPARATION_ARTIFACT_SHA256 = {
 S5F_FEATURE_PREPARATION_MANIFEST_SHA256 = "627951215e9fe327e64f450234f09f376966a970a0fbdc20551876b5da604e9e"
 S5F_EMPTY_FEATURE_MANIFEST_CSV_SHA256 = "b86ec7a1b1873770c10015c990c4aea583e9bc57631a5b9c1131d2a2455ade82"
 S5F_EMPTY_FEATURE_PREPARATION_MANIFEST_SHA256 = "806b317c5793aa295f6648634e71031d49d4a6aa5af744998c8ee187cfdf4120"
+S5G_LEAKAGE_AUDIT_ARTIFACT_SHA256 = {
+    "trade_dataset_v4c_blocked_features.csv": "b56bad304ae083fe6c2d5a6172e7bf437e637516b1c3c221adf4a4f3fe255fb6",
+    "trade_dataset_v4c_feature_catalog.csv": "e1a9817db5033c910f3e6c89b4becdcee0f35f8f03af05ccb3e35bb8dfb07667",
+    "trade_dataset_v4c_leakage_report.csv": "a4f52df0c9396f899732b0cc4d590e1913865452c87fc5062cf347a747c352a9",
+    "trade_dataset_v4c_manifest.csv": "07b13029f7de0e06387cb801947c952858c3f7df776bb8f6c971cd7c6c3a39fb",
+    "trade_dataset_v4c_model_ready.csv": "f381baf1d039ded694828552dd90f8e37796ef13d95257cfb4e697a066beaa4f",
+    "trade_dataset_v4c_targets.csv": "5c1a03588e1039b020199cb4a7ae1aa5c7011e56dce27d9e5a37abda49aa2d04",
+    "trade_dataset_v4c_training_features.csv": "810c439fabe9cd0afecd6931044129bad743b0bccfaf045d6d8084bc1c6b5a3b",
+}
+S5G_LEAKAGE_AUDIT_MANIFEST_SHA256 = "960027b4b0a035f309decd610c88ea2a3f43c40c67f65b09bf3c6ce722c1cb6c"
+S5G_EMPTY_LEAKAGE_MANIFEST_CSV_SHA256 = "3df387b8bcb32cade9870a54271187a90429dfd56256ad7ab499ed7fe8ef58de"
+S5G_EMPTY_LEAKAGE_AUDIT_MANIFEST_SHA256 = "56e25192ef9f9e0bf5eb8588155c4e31b37d5d1819c402edb435280a016f241a"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -416,6 +428,29 @@ def s5e_expected_stdout(
 def s5f_expected_stdout(output_dir: Path, artifact_names: list[str]) -> str:
     return (
         f"Feature preparation export directory: {output_dir}\n"
+        "files:\n"
+        + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
+    )
+
+
+def s5g_expected_stdout(
+    output_dir: Path,
+    artifact_names: list[str],
+    *,
+    allowed: int,
+    blocked: int,
+    high: int,
+    medium: int,
+    low: int,
+) -> str:
+    return (
+        f"Leakage audit export directory: {output_dir}\n"
+        "audit_status: PASS\n"
+        f"allowed_features: {allowed}\n"
+        f"blocked_features: {blocked}\n"
+        f"high_risk_leakage_features: {high}\n"
+        f"medium_risk_leakage_features: {medium}\n"
+        f"low_risk_features: {low}\n"
         "files:\n"
         + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
     )
@@ -1422,6 +1457,223 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(
                 stdout.getvalue(),
                 s5f_expected_stdout(output_dir, listed_names),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5g_leakage_rule_precedence_safe_ids_and_order_contract(self) -> None:
+        model_ready_rows = [{
+            "trade_id": "T1",
+            "human_label": "one",
+            "ml_split": "train",
+            "target_winner": 1,
+            "cf_return_probe": 0.1,
+            "pnl": 2.0,
+            "duration_sec": 60,
+            "entry_price": 100.0,
+            "custom_encoded": 2,
+        }]
+
+        report, allowed, blocked = inspector.audit_feature_leakage(model_ready_rows)
+        self.assertEqual(
+            report,
+            [
+                {
+                    "feature_name": "target_winner",
+                    "risk_level": "HIGH",
+                    "reason": "target_or_future_information",
+                    "allowed_for_training": 0,
+                },
+                {
+                    "feature_name": "cf_return_probe",
+                    "risk_level": "HIGH",
+                    "reason": "target_or_future_information",
+                    "allowed_for_training": 0,
+                },
+                {
+                    "feature_name": "pnl",
+                    "risk_level": "HIGH",
+                    "reason": "post_trade_outcome_or_diagnosis",
+                    "allowed_for_training": 0,
+                },
+                {
+                    "feature_name": "duration_sec",
+                    "risk_level": "MEDIUM",
+                    "reason": "exit_or_in_trade_information",
+                    "allowed_for_training": 0,
+                },
+                {
+                    "feature_name": "entry_price",
+                    "risk_level": "LOW",
+                    "reason": "entry_or_static_feature",
+                    "allowed_for_training": 1,
+                },
+                {
+                    "feature_name": "custom_encoded",
+                    "risk_level": "LOW",
+                    "reason": "entry_or_static_feature",
+                    "allowed_for_training": 1,
+                },
+            ],
+        )
+        self.assertEqual(allowed, ["entry_price", "custom_encoded"])
+        self.assertEqual(blocked, ["target_winner", "cf_return_probe", "pnl", "duration_sec"])
+        self.assertEqual(inspector.audit_feature_leakage([]), ([], [], []))
+
+    def test_s5g_leakage_audit_complete_artifact_partition_manifest_and_output_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "leakage-audit"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_leakage_audit_dataset(s5e_ml_dataset_rows(), output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            self.assertEqual(artifact_hashes, S5G_LEAKAGE_AUDIT_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5G_LEAKAGE_AUDIT_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5g_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    allowed=32,
+                    blocked=96,
+                    high=86,
+                    medium=10,
+                    low=32,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+            with (output_dir / "trade_dataset_v4c_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(
+                manifest,
+                [{
+                    "ml_dataset_version": "v4c",
+                    "rows_total": "3",
+                    "total_features_audited": "128",
+                    "allowed_features": "32",
+                    "target_columns": "16",
+                    "blocked_features": "96",
+                    "high_risk_leakage_features": "86",
+                    "medium_risk_leakage_features": "10",
+                    "low_risk_features": "32",
+                    "high_risk_features_allowed_for_training": "0",
+                    "leakage_score": "268",
+                    "audit_status": "PASS",
+                    "purpose": "dataset_leakage_audit",
+                }],
+            )
+
+            with (output_dir / "trade_dataset_v4c_leakage_report.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                leakage_report = list(csv.DictReader(handle))
+            self.assertEqual(len(leakage_report), 128)
+            self.assertEqual(
+                {
+                    risk: sum(1 for row in leakage_report if row["risk_level"] == risk)
+                    for risk in ("HIGH", "MEDIUM", "LOW")
+                },
+                {"HIGH": 86, "MEDIUM": 10, "LOW": 32},
+            )
+            self.assertTrue(all(row["allowed_for_training"] == "0" for row in leakage_report if row["risk_level"] != "LOW"))
+            self.assertTrue(all(row["allowed_for_training"] == "1" for row in leakage_report if row["risk_level"] == "LOW"))
+
+            expected_shapes = {
+                "trade_dataset_v4c_model_ready.csv": 131,
+                "trade_dataset_v4c_training_features.csv": 35,
+                "trade_dataset_v4c_targets.csv": 19,
+                "trade_dataset_v4c_blocked_features.csv": 99,
+            }
+            for name, column_count in expected_shapes.items():
+                with self.subTest(artifact=name):
+                    with (output_dir / name).open("r", encoding="utf-8", newline="") as handle:
+                        artifact_rows = list(csv.DictReader(handle))
+                    self.assertEqual(len(artifact_rows), 3)
+                    self.assertEqual(len(artifact_rows[0]), column_count)
+                    self.assertEqual(
+                        [(row["trade_id"], row["ml_split"]) for row in artifact_rows],
+                        [("A", "train"), ("K", "validation"), ("Z", "test")],
+                    )
+
+    def test_s5g_leakage_audit_empty_artifact_and_pass_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "empty" / "leakage-audit"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_leakage_audit_dataset([], output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            expected_hashes = {
+                name: hashlib.sha256(b"").hexdigest()
+                for name in S5G_LEAKAGE_AUDIT_ARTIFACT_SHA256
+            }
+            expected_hashes["trade_dataset_v4c_manifest.csv"] = (
+                S5G_EMPTY_LEAKAGE_MANIFEST_CSV_SHA256
+            )
+            self.assertEqual(artifact_hashes, expected_hashes)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5G_EMPTY_LEAKAGE_AUDIT_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5g_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    allowed=0,
+                    blocked=0,
+                    high=0,
+                    medium=0,
+                    low=0,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5g_leakage_audit_overwrite_and_foreign_csv_listing_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "leakage-audit"
+            output_dir.mkdir(parents=True)
+            report_path = output_dir / "trade_dataset_v4c_leakage_report.csv"
+            report_path.write_bytes(b"stale")
+            foreign_path = output_dir / "foreign.csv"
+            foreign_path.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_leakage_audit_dataset(s5e_ml_dataset_rows(), output_dir)
+
+            self.assertEqual(
+                hashlib.sha256(report_path.read_bytes()).hexdigest(),
+                S5G_LEAKAGE_AUDIT_ARTIFACT_SHA256[report_path.name],
+            )
+            self.assertEqual(foreign_path.read_bytes(), b"foreign")
+            listed_names = [*S5G_LEAKAGE_AUDIT_ARTIFACT_SHA256, foreign_path.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5g_expected_stdout(
+                    output_dir,
+                    listed_names,
+                    allowed=32,
+                    blocked=96,
+                    high=86,
+                    medium=10,
+                    low=32,
+                ),
             )
             self.assertEqual(stderr.getvalue(), "")
 
