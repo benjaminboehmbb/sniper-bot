@@ -20,6 +20,7 @@ from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import label_registry
 from tools.trade_inspector import path_diagnosis
+from tools.trade_inspector import raw_ml_csv
 from tools.trade_inspector import regime_identity_rows
 
 
@@ -614,6 +615,8 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(partial_bytes).hexdigest(), S5_PARTIAL_CSV_SHA256)
 
     def test_s5c_raw_ml_csv_127_field_bytes_parent_overwrite_and_stdout_contract(self) -> None:
+        self.assertIs(inspector.export_ml_csv, raw_ml_csv.export_ml_csv)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             output_path = root / "nested" / "ml.csv"

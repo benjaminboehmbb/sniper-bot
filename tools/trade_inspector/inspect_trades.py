@@ -36,6 +36,7 @@ if __package__:
         signed_diagnosis,
         trade_pnl_from_price,
     )
+    from .raw_ml_csv import export_ml_csv
     from .regime_identity_rows import (
         build_ml_row,
         build_regime_index,
@@ -70,6 +71,7 @@ else:
         signed_diagnosis,
         trade_pnl_from_price,
     )
+    from raw_ml_csv import export_ml_csv
     from regime_identity_rows import (
         build_ml_row,
         build_regime_index,
@@ -2382,19 +2384,6 @@ def export_ml_dataset(rows: list[dict[str, Any]], output_dir: Path) -> None:
     for path in sorted(output_dir.glob("*.csv")):
         print("-", path)
 
-def export_ml_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        raise ValueError("No trades to export.")
-
-    fieldnames = list(rows[0].keys())
-    with output_path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-    print("ML CSV exported:", output_path)
-    print("rows:", len(rows))
 def run_builtin_regression_validation(args: Any) -> int:
     archive_dir = Path(args.archive_dir)
     market_csv = Path(args.market_csv)
