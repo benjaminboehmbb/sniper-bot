@@ -122,6 +122,30 @@ S5I_FEATURE_STABILITY_ARTIFACT_SHA256 = {
 S5I_FEATURE_STABILITY_MANIFEST_SHA256 = "052de759d98246fd11e5c77beac125edee974e75f6aea4e0a6b6d9375b36031e"
 S5I_EMPTY_FEATURE_STABILITY_MANIFEST_CSV_SHA256 = "64f12c76958672da15694846fea8a67e4c99988381d0ae4d15076a2f561dd149"
 S5I_EMPTY_FEATURE_STABILITY_MANIFEST_SHA256 = "34061f834ca1aca459872696beb07e10bf199072d318b06aa47057225b30c52a"
+S5J_FEATURE_DISCOVERY_ARTIFACT_SHA256 = {
+    "predictive_signal_discovery_by_entry_atr_signal.csv": "3ad2be8913f34a464764f8fbfae03f148b6378cf8fd285bd2503da8da0f7adca",
+    "predictive_signal_discovery_by_entry_ma200_signal.csv": "9ed93eef28752fbd016c0aa1b733ee87bb8a40c0de0ad7fb389bd0ca7b618a9a",
+    "predictive_signal_discovery_by_entry_ma200_signal__entry_mfi_signal.csv": "9d5d28abf849010899b211db6320846f230d7b91259163131e1191de7b4963d8",
+    "predictive_signal_discovery_by_entry_mfi_signal.csv": "383bdc338f946ec3840f8588f5a7c51b6bbd9cbe0940e122ad613ef72195c54d",
+    "predictive_signal_discovery_by_entry_regime_label.csv": "700bd46a5571f850ff87f8dfef882ed5e5d72f16a0822bda1bd75b4978ed5abe",
+    "predictive_signal_discovery_by_entry_regime_label__entry_atr_signal.csv": "4f3bdf904ff3ffbdefcc48ff917c4d6c4f450781d3f50f8dd831aa1c3701e14f",
+    "predictive_signal_discovery_by_entry_regime_label__entry_risk_label.csv": "cae53cc8bba6fa20eba91ebc97ef59333924ac3af8a094ab3b56f84757189714",
+    "predictive_signal_discovery_by_entry_risk_label.csv": "fc97279e76e73c8a19dd9c091d58cc72514ccd5033057e3571f56115646dc368",
+    "predictive_signal_discovery_by_entry_risk_label__regime_aligned.csv": "be976117d93ca9362fb5b40d0365de9497332bb9398e98daec71f137c3d24bea",
+    "predictive_signal_discovery_by_entry_score_at_entry.csv": "5579db97ea8072ed1d3a8211528dfe1521aee7613980caf19920ad67ddf57bf6",
+    "predictive_signal_discovery_by_entry_score_at_entry__entry_risk_label.csv": "156fcd8ae05328fcb3862587364a0eca2bc46875362a99b2dc73680e3f857dbe",
+    "predictive_signal_discovery_by_regime_aligned.csv": "359d827266721f5abc107137684f7c5fcc567f27ad41cadeafb365b0a1b954bb",
+    "predictive_signal_discovery_by_risk_good_at_entry.csv": "e7f18ab9126f8c4e8fdf318e5fa308eba87c217047b60389c2241f131bb5e932",
+    "predictive_signal_discovery_by_trade_family.csv": "a36e72e74bc6946db311f33ad29d005b1cf4fb96f4c111f21b85bca72b32abab",
+    "predictive_signal_discovery_by_trade_family_group.csv": "2e7ceb7c0b3a02272fa3e0ff382a9cac3f5a8deaa1eaec5a0422cd93375beacb",
+    "predictive_signal_discovery_by_trade_family_group__entry_risk_label.csv": "73b0eaad9740672e4774b95d7a4c51d9bdc4a20fbdf5d45d33b133706b52ad90",
+    "predictive_signal_discovery_v6_all.csv": "e23c6f8e368e6c4f7e61348dcf21eab14fb3e2bc278be91ddb70c9cd77e18e42",
+    "predictive_signal_discovery_v6_manifest.csv": "3fdb191601b73f5e286299427055c8514412454905e88f1b44429a632019cd9a",
+    "predictive_signal_discovery_v6_top.csv": "e23c6f8e368e6c4f7e61348dcf21eab14fb3e2bc278be91ddb70c9cd77e18e42",
+}
+S5J_FEATURE_DISCOVERY_MANIFEST_SHA256 = "6584edce59c245c9d269ff0e5bc9da94b2ec256f81ffab4761715c4bd7558da0"
+S5J_EMPTY_FEATURE_DISCOVERY_MANIFEST_CSV_SHA256 = "309dd83128ca34f11abee60ddc337db67364b08bba07e881adb34cdb1f508e00"
+S5J_EMPTY_FEATURE_DISCOVERY_MANIFEST_SHA256 = "f4a0db55691d25ce74b81075dfea479fff94a6bd0af18a777e4b134810438a3b"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -520,6 +544,40 @@ def s5i_expected_stdout(
         f"rows_total: {rows_total}\n"
         f"features_analyzed: {features_analyzed}\n"
         "targets_analyzed: 9\n"
+        "files:\n"
+        + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
+    )
+
+
+def s5j_expected_stdout(
+    output_dir: Path,
+    artifact_names: list[str],
+    *,
+    status: str,
+    warning: str,
+    rows_total: int,
+    groups_evaluated: int,
+    promising: int,
+    watch: int,
+    low_support: int,
+    not_actionable: int,
+    watch_only: int,
+    actionable: int,
+    high_warning: int,
+) -> str:
+    return (
+        f"Predictive signal discovery export directory: {output_dir}\n"
+        f"discovery_status: {status}\n"
+        f"discovery_warning: {warning}\n"
+        f"rows_total: {rows_total}\n"
+        f"groups_evaluated: {groups_evaluated}\n"
+        f"promising_groups: {promising}\n"
+        f"watch_groups: {watch}\n"
+        f"low_support_groups: {low_support}\n"
+        f"not_actionable_groups: {not_actionable}\n"
+        f"watch_only_groups: {watch_only}\n"
+        f"actionable_candidate_groups: {actionable}\n"
+        f"high_warning_groups: {high_warning}\n"
         "files:\n"
         + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
     )
@@ -2222,6 +2280,291 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                     warning="dataset_too_small_for_reliable_stability",
                     rows_total=3,
                     features_analyzed=32,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5j_signal_group_scoring_support_reliability_and_pair_contract(self) -> None:
+        self.assertEqual(inspector.safe_rate(3.0, 2.0), 1.5)
+        self.assertEqual(inspector.safe_rate(3.0, 0.0), 0.0)
+
+        support_cases = [
+            (0, "VERY_LOW"),
+            (2, "VERY_LOW"),
+            (3, "LOW"),
+            (9, "LOW"),
+            (10, "MEDIUM"),
+            (29, "MEDIUM"),
+            (30, "HIGH"),
+        ]
+        for count, expected in support_cases:
+            with self.subTest(count=count):
+                self.assertEqual(inspector.classify_signal_support(count), expected)
+
+        reliability_cases = [
+            ((29, 30, "PROMISING"), (0, "NOT_ACTIONABLE", "DATASET_TOO_SMALL", 30)),
+            ((30, 0, "PROMISING"), (30, "NOT_ACTIONABLE", "HIGH", 30)),
+            ((301, 30, "PROMISING"), (70, "ACTIONABLE_CANDIDATE", "LOW", 30)),
+            ((101, 10, "WATCH"), (40, "WATCH_ONLY", "MEDIUM", 30)),
+            ((100, 10, "WATCH"), (50, "WATCH_ONLY", "MEDIUM", 30)),
+            ((30, 3, "PROMISING"), (50, "WATCH_ONLY", "MEDIUM", 30)),
+        ]
+        for args, expected in reliability_cases:
+            with self.subTest(args=args):
+                self.assertEqual(inspector.classify_signal_reliability(*args), expected)
+
+        rows = []
+        for index in range(3):
+            rows.append({
+                "signal": "A",
+                "pair": "X",
+                "is_winner": 1,
+                "pnl": 10.0,
+                "pnl_pct": 0.1,
+                "opportunity_loss_24h_pct": 0.0,
+                "exit_efficiency_24h_pct": 1.0,
+            })
+            rows.append({
+                "signal": "B",
+                "pair": "Y",
+                "is_winner": 0,
+                "pnl": -10.0,
+                "pnl_pct": -0.1,
+                "opportunity_loss_24h_pct": 1.0,
+                "exit_efficiency_24h_pct": 0.0,
+            })
+
+        groups = inspector.discover_signal_groups(rows, "signal")
+        self.assertEqual([row["group"] for row in groups], ["A", "B"])
+        self.assertEqual([row["discovery_status"] for row in groups], ["PROMISING", "WEAK"])
+        self.assertEqual([row["discovery_score"] for row in groups], [100.0, 10.5])
+        self.assertTrue(all(row["support_class"] == "LOW" for row in groups))
+        self.assertTrue(all(row["reliability_score"] == 0 for row in groups))
+        self.assertTrue(all(row["warning_level"] == "DATASET_TOO_SMALL" for row in groups))
+
+        pairs = inspector.discover_pair_groups(rows, "signal", "pair")
+        self.assertEqual([row["group"] for row in pairs], ["A__X", "B__Y"])
+        self.assertTrue(all(row["group_key"] == "signal__pair" for row in pairs))
+        self.assertTrue(all("signal__pair" not in row for row in rows))
+
+    def test_s5j_feature_discovery_complete_artifacts_manifest_and_output_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-discovery"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_predictive_signal_discovery(s5e_ml_dataset_rows(), output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            self.assertEqual(artifact_hashes, S5J_FEATURE_DISCOVERY_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5J_FEATURE_DISCOVERY_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5j_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_signal_discovery",
+                    rows_total=3,
+                    groups_evaluated=16,
+                    promising=0,
+                    watch=0,
+                    low_support=0,
+                    not_actionable=16,
+                    watch_only=0,
+                    actionable=0,
+                    high_warning=16,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+            with (output_dir / "predictive_signal_discovery_v6_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(
+                manifest,
+                [{
+                    "engine_version": "v6a",
+                    "rows_total": "3",
+                    "groups_evaluated": "16",
+                    "promising_groups": "0",
+                    "watch_groups": "0",
+                    "low_support_groups": "0",
+                    "not_actionable_groups": "16",
+                    "watch_only_groups": "0",
+                    "actionable_candidate_groups": "0",
+                    "high_warning_groups": "16",
+                    "minimum_required_support": "30",
+                    "discovery_status": "WARN",
+                    "discovery_warning": "dataset_too_small_for_reliable_signal_discovery",
+                    "method": "group_edge_vs_global_baseline_with_reliability_layer",
+                }],
+            )
+
+            with (output_dir / "predictive_signal_discovery_v6_all.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                all_rows = list(csv.DictReader(handle))
+            with (output_dir / "predictive_signal_discovery_v6_top.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                top_rows = list(csv.DictReader(handle))
+            self.assertEqual(len(all_rows), 16)
+            self.assertEqual(top_rows, all_rows)
+            self.assertEqual(
+                [float(row["discovery_score"]) for row in all_rows],
+                sorted(
+                    [float(row["discovery_score"]) for row in all_rows],
+                    reverse=True,
+                ),
+            )
+            self.assertTrue(all(row["support_class"] == "LOW" for row in all_rows))
+            self.assertTrue(all(row["reliability_class"] == "NOT_ACTIONABLE" for row in all_rows))
+            self.assertTrue(all(row["warning_level"] == "DATASET_TOO_SMALL" for row in all_rows))
+
+    def test_s5j_feature_discovery_empty_artifact_and_warn_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-discovery"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_predictive_signal_discovery([], output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            self.assertEqual(set(artifact_hashes), set(S5J_FEATURE_DISCOVERY_ARTIFACT_SHA256))
+            self.assertEqual(
+                artifact_hashes["predictive_signal_discovery_v6_manifest.csv"],
+                S5J_EMPTY_FEATURE_DISCOVERY_MANIFEST_CSV_SHA256,
+            )
+            for name, digest in artifact_hashes.items():
+                if name != "predictive_signal_discovery_v6_manifest.csv":
+                    self.assertEqual(digest, hashlib.sha256(b"").hexdigest())
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5J_EMPTY_FEATURE_DISCOVERY_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5j_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_signal_discovery",
+                    rows_total=0,
+                    groups_evaluated=0,
+                    promising=0,
+                    watch=0,
+                    low_support=0,
+                    not_actionable=0,
+                    watch_only=0,
+                    actionable=0,
+                    high_warning=0,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5j_feature_discovery_exact_30_row_pass_and_top_50_boundary(self) -> None:
+        base = s5e_ml_dataset_rows()[0]
+        group_keys = [
+            "entry_regime_label",
+            "entry_risk_label",
+            "regime_aligned",
+            "risk_good_at_entry",
+            "entry_score_at_entry",
+            "entry_atr_signal",
+            "entry_ma200_signal",
+            "entry_mfi_signal",
+            "trade_family_group",
+            "trade_family",
+        ]
+        rows = []
+        for index in range(30):
+            row = dict(base)
+            row["trade_id"] = f"BOUNDARY-{index:02d}"
+            for key in group_keys:
+                row[key] = f"{key}-{index:02d}"
+            rows.append(row)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-discovery"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_predictive_signal_discovery(rows, output_dir)
+
+            with (output_dir / "predictive_signal_discovery_v6_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(manifest[0]["rows_total"], "30")
+            self.assertEqual(manifest[0]["groups_evaluated"], "480")
+            self.assertEqual(manifest[0]["low_support_groups"], "480")
+            self.assertEqual(manifest[0]["not_actionable_groups"], "480")
+            self.assertEqual(manifest[0]["high_warning_groups"], "480")
+            self.assertEqual(manifest[0]["discovery_status"], "PASS")
+            self.assertEqual(manifest[0]["discovery_warning"], "none")
+
+            with (output_dir / "predictive_signal_discovery_v6_all.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                all_rows = list(csv.DictReader(handle))
+            with (output_dir / "predictive_signal_discovery_v6_top.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                top_rows = list(csv.DictReader(handle))
+            self.assertEqual(len(all_rows), 480)
+            self.assertEqual(len(top_rows), 50)
+            self.assertEqual(top_rows, all_rows[:50])
+            self.assertIn("discovery_status: PASS\n", stdout.getvalue())
+            self.assertIn("discovery_warning: none\n", stdout.getvalue())
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5j_feature_discovery_overwrite_and_foreign_csv_listing_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-discovery"
+            output_dir.mkdir(parents=True)
+            all_path = output_dir / "predictive_signal_discovery_v6_all.csv"
+            all_path.write_bytes(b"stale")
+            foreign_path = output_dir / "foreign.csv"
+            foreign_path.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_predictive_signal_discovery(s5e_ml_dataset_rows(), output_dir)
+
+            self.assertEqual(
+                hashlib.sha256(all_path.read_bytes()).hexdigest(),
+                S5J_FEATURE_DISCOVERY_ARTIFACT_SHA256[all_path.name],
+            )
+            self.assertEqual(foreign_path.read_bytes(), b"foreign")
+            listed_names = [*S5J_FEATURE_DISCOVERY_ARTIFACT_SHA256, foreign_path.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5j_expected_stdout(
+                    output_dir,
+                    listed_names,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_signal_discovery",
+                    rows_total=3,
+                    groups_evaluated=16,
+                    promising=0,
+                    watch=0,
+                    low_support=0,
+                    not_actionable=16,
+                    watch_only=0,
+                    actionable=0,
+                    high_warning=16,
                 ),
             )
             self.assertEqual(stderr.getvalue(), "")
