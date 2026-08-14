@@ -40,6 +40,7 @@ S5_ASSIGNMENT_SHA256 = "e4f22c64c51f3a8405edf7252de58d057b7f759c208fe25eb7b10767
 S5_CSV_ROWS_SHA256 = "d1cf0f439a99544239b70e95fca11b48485fa190889083c92497d051eed8a57c"
 S5_PARTIAL_CSV_SHA256 = "64c0dea2e1c321cbbcbf78285b8704a51abbc6b0be3117c8c3208ac6082a3284"
 S5_RAW_ML_CSV_SHA256 = "be6e308c2c2467a00f68a589f510e161d7414e4c815624c595c2aa8719173c29"
+S5_RAW_ML_HEADER_SHA256 = "6a8d64f5cf94ddb6d5d53fa2c73f8cd5fd00c2191cd12849d51d02a3f9d6f85c"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -612,34 +613,87 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(partial_bytes, b"a\r\n1\r\n")
             self.assertEqual(hashlib.sha256(partial_bytes).hexdigest(), S5_PARTIAL_CSV_SHA256)
 
-    def test_s5_raw_ml_csv_bytes_stdout_and_empty_failure_contract(self) -> None:
+    def test_s5c_raw_ml_csv_127_field_bytes_parent_overwrite_and_stdout_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             output_path = root / "nested" / "ml.csv"
-            output_path.parent.mkdir(parents=True)
-            output_path.write_text("stale", encoding="utf-8")
+            self.assertFalse(output_path.parent.exists())
 
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 inspector.export_ml_csv([build_sample_row()], output_path)
 
+            self.assertTrue(output_path.parent.is_dir())
             output_bytes = output_path.read_bytes()
             header = output_bytes.split(b"\r\n", 1)[0]
             self.assertEqual(len(header.split(b",")), 127)
+            self.assertEqual(hashlib.sha256(header).hexdigest(), S5_RAW_ML_HEADER_SHA256)
             self.assertEqual(hashlib.sha256(output_bytes).hexdigest(), S5_RAW_ML_CSV_SHA256)
             self.assertEqual(
                 output.getvalue(),
                 f"ML CSV exported: {output_path}\nrows: 1\n",
             )
 
+            output_path.write_text("stale", encoding="utf-8")
+            overwrite_output = io.StringIO()
+            with contextlib.redirect_stdout(overwrite_output):
+                inspector.export_ml_csv([build_sample_row()], output_path)
+            self.assertEqual(hashlib.sha256(output_path.read_bytes()).hexdigest(), S5_RAW_ML_CSV_SHA256)
+            self.assertEqual(
+                overwrite_output.getvalue(),
+                f"ML CSV exported: {output_path}\nrows: 1\n",
+            )
+
+    def test_s5c_raw_ml_csv_first_row_schema_missing_field_and_partial_failure_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            rows_path = root / "rows.csv"
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                inspector.export_ml_csv(rows=[{"b": "B1", "a": "A1"}, {"b": "B2"}], output_path=rows_path)
+
+            rows_bytes = rows_path.read_bytes()
+            self.assertEqual(rows_bytes, b"b,a\r\nB1,A1\r\nB2,\r\n")
+            self.assertEqual(hashlib.sha256(rows_bytes).hexdigest(), S5_CSV_ROWS_SHA256)
+            self.assertEqual(
+                output.getvalue(),
+                f"ML CSV exported: {rows_path}\nrows: 2\n",
+            )
+
+            partial_path = root / "partial.csv"
+            partial_output = io.StringIO()
+            with self.assertRaisesRegex(ValueError, r"dict contains fields not in fieldnames: 'b'"):
+                with contextlib.redirect_stdout(partial_output):
+                    inspector.export_ml_csv(
+                        rows=[{"a": "1"}, {"a": "2", "b": "3"}],
+                        output_path=partial_path,
+                    )
+            partial_bytes = partial_path.read_bytes()
+            self.assertEqual(partial_bytes, b"a\r\n1\r\n")
+            self.assertEqual(hashlib.sha256(partial_bytes).hexdigest(), S5_PARTIAL_CSV_SHA256)
+            self.assertEqual(partial_output.getvalue(), "")
+
+    def test_s5c_raw_ml_csv_empty_failure_parent_absence_and_existing_file_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
             empty_path = root / "empty" / "ml.csv"
             empty_output = io.StringIO()
-            with self.assertRaisesRegex(ValueError, r"No trades to export"):
+            with self.assertRaisesRegex(ValueError, r"^No trades to export\.$"):
                 with contextlib.redirect_stdout(empty_output):
                     inspector.export_ml_csv([], empty_path)
             self.assertTrue(empty_path.parent.is_dir())
             self.assertFalse(empty_path.exists())
             self.assertEqual(empty_output.getvalue(), "")
+
+            existing_path = root / "existing" / "ml.csv"
+            existing_path.parent.mkdir(parents=True)
+            existing_path.write_bytes(b"stale")
+            existing_output = io.StringIO()
+            with self.assertRaisesRegex(ValueError, r"^No trades to export\.$"):
+                with contextlib.redirect_stdout(existing_output):
+                    inspector.export_ml_csv([], existing_path)
+            self.assertEqual(existing_path.read_bytes(), b"stale")
+            self.assertEqual(existing_output.getvalue(), "")
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
