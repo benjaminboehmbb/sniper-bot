@@ -17,6 +17,7 @@ import unittest
 from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
+from tools.trade_inspector import label_registry
 from tools.trade_inspector import path_diagnosis
 from tools.trade_inspector import regime_identity_rows
 
@@ -492,6 +493,15 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         )
 
     def test_s5_human_label_list_contract(self) -> None:
+        for name in [
+            "load_human_labels",
+            "load_label_registry",
+            "save_label_registry",
+            "assign_human_labels",
+        ]:
+            with self.subTest(reexport=name):
+                self.assertIs(getattr(inspector, name), getattr(label_registry, name))
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             labels_path = root / "labels.txt"
