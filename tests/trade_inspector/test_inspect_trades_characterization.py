@@ -14,6 +14,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 
+from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 
@@ -262,6 +263,9 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             )
 
     def test_archive_intake_complete_fixture_passes_without_warnings(self) -> None:
+        self.assertIs(inspector.count_valid_jsonl, intake.count_valid_jsonl)
+        self.assertIs(inspector.run_archive_intake_validation, intake.run_archive_intake_validation)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             archive_dir = Path(temp_dir)
             trades = [{"id": 1}, {"id": 2}]
