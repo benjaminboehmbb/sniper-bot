@@ -96,6 +96,22 @@ S5G_LEAKAGE_AUDIT_ARTIFACT_SHA256 = {
 S5G_LEAKAGE_AUDIT_MANIFEST_SHA256 = "960027b4b0a035f309decd610c88ea2a3f43c40c67f65b09bf3c6ce722c1cb6c"
 S5G_EMPTY_LEAKAGE_MANIFEST_CSV_SHA256 = "3df387b8bcb32cade9870a54271187a90429dfd56256ad7ab499ed7fe8ef58de"
 S5G_EMPTY_LEAKAGE_AUDIT_MANIFEST_SHA256 = "56e25192ef9f9e0bf5eb8588155c4e31b37d5d1819c402edb435280a016f241a"
+S5H_FEATURE_IMPORTANCE_ARTIFACT_SHA256 = {
+    "feature_importance_v5.csv": "3d0b7d717501abda8b9ca2b8923c137542a6892b9d0ce91225371aa033631208",
+    "feature_importance_v5_manifest.csv": "7da05e42a2063959df060f14115948405ed3ffb267ceaaeacebd8d8a155a412c",
+    "feature_importance_v5_target_exit_efficiency_high.csv": "2ea760565dc25a28abdc3d2ef53f9115489cf22f837d4436bb12a68712b97b5c",
+    "feature_importance_v5_target_future_return_24h_pct.csv": "3ba3fc746c83c40cd83471d234d27c1af61667547e2a7efe6e3bdd39471fe009",
+    "feature_importance_v5_target_future_return_72h_pct.csv": "27c1a66f6a20fbb9dd5ae2448d5b02b22079ce9962356bf2ad6cf2d0ef856f76",
+    "feature_importance_v5_target_loser.csv": "18571ba0b8424372de4dcd639f7780d24602885447940e5b7cf740f74ea4a492",
+    "feature_importance_v5_target_opportunity_loss_high.csv": "a72fbc2b0a5d344b007302a32af0770b758ac1f64b5f062da01613479a2df056",
+    "feature_importance_v5_target_pnl_pct.csv": "cf0e8529066d5ecb33674c2766f81f6c2ff6edb007ba38a2d74152ee302e1435",
+    "feature_importance_v5_target_quality_bad.csv": "64899183556b9fee75c05275f403737bdad50f990f3db8909cfe6a019384e485",
+    "feature_importance_v5_target_quality_good.csv": "0d8e5de26a874dbca2f8ff79d5360e2770c73e467766dfee4f62bac3fdb7652a",
+    "feature_importance_v5_target_winner.csv": "c12cbb10b7ad63862c1124d5a78776ad449fd236d49b3643a43a3dbab1c5f239",
+}
+S5H_FEATURE_IMPORTANCE_MANIFEST_SHA256 = "6fcba2761ac06c53a3a2ec407855546fb6b0d8dee039f7426fe6fa0012bf5ca3"
+S5H_EMPTY_FEATURE_IMPORTANCE_MANIFEST_CSV_SHA256 = "d7aeacdb72b1c8a94e3c5821810fbdfa4be0ff92291f7fb085a3f380a20914c1"
+S5H_EMPTY_FEATURE_IMPORTANCE_MANIFEST_SHA256 = "2567d4677cc4ee0e4f3d3368ae5ed103b1cd76726434387ca6f0228b7fb33efa"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -452,6 +468,27 @@ def s5g_expected_stdout(
         f"high_risk_leakage_features: {high}\n"
         f"medium_risk_leakage_features: {medium}\n"
         f"low_risk_features: {low}\n"
+        "files:\n"
+        + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
+    )
+
+
+def s5h_expected_stdout(
+    output_dir: Path,
+    artifact_names: list[str],
+    *,
+    status: str,
+    warning: str,
+    rows_total: int,
+    allowed_features: int,
+) -> str:
+    return (
+        f"Feature importance export directory: {output_dir}\n"
+        f"feature_importance_status: {status}\n"
+        f"feature_importance_warning: {warning}\n"
+        f"rows_total: {rows_total}\n"
+        f"allowed_features: {allowed_features}\n"
+        "targets_evaluated: 9\n"
         "files:\n"
         + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
     )
@@ -1685,6 +1722,214 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                     high=86,
                     medium=10,
                     low=32,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5h_pearson_join_ranking_tie_and_degenerate_contract(self) -> None:
+        self.assertEqual(inspector.pearson_abs([], []), 0.0)
+        self.assertEqual(inspector.pearson_abs([1.0], [1.0]), 0.0)
+        self.assertEqual(inspector.pearson_abs([1.0, 2.0], [1.0]), 0.0)
+        self.assertEqual(inspector.pearson_abs([7.0, 7.0], [1.0, 2.0]), 0.0)
+        self.assertAlmostEqual(inspector.pearson_abs([1.0, 2.0, 3.0], [1.0, 2.0, 3.0]), 1.0)
+        self.assertAlmostEqual(inspector.pearson_abs([1.0, 2.0, 3.0], [3.0, 2.0, 1.0]), 1.0)
+
+        training_rows = [
+            {"trade_id": "A", "human_label": "a", "ml_split": "train", "first": 1, "second": 3, "constant": 7},
+            {"trade_id": "B", "human_label": "b", "ml_split": "train", "first": 2, "second": 2, "constant": 7},
+            {"trade_id": "C", "human_label": "c", "ml_split": "test", "first": 3, "second": 1, "constant": 7},
+            {"trade_id": "UNMATCHED", "human_label": "d", "ml_split": "test", "first": 100, "second": 100, "constant": 7},
+        ]
+        target_rows = [
+            {"trade_id": "A", "target": 1},
+            {"trade_id": "B", "target": 2},
+            {"trade_id": "C", "target": 3},
+        ]
+
+        importance = inspector.feature_importance_rows(training_rows, target_rows, "target")
+        self.assertEqual([row["feature_name"] for row in importance], ["first", "second", "constant"])
+        self.assertEqual([row["rows_used"] for row in importance], [3, 3, 3])
+        self.assertTrue(all(row["target_column"] == "target" for row in importance))
+        self.assertTrue(all(row["method"] == "absolute_pearson_correlation" for row in importance))
+        self.assertAlmostEqual(importance[0]["importance_score"], 1.0)
+        self.assertAlmostEqual(importance[1]["importance_score"], 1.0)
+        self.assertEqual(importance[2]["importance_score"], 0.0)
+        self.assertEqual(inspector.feature_importance_rows([], target_rows, "target"), [])
+
+    def test_s5h_feature_importance_complete_artifacts_targets_manifest_and_output_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-importance"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_importance(s5e_ml_dataset_rows(), output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            self.assertEqual(artifact_hashes, S5H_FEATURE_IMPORTANCE_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5H_FEATURE_IMPORTANCE_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5h_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_feature_importance",
+                    rows_total=3,
+                    allowed_features=32,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+            with (output_dir / "feature_importance_v5_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(
+                manifest,
+                [{
+                    "engine_version": "v5",
+                    "rows_total": "3",
+                    "allowed_features": "32",
+                    "targets_evaluated": "9",
+                    "method": "absolute_pearson_correlation",
+                    "model_training": "not_performed",
+                    "feature_importance_status": "WARN",
+                    "feature_importance_warning": "dataset_too_small_for_reliable_feature_importance",
+                }],
+            )
+
+            with (output_dir / "feature_importance_v5.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                combined = list(csv.DictReader(handle))
+            expected_targets = [
+                "target_winner",
+                "target_loser",
+                "target_quality_good",
+                "target_quality_bad",
+                "target_opportunity_loss_high",
+                "target_exit_efficiency_high",
+                "target_pnl_pct",
+                "target_future_return_24h_pct",
+                "target_future_return_72h_pct",
+            ]
+            self.assertEqual(len(combined), 288)
+            self.assertEqual(
+                list(dict.fromkeys(row["target_column"] for row in combined)),
+                expected_targets,
+            )
+            self.assertEqual(
+                {target: sum(1 for row in combined if row["target_column"] == target) for target in expected_targets},
+                {target: 32 for target in expected_targets},
+            )
+            for target in expected_targets:
+                with self.subTest(target=target):
+                    with (output_dir / f"feature_importance_v5_{target}.csv").open(
+                        "r", encoding="utf-8", newline=""
+                    ) as handle:
+                        target_rows = list(csv.DictReader(handle))
+                    self.assertEqual(len(target_rows), 32)
+                    self.assertTrue(all(row["target_column"] == target for row in target_rows))
+
+    def test_s5h_feature_importance_empty_artifact_and_warn_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "empty" / "feature-importance"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_importance([], output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            expected_hashes = {
+                name: hashlib.sha256(b"").hexdigest()
+                for name in S5H_FEATURE_IMPORTANCE_ARTIFACT_SHA256
+            }
+            expected_hashes["feature_importance_v5_manifest.csv"] = (
+                S5H_EMPTY_FEATURE_IMPORTANCE_MANIFEST_CSV_SHA256
+            )
+            self.assertEqual(artifact_hashes, expected_hashes)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5H_EMPTY_FEATURE_IMPORTANCE_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5h_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_feature_importance",
+                    rows_total=0,
+                    allowed_features=0,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5h_feature_importance_exact_30_row_pass_boundary(self) -> None:
+        base = s5e_ml_dataset_rows()[0]
+        rows = []
+        for index in range(30):
+            row = dict(base)
+            row["trade_id"] = f"BOUNDARY-{index:02d}"
+            row["human_label"] = f"boundary-{index:02d}"
+            rows.append(row)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-importance"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_importance(rows, output_dir)
+
+            with (output_dir / "feature_importance_v5_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(manifest[0]["rows_total"], "30")
+            self.assertEqual(manifest[0]["feature_importance_status"], "PASS")
+            self.assertEqual(manifest[0]["feature_importance_warning"], "none")
+            self.assertIn("feature_importance_status: PASS\n", stdout.getvalue())
+            self.assertIn("feature_importance_warning: none\n", stdout.getvalue())
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5h_feature_importance_overwrite_and_foreign_csv_listing_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-importance"
+            output_dir.mkdir(parents=True)
+            combined_path = output_dir / "feature_importance_v5.csv"
+            combined_path.write_bytes(b"stale")
+            foreign_path = output_dir / "foreign.csv"
+            foreign_path.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_importance(s5e_ml_dataset_rows(), output_dir)
+
+            self.assertEqual(
+                hashlib.sha256(combined_path.read_bytes()).hexdigest(),
+                S5H_FEATURE_IMPORTANCE_ARTIFACT_SHA256[combined_path.name],
+            )
+            self.assertEqual(foreign_path.read_bytes(), b"foreign")
+            listed_names = [*S5H_FEATURE_IMPORTANCE_ARTIFACT_SHA256, foreign_path.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5h_expected_stdout(
+                    output_dir,
+                    listed_names,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_feature_importance",
+                    rows_total=3,
+                    allowed_features=32,
                 ),
             )
             self.assertEqual(stderr.getvalue(), "")
