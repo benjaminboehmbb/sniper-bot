@@ -15,6 +15,7 @@ from typing import Any
 
 if __package__:
     from .archive_intake import count_valid_jsonl, run_archive_intake_validation
+    from .csv_persistence import write_csv_rows
     from .inspection_primitives import parse_ts, safe_float, safe_int, safe_text, ts_key
     from .label_registry import (
         assign_human_labels,
@@ -48,6 +49,7 @@ if __package__:
     )
 else:
     from archive_intake import count_valid_jsonl, run_archive_intake_validation
+    from csv_persistence import write_csv_rows
     from inspection_primitives import parse_ts, safe_float, safe_int, safe_text, ts_key
     from label_registry import (
         assign_human_labels,
@@ -640,22 +642,6 @@ def print_aggregate_intelligence(rows: list[dict[str, Any]]) -> None:
 
     print_top_improvement_candidates(rows, limit=20)
     print_root_cause_attribution(rows)
-
-
-def write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    if not rows:
-        with path.open("w", encoding="utf-8", newline="") as fh:
-            fh.write("")
-        return
-
-    fieldnames = list(rows[0].keys())
-
-    with path.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
 
 
 def aggregate_group_rows(rows: list[dict[str, Any]], group_key: str) -> list[dict[str, Any]]:

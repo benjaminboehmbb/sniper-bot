@@ -15,6 +15,7 @@ from types import SimpleNamespace
 import unittest
 
 from tools.trade_inspector import archive_intake as intake
+from tools.trade_inspector import csv_persistence
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import label_registry
@@ -583,6 +584,8 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                 )
 
     def test_s5_csv_writer_bytes_and_partial_failure_contract(self) -> None:
+        self.assertIs(inspector.write_csv_rows, csv_persistence.write_csv_rows)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
 
