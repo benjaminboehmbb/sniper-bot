@@ -158,6 +158,32 @@ S5K_MULTI_ARCHIVE_NORMALIZED_ARTIFACT_SHA256 = {
 }
 S5K_MULTI_ARCHIVE_NORMALIZED_MANIFEST_SHA256 = "91f811a59f9687770d03269879d161572c4e29af77c069b37eed3601bc697966"
 S5K_ENRICHED_ROW_SHA256 = "ed2db28c9d63e831e391cd042b7a4b246c4653837896fec8ce1b9995f0989eb3"
+S5L_CROSS_ARCHIVE_SIGNAL_ARTIFACT_SHA256 = {
+    "cross_archive_signal_discovery_v7f_all.csv": "aeaba1e6a26123d2153a4fa47974dc67eed32418484d12fcda6c588a9e0a6376",
+    "cross_archive_signal_discovery_v7f_by_entry_atr_signal.csv": "86ed1b93cf4cd207514ac650676e12a0d2d610e16febece790a5a0be56570488",
+    "cross_archive_signal_discovery_v7f_by_entry_ma200_signal.csv": "a2f625686cd0d8f90ad27075091c0c81346c08625e6194c851243d77f606b370",
+    "cross_archive_signal_discovery_v7f_by_entry_ma200_signal__entry_mfi_signal.csv": "775b873d02770d6b82dbd8b7e60c01637d595b9741b0619fb1bd7092b45f0ca0",
+    "cross_archive_signal_discovery_v7f_by_entry_mfi_signal.csv": "78f7f82147473f28fa6b8395ccb0d208506f7a9bd93b967df3410e59c9799e07",
+    "cross_archive_signal_discovery_v7f_by_entry_regime_label.csv": "a86eb1a740746ee75bac2c89b6b03569be151a6b37e8ca165cac36d36caeff1a",
+    "cross_archive_signal_discovery_v7f_by_entry_regime_label__entry_atr_signal.csv": "5b3026eeccdb6596a02d92f6b4d1985845675aed9071b05e684ca5b756a2ae67",
+    "cross_archive_signal_discovery_v7f_by_entry_regime_label__entry_risk_label.csv": "562e07ea83daf01d7a590d4718e9cd613cf13a12f48a6bac3f4a2d46a871ac50",
+    "cross_archive_signal_discovery_v7f_by_entry_risk_label.csv": "1552c744c787903f76dbe00c50543dc65bd7e1404c74c6c65f84e229fe712776",
+    "cross_archive_signal_discovery_v7f_by_entry_risk_label__regime_aligned.csv": "f8b8c87c9ec64f7cb48859097b535259eab3cf415e4e90dca0269890bcbd1dbe",
+    "cross_archive_signal_discovery_v7f_by_entry_score_at_entry.csv": "4960efe3ddd73abf4c8786472e5f277a50f3d2ced83b26a9114d9a8cb35f60ee",
+    "cross_archive_signal_discovery_v7f_by_entry_score_at_entry__entry_risk_label.csv": "661422dbc734229b9286c604c9ee2e78897896cf97a7f575438429b166b989f0",
+    "cross_archive_signal_discovery_v7f_by_regime_aligned.csv": "3dde810e5f7c1a7611edd417400004a8f42482611e61de264df0362bcb2770ef",
+    "cross_archive_signal_discovery_v7f_by_risk_good_at_entry.csv": "490a6e56152fccc443791ee83d8ef21a933c6f715f0781a1df7ecd6d5ed0ad95",
+    "cross_archive_signal_discovery_v7f_by_trade_family.csv": "ef118a0b22eb1e8eed869f6bd1d2e966c6d4a42b87621bf83bb8597c59dbc83c",
+    "cross_archive_signal_discovery_v7f_by_trade_family_group.csv": "9525a9ce54a952a01227941a213fb60350289d7d7dd29d8e3973d6d733d4d46f",
+    "cross_archive_signal_discovery_v7f_by_trade_family_group__entry_risk_label.csv": "8ec677dee40d2edbcc8893b5ea46e12062e89943f8fd45a570125b41fbbdd56e",
+    "cross_archive_signal_discovery_v7f_manifest.csv": "d1b6fd1d2e99be2b959bb4437d6307bb805a2baa7483032bb6659488ac3b3783",
+    "cross_archive_signal_discovery_v7f_top.csv": "aeaba1e6a26123d2153a4fa47974dc67eed32418484d12fcda6c588a9e0a6376",
+    "v7f_cross_archive_signal_discovery_summary.md": "f6c0ba996665d62687947287f4f6fb88476cb203db47963a4f344c264e06ae5f",
+}
+S5L_CROSS_ARCHIVE_SIGNAL_MANIFEST_SHA256 = "e07b71e49bed90ac7618a15bb89b16eb5c09136637116cd545b21a72395811e2"
+S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_MANIFEST_CSV_SHA256 = "40f0bd5f1086b8ea2b15b80a004e04ee2802b09266aac8af0df89d3691f2f9df"
+S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_SUMMARY_SHA256 = "3f4b5f13d3d5f38287ae3221f6a35c073d15a19f1471eaebb95d54c961551fb8"
+S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_MANIFEST_SHA256 = "43acf4c3008bf448036431de39f5ed16ffe9f8709c326a60a1e43ff7de19ab07"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -661,6 +687,41 @@ def s5j_expected_stdout(
         f"high_warning_groups: {high_warning}\n"
         "files:\n"
         + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
+    )
+
+
+def s5l_expected_stdout(
+    output_dir: Path,
+    artifact_names: list[str],
+    *,
+    archive_id: str,
+    rows_total: int,
+    groups_evaluated: int,
+    promising: int,
+    watch: int,
+    low_support: int,
+    not_actionable: int,
+    watch_only: int,
+    actionable: int,
+    high_warning: int,
+    status: str,
+    warning: str,
+) -> str:
+    return (
+        f"Cross-archive signal discovery export directory: {output_dir}\n"
+        f"archive_id: {archive_id}\n"
+        f"rows_total: {rows_total}\n"
+        f"groups_evaluated: {groups_evaluated}\n"
+        f"promising_groups: {promising}\n"
+        f"watch_groups: {watch}\n"
+        f"low_support_groups: {low_support}\n"
+        f"not_actionable_groups: {not_actionable}\n"
+        f"watch_only_groups: {watch_only}\n"
+        f"actionable_candidate_groups: {actionable}\n"
+        f"high_warning_groups: {high_warning}\n"
+        f"signal_discovery_status: {status}\n"
+        f"signal_discovery_warning: {warning}\n"
+        + "".join(f" - {output_dir / name}\n" for name in sorted(artifact_names))
     )
 
 
@@ -3067,6 +3128,257 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                 self.assertEqual(manifest["statistical_interpretation_allowed"], allowed)
                 summary = (output_dir / "v7g_multi_archive_loader_summary.md").read_text(encoding="utf-8")
                 self.assertIn(f"statistical_interpretation_allowed: {allowed}\n", summary)
+
+    def test_s5l_cross_archive_signal_complete_artifacts_manifest_and_output_contract(self) -> None:
+        rows = s5e_ml_dataset_rows()
+        for row in rows:
+            row["archive_id"] = "ARCHIVE-A"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-signal"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_signal_discovery(rows, output_dir, "CALL-SCOPE")
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*"))
+            }
+            self.assertEqual(artifact_hashes, S5L_CROSS_ARCHIVE_SIGNAL_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5L_CROSS_ARCHIVE_SIGNAL_MANIFEST_SHA256,
+            )
+
+            with (output_dir / "cross_archive_signal_discovery_v7f_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(manifest, [{
+                "engine_version": "v7f",
+                "archive_id": "CALL-SCOPE",
+                "archive_count": "1",
+                "rows_total": "3",
+                "groups_evaluated": "16",
+                "promising_groups": "0",
+                "watch_groups": "0",
+                "low_support_groups": "0",
+                "not_actionable_groups": "16",
+                "watch_only_groups": "0",
+                "actionable_candidate_groups": "0",
+                "high_warning_groups": "16",
+                "mode": "single_archive_infrastructure_validation",
+                "method": "group_edge_vs_global_baseline_with_reliability_layer",
+                "signal_discovery_status": "WARN",
+                "signal_discovery_warning": "dataset_too_small_for_reliable_cross_archive_signal_discovery",
+                "statistical_interpretation_allowed": "no",
+                "minimum_recommended_archives": "2",
+                "minimum_recommended_trades": "30",
+            }])
+
+            with (output_dir / "cross_archive_signal_discovery_v7f_all.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                all_rows = list(csv.DictReader(handle))
+            with (output_dir / "cross_archive_signal_discovery_v7f_top.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                top_rows = list(csv.DictReader(handle))
+            self.assertEqual(len(all_rows), 16)
+            self.assertEqual(top_rows, all_rows)
+            self.assertEqual(
+                [float(row["discovery_score"]) for row in all_rows],
+                sorted((float(row["discovery_score"]) for row in all_rows), reverse=True),
+            )
+            self.assertTrue(all(row["archive_scope"] == "single_archive_validation" for row in all_rows))
+            self.assertTrue(all(row["archive_count"] == "1" for row in all_rows))
+            self.assertTrue(all(row["source_archive_id"] == "CALL-SCOPE" for row in all_rows))
+            self.assertTrue(all(row["statistical_interpretation_allowed"] == "no" for row in all_rows))
+            self.assertEqual(
+                stdout.getvalue(),
+                s5l_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    archive_id="CALL-SCOPE",
+                    rows_total=3,
+                    groups_evaluated=16,
+                    promising=0,
+                    watch=0,
+                    low_support=0,
+                    not_actionable=16,
+                    watch_only=0,
+                    actionable=0,
+                    high_warning=16,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_cross_archive_signal_discovery",
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5l_cross_archive_signal_empty_artifact_and_warn_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-signal"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_signal_discovery([], output_dir, "EMPTY")
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*"))
+            }
+            self.assertEqual(set(artifact_hashes), set(S5L_CROSS_ARCHIVE_SIGNAL_ARTIFACT_SHA256))
+            self.assertEqual(
+                artifact_hashes["cross_archive_signal_discovery_v7f_manifest.csv"],
+                S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_MANIFEST_CSV_SHA256,
+            )
+            self.assertEqual(
+                artifact_hashes["v7f_cross_archive_signal_discovery_summary.md"],
+                S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_SUMMARY_SHA256,
+            )
+            for name, digest in artifact_hashes.items():
+                if name not in {
+                    "cross_archive_signal_discovery_v7f_manifest.csv",
+                    "v7f_cross_archive_signal_discovery_summary.md",
+                }:
+                    self.assertEqual(digest, hashlib.sha256(b"").hexdigest())
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5l_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    archive_id="EMPTY",
+                    rows_total=0,
+                    groups_evaluated=0,
+                    promising=0,
+                    watch=0,
+                    low_support=0,
+                    not_actionable=0,
+                    watch_only=0,
+                    actionable=0,
+                    high_warning=0,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_cross_archive_signal_discovery",
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5l_cross_archive_signal_exact_archive_and_trade_threshold_contract(self) -> None:
+        base = s5e_ml_dataset_rows()[0]
+        group_keys = [
+            "entry_regime_label",
+            "entry_risk_label",
+            "regime_aligned",
+            "risk_good_at_entry",
+            "entry_score_at_entry",
+            "entry_atr_signal",
+            "entry_ma200_signal",
+            "entry_mfi_signal",
+            "trade_family_group",
+            "trade_family",
+        ]
+
+        def build_boundary_rows(count: int, *, two_archives: bool) -> list[dict[str, object]]:
+            rows = []
+            for index in range(count):
+                row = dict(base)
+                row["trade_id"] = f"BOUNDARY-{index:02d}"
+                row["archive_id"] = "A" if not two_archives or index % 2 == 0 else "B"
+                for key in group_keys:
+                    row[key] = f"{key}-{index:02d}"
+                rows.append(row)
+            return rows
+
+        cases = [
+            (29, True, "2", "multi_archive_analysis", "WARN", "no"),
+            (30, False, "1", "single_archive_infrastructure_validation", "PASS", "no"),
+            (30, True, "2", "multi_archive_analysis", "PASS", "yes"),
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            for index, (count, two_archives, archive_count, mode, status, allowed) in enumerate(cases):
+                output_dir = root / f"case-{index}"
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    inspector.export_cross_archive_signal_discovery(
+                        build_boundary_rows(count, two_archives=two_archives),
+                        output_dir,
+                        "BOUNDARY",
+                    )
+                with (output_dir / "cross_archive_signal_discovery_v7f_manifest.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    manifest = list(csv.DictReader(handle))[0]
+                self.assertEqual(manifest["archive_count"], archive_count)
+                self.assertEqual(manifest["rows_total"], str(count))
+                self.assertEqual(manifest["groups_evaluated"], str(count * 16))
+                self.assertEqual(manifest["mode"], mode)
+                self.assertEqual(manifest["signal_discovery_status"], status)
+                self.assertEqual(manifest["statistical_interpretation_allowed"], allowed)
+
+                with (output_dir / "cross_archive_signal_discovery_v7f_all.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    all_rows = list(csv.DictReader(handle))
+                with (output_dir / "cross_archive_signal_discovery_v7f_top.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    top_rows = list(csv.DictReader(handle))
+                self.assertEqual(len(all_rows), count * 16)
+                self.assertEqual(len(top_rows), 50)
+                self.assertEqual(top_rows, all_rows[:50])
+                self.assertTrue(all(row["archive_scope"] == "single_archive_validation" for row in all_rows))
+                self.assertTrue(all(row["archive_count"] == "1" for row in all_rows))
+                self.assertTrue(all(row["statistical_interpretation_allowed"] == allowed for row in all_rows))
+
+    def test_s5l_cross_archive_signal_overwrite_and_foreign_listing_contract(self) -> None:
+        rows = s5e_ml_dataset_rows()
+        for row in rows:
+            row["archive_id"] = "ARCHIVE-A"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-signal"
+            output_dir.mkdir()
+            all_path = output_dir / "cross_archive_signal_discovery_v7f_all.csv"
+            all_path.write_bytes(b"stale")
+            foreign = output_dir / "foreign.keep"
+            foreign.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_signal_discovery(rows, output_dir, "CALL-SCOPE")
+
+            self.assertEqual(
+                hashlib.sha256(all_path.read_bytes()).hexdigest(),
+                S5L_CROSS_ARCHIVE_SIGNAL_ARTIFACT_SHA256[all_path.name],
+            )
+            self.assertEqual(foreign.read_bytes(), b"foreign")
+            listed_names = [*S5L_CROSS_ARCHIVE_SIGNAL_ARTIFACT_SHA256, foreign.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5l_expected_stdout(
+                    output_dir,
+                    listed_names,
+                    archive_id="CALL-SCOPE",
+                    rows_total=3,
+                    groups_evaluated=16,
+                    promising=0,
+                    watch=0,
+                    low_support=0,
+                    not_actionable=16,
+                    watch_only=0,
+                    actionable=0,
+                    high_warning=16,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_cross_archive_signal_discovery",
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
