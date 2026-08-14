@@ -27,6 +27,7 @@ from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import label_registry
 from tools.trade_inspector import leakage_audit
 from tools.trade_inspector import ml_dataset
+from tools.trade_inspector import multi_archive_loader
 from tools.trade_inspector import path_diagnosis
 from tools.trade_inspector import raw_ml_csv
 from tools.trade_inspector import regime_identity_rows
@@ -685,6 +686,16 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                 self.assertEqual(primitives.safe_int(value, -9), expected_int)
 
     def test_jsonl_and_market_parsers_keep_current_acceptance_rules(self) -> None:
+        for name in (
+            "read_jsonl",
+            "market_timestamp",
+            "market_price",
+            "parse_market_rows",
+            "parse_key_value_log",
+        ):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(multi_archive_loader, name))
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             jsonl_path = root / "records.jsonl"
@@ -2661,6 +2672,14 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5k_archive_registry_markdown_selection_and_failure_contract(self) -> None:
+        for name in (
+            "load_archive_registry_md",
+            "load_rows_for_archive",
+            "export_multi_archive_loader",
+        ):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(multi_archive_loader, name))
+
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             missing = root / "missing.md"
@@ -3013,7 +3032,7 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                     for index in range(count)
                 ]
 
-            with mock.patch.object(inspector, "load_rows_for_archive", side_effect=synthetic_rows):
+            with mock.patch.object(multi_archive_loader, "load_rows_for_archive", side_effect=synthetic_rows):
                 output_29 = root / "output-29"
                 with contextlib.redirect_stdout(io.StringIO()):
                     inspector.export_multi_archive_loader(
