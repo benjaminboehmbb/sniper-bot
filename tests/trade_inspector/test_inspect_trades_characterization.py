@@ -26,6 +26,11 @@ SCRIPT_PATH = REPO_ROOT / "tools" / "trade_inspector" / "inspect_trades.py"
 ENTRY_TS = "2026-01-01T00:00:00+00:00"
 EXIT_TS = "2026-01-01T00:02:00+00:00"
 EXPECTED_ROW_SHA256 = "54fc961343d463d4e55d6489c70ec9ffcf3892acc9155b45b95e5f9408a2ce24"
+EXPECTED_FIELD_ORDER_SHA256 = "76c7ca3b7c1b1e5652bc5ece60648fb23f2eb09e32553bef63ddbb22f385e795"
+EXPECTED_ORDERED_ROW_SHA256 = "a79a164bbbeb5a1584e34aadc3c0c04f451445c94e9eec2e9b0e171aadadb60b"
+S4_REGIME_CASES_SHA256 = "d37f242b767fa32d6ffdbbee148dfd820805f07bdbf0e310090f068659db7b4a"
+S4_TRADE_FAMILY_CASES_SHA256 = "18a1d2ccbd54647b09077dace28af5c7795eb34c90ff64660901962e17c7acab"
+S4_MULTI_ROW_SUMMARY_SHA256 = "b8f5f7bd37b5be8f6a2cc3ca3eccec2b932da183f07143959bfc6133dc41fd45"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -176,6 +181,16 @@ def s3_snapshot_sha256(snapshot: dict[str, object]) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def canonical_sha256(value: object, *, sort_keys: bool = True) -> str:
+    payload = json.dumps(
+        value,
+        sort_keys=sort_keys,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("ascii")
+    return hashlib.sha256(payload).hexdigest()
+
+
 class TradeInspectorCharacterizationTests(unittest.TestCase):
     def test_compatibility_primitives_are_reexported_with_exact_conversion_rules(self) -> None:
         self.assertIs(inspector.safe_text, primitives.safe_text)
@@ -251,6 +266,206 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
 
         payload = json.dumps(row, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
         self.assertEqual(hashlib.sha256(payload).hexdigest(), EXPECTED_ROW_SHA256)
+        self.assertEqual(canonical_sha256(list(row), sort_keys=False), EXPECTED_FIELD_ORDER_SHA256)
+        self.assertEqual(canonical_sha256(row, sort_keys=False), EXPECTED_ORDERED_ROW_SHA256)
+
+    def test_s4_regime_index_and_feature_matrix(self) -> None:
+        regime_rows = [
+            {
+                "timestamp_utc": ENTRY_TS,
+                "regime_label": "stale",
+                "risk_label": "bad_atr",
+                "entry_score": "99",
+                "ma200_signal": "9",
+                "mfi_signal": "9",
+                "atr_signal": "9",
+            },
+            {"timestamp_utc": "", "regime_label": "ignored"},
+            {
+                "timestamp_utc": ENTRY_TS,
+                "regime_label": "bull",
+                "risk_label": "good_atr",
+                "entry_score": "2",
+                "ma200_signal": "1",
+                "mfi_signal": "1",
+                "atr_signal": "1",
+            },
+            {
+                "timestamp_utc": EXIT_TS,
+                "regime_label": "bear",
+                "risk_label": "bad_atr",
+                "entry_score": "-1",
+                "ma200_signal": "-1",
+                "mfi_signal": "-1",
+                "atr_signal": "-1",
+            },
+        ]
+        regime_index = inspector.build_regime_index(regime_rows)
+
+        self.assertEqual(len(regime_index), 2)
+        self.assertIs(regime_index[inspector.ts_key(ENTRY_TS)], regime_rows[2])
+
+        short_trade = dict(sample_trade())
+        short_trade["side"] = "short"
+        missing_trade = dict(
+            sample_trade(),
+            entry_timestamp_utc="2026-02-01T00:00:00+00:00",
+            exit_timestamp_utc="bad",
+        )
+        bear_at_entry_index = inspector.build_regime_index(
+            [
+                dict(regime_rows[3], timestamp_utc=ENTRY_TS),
+                dict(regime_rows[2], timestamp_utc=EXIT_TS),
+            ]
+        )
+        cases = {
+            "long_aligned_flip": inspector.extract_regime_features(sample_trade(), regime_index),
+            "short_counter_flip": inspector.extract_regime_features(short_trade, regime_index),
+            "short_aligned_flip": inspector.extract_regime_features(short_trade, bear_at_entry_index),
+            "missing": inspector.extract_regime_features(missing_trade, regime_index),
+        }
+
+        self.assertEqual(canonical_sha256(cases), S4_REGIME_CASES_SHA256)
+        self.assertEqual(cases["long_aligned_flip"]["regime_aligned"], 1)
+        self.assertEqual(cases["short_counter_flip"]["regime_aligned"], -1)
+        self.assertEqual(cases["short_aligned_flip"]["regime_aligned"], 1)
+        self.assertEqual(cases["short_aligned_flip"]["risk_good_at_entry"], 0)
+        self.assertEqual(cases["missing"]["has_entry_regime_context"], 0)
+        self.assertEqual(cases["missing"]["has_exit_regime_context"], 0)
+        self.assertEqual(cases["missing"]["regime_changed_during_trade"], 0)
+
+    def test_s4_time_and_trade_id_formats(self) -> None:
+        cases = [
+            ("2026-01-01T01:00:00+01:00", "20260101_000000", "2026-01-01 00:00:00 UTC"),
+            ("2026-01-01T00:00:00", "20260101_000000", "2026-01-01 00:00:00 UTC"),
+            ("bad", "UNKNOWN_TIME", ""),
+            (None, "UNKNOWN_TIME", ""),
+        ]
+        for value, expected_compact, expected_chart in cases:
+            with self.subTest(value=value):
+                self.assertEqual(inspector.compact_trade_time(value), expected_compact)
+                self.assertEqual(inspector.chart_time(value), expected_chart)
+
+        self.assertEqual(
+            inspector.build_trade_id(
+                {"entry_timestamp_utc": "bad", "side": "", "symbol": ""}
+            ),
+            "T_UNKNOWN_TIME_UNKNOWN_SIDE_BTCUSDT",
+        )
+        self.assertEqual(
+            inspector.build_trade_id(sample_trade()),
+            "T_20260101_000000_LONG_BTCUSDT",
+        )
+
+    def test_s4_trade_family_precedence_matrix(self) -> None:
+        inputs = {
+            "exit_risk_trap": {
+                "side": "long",
+                "entry_regime_label": "bull",
+                "entry_risk_label": "bad_atr",
+                "root_cause": "early_exit",
+                "regime_changed_during_trade": 1,
+                "regime_aligned": 1,
+            },
+            "exit_after_regime_flip": {
+                "side": "long",
+                "entry_regime_label": "bull",
+                "entry_risk_label": "good_atr",
+                "root_cause": "early_exit",
+                "regime_changed_during_trade": 1,
+                "regime_aligned": 1,
+            },
+            "aligned_good_risk": {
+                "side": "short",
+                "entry_regime_label": "bear",
+                "entry_risk_label": "good_atr",
+                "root_cause": "entry_timing",
+                "regime_changed_during_trade": 0,
+                "regime_aligned": 1,
+            },
+            "chop_context": {
+                "side": "long",
+                "entry_regime_label": "chop",
+                "entry_risk_label": "bad_atr",
+                "root_cause": "entry_timing",
+                "regime_changed_during_trade": 0,
+                "regime_aligned": -1,
+            },
+            "counter_regime": {
+                "side": "short",
+                "entry_regime_label": "bull",
+                "entry_risk_label": "bad_atr",
+                "root_cause": "entry_timing",
+                "regime_changed_during_trade": 0,
+                "regime_aligned": -1,
+            },
+            "general": {},
+        }
+        cases = {name: inspector.build_trade_family(row) for name, row in inputs.items()}
+
+        self.assertEqual(canonical_sha256(cases), S4_TRADE_FAMILY_CASES_SHA256)
+        for expected_group, result in cases.items():
+            with self.subTest(expected_group=expected_group):
+                self.assertEqual(result["trade_family_group"], expected_group)
+        self.assertEqual(
+            cases["general"]["trade_family"],
+            "unknown_side_unknown_regime_unknown_risk_unknown_cause_neutral_regime",
+        )
+
+    def test_s4_build_rows_preserves_input_identity_and_order(self) -> None:
+        long_trade = sample_trade()
+        short_trade = dict(sample_trade(), side="short", exit_price=98.0, pnl=2.0, pnl_pct=0.02)
+        audit_rows = sample_audit_rows() + [
+            {
+                "event": "ENTRY_ACCEPTED",
+                "timestamp_utc": ENTRY_TS,
+                "side": "short",
+                "reason": "short_signal",
+                "position_before": "FLAT",
+                "position_after": "SHORT",
+            }
+        ]
+        timestamps, prices = sample_market_path()
+        label_map = {
+            inspector.build_trade_id(long_trade): "alpha",
+            inspector.build_trade_id(short_trade): "beta",
+        }
+        rows = inspector.build_rows(
+            [long_trade, short_trade],
+            audit_rows,
+            sample_regime_index(),
+            timestamps,
+            prices,
+            label_map,
+        )
+
+        self.assertEqual([row["trade_index"] for row in rows], [1, 2])
+        self.assertEqual([row["side"] for row in rows], ["long", "short"])
+        self.assertEqual([row["human_label"] for row in rows], ["alpha", "beta"])
+        self.assertEqual([row["entry_audit_reason"] for row in rows], ["signal", "short_signal"])
+        self.assertEqual([len(row) for row in rows], [127, 127])
+
+        summary = [
+            {
+                "trade_index": row["trade_index"],
+                "trade_id": row["trade_id"],
+                "human_label": row["human_label"],
+                "side": row["side"],
+                "has_entry_audit": row["has_entry_audit"],
+                "entry_audit_reason": row["entry_audit_reason"],
+                "regime_aligned": row["regime_aligned"],
+                "trade_family": row["trade_family"],
+                "trade_family_group": row["trade_family_group"],
+                "field_order_sha256": canonical_sha256(list(row), sort_keys=False),
+                "semantic_sha256": canonical_sha256(row),
+            }
+            for row in rows
+        ]
+        self.assertEqual(canonical_sha256(summary), S4_MULTI_ROW_SUMMARY_SHA256)
+        self.assertEqual(
+            {item["field_order_sha256"] for item in summary},
+            {EXPECTED_FIELD_ORDER_SHA256},
+        )
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
