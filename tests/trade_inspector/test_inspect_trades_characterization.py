@@ -241,6 +241,103 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertIn("trades_l1.jsonl bad JSON lines: 1", output.getvalue())
             self.assertIn("metadata trade_count mismatch", output.getvalue())
 
+            ordered_diagnostics = [
+                line
+                for line in output.getvalue().splitlines()
+                if line.startswith(("CHECK warnings:", "WARNING:", "ARCHIVE_INTAKE:", "ERROR:"))
+            ]
+            self.assertEqual(
+                ordered_diagnostics,
+                [
+                    "CHECK warnings: 5",
+                    "WARNING: optional file missing: trade_lifecycle_snapshots.csv",
+                    "WARNING: optional file missing: monitor_status.json",
+                    "WARNING: optional file missing: runtime_control.json",
+                    "WARNING: optional file missing: loss_cluster_state.json",
+                    "WARNING: optional file missing: trades_l1_auto_analysis.csv",
+                    "ARCHIVE_INTAKE: FAIL",
+                    "ERROR: trades_l1.jsonl bad JSON lines: 1",
+                    "ERROR: metadata trade_count mismatch: metadata=2 actual=1",
+                ],
+            )
+
+    def test_archive_intake_complete_fixture_passes_without_warnings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_dir = Path(temp_dir)
+            trades = [{"id": 1}, {"id": 2}]
+            audit_rows = [{"event": "ENTRY_ACCEPTED"}, {"event": "EXIT_EXECUTED"}]
+
+            (archive_dir / "trades_l1.jsonl").write_text(
+                "".join(json.dumps(row, sort_keys=True) + "\n" for row in trades),
+                encoding="utf-8",
+            )
+            (archive_dir / "execution_audit.jsonl").write_text(
+                "".join(json.dumps(row, sort_keys=True) + "\n" for row in audit_rows),
+                encoding="utf-8",
+            )
+            (archive_dir / "l1_paper.log").write_text("", encoding="utf-8")
+
+            for name in [
+                "trade_lifecycle_snapshots.csv",
+                "monitor_status.json",
+                "runtime_control.json",
+                "loss_cluster_state.json",
+                "trades_l1_auto_analysis.csv",
+            ]:
+                (archive_dir / name).write_text("", encoding="utf-8")
+
+            metadata = {
+                "archive_id": "fixture-pass",
+                "archive_path": str(archive_dir),
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "source_device": "X1",
+                "run_type": "characterization",
+                "strategy_profile": "fixture",
+                "market_symbol": "BTCUSDT",
+                "market_csv": "fixture.csv",
+                "seeds_5m_csv": "fixture.csv",
+                "max_ticks": 2,
+                "tick_offset": 0,
+                "decision_tick_seconds": 60,
+                "start_time_utc": ENTRY_TS,
+                "end_time_utc": EXIT_TS,
+                "trade_count": len(trades),
+                "audit_event_count": len(audit_rows),
+                "status": "validated",
+                "notes": "complete hermetic characterization fixture",
+            }
+            (archive_dir / "archive_metadata.json").write_text(
+                json.dumps(metadata, sort_keys=True),
+                encoding="utf-8",
+            )
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = inspector.run_archive_intake_validation(SimpleNamespace(archive_dir=str(archive_dir)))
+
+            self.assertEqual(result, 0)
+            self.assertEqual(
+                output.getvalue(),
+                "\n".join(
+                    [
+                        "TRADE INSPECTOR V7I ARCHIVE INTAKE VALIDATION",
+                        f"archive_dir: {archive_dir}",
+                        "",
+                        "CHECK required_files: PASS",
+                        "CHECK archive_metadata_json: PASS",
+                        "CHECK archive_id: fixture-pass",
+                        "CHECK trades_valid_jsonl: 2",
+                        "CHECK trades_bad_jsonl: 0",
+                        "CHECK audit_valid_jsonl: 2",
+                        "CHECK audit_bad_jsonl: 0",
+                        "CHECK warnings: 0",
+                        "",
+                        "ARCHIVE_INTAKE: PASS",
+                        "",
+                    ]
+                ),
+            )
+
     def test_summary_cli_is_hermetic_and_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
