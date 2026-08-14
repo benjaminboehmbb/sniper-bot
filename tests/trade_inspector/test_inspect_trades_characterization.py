@@ -113,6 +113,14 @@ S5H_FEATURE_IMPORTANCE_ARTIFACT_SHA256 = {
 S5H_FEATURE_IMPORTANCE_MANIFEST_SHA256 = "6fcba2761ac06c53a3a2ec407855546fb6b0d8dee039f7426fe6fa0012bf5ca3"
 S5H_EMPTY_FEATURE_IMPORTANCE_MANIFEST_CSV_SHA256 = "d7aeacdb72b1c8a94e3c5821810fbdfa4be0ff92291f7fb085a3f380a20914c1"
 S5H_EMPTY_FEATURE_IMPORTANCE_MANIFEST_SHA256 = "2567d4677cc4ee0e4f3d3368ae5ed103b1cd76726434387ca6f0228b7fb33efa"
+S5I_FEATURE_STABILITY_ARTIFACT_SHA256 = {
+    "feature_stability_v5c.csv": "e065376bcb0c8ac50034ecedc568f1f42757c4de3e2f3d5664cf1728b19676c1",
+    "feature_stability_v5c_manifest.csv": "c596df9916a3f2232c52a972d772f17a9ad51c3b1a977e1cb2148dac89866b7e",
+    "feature_stability_v5c_target_matrix.csv": "b1d3e3e6eb1dd0b5957a5c421f267dbc82021ad6e77f3e99b7e4e6a622561f3c",
+}
+S5I_FEATURE_STABILITY_MANIFEST_SHA256 = "052de759d98246fd11e5c77beac125edee974e75f6aea4e0a6b6d9375b36031e"
+S5I_EMPTY_FEATURE_STABILITY_MANIFEST_CSV_SHA256 = "64f12c76958672da15694846fea8a67e4c99988381d0ae4d15076a2f561dd149"
+S5I_EMPTY_FEATURE_STABILITY_MANIFEST_SHA256 = "34061f834ca1aca459872696beb07e10bf199072d318b06aa47057225b30c52a"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -490,6 +498,27 @@ def s5h_expected_stdout(
         f"rows_total: {rows_total}\n"
         f"allowed_features: {allowed_features}\n"
         "targets_evaluated: 9\n"
+        "files:\n"
+        + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
+    )
+
+
+def s5i_expected_stdout(
+    output_dir: Path,
+    artifact_names: list[str],
+    *,
+    status: str,
+    warning: str,
+    rows_total: int,
+    features_analyzed: int,
+) -> str:
+    return (
+        f"Feature stability export directory: {output_dir}\n"
+        f"stability_status: {status}\n"
+        f"stability_warning: {warning}\n"
+        f"rows_total: {rows_total}\n"
+        f"features_analyzed: {features_analyzed}\n"
+        "targets_analyzed: 9\n"
         "files:\n"
         + "".join(f"- {output_dir / name}\n" for name in sorted(artifact_names))
     )
@@ -1935,6 +1964,259 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                     warning="dataset_too_small_for_reliable_feature_importance",
                     rows_total=3,
                     allowed_features=32,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5i_statistics_and_stability_class_boundaries(self) -> None:
+        self.assertEqual(inspector.median([]), 0.0)
+        self.assertEqual(inspector.median([3.0]), 3.0)
+        self.assertEqual(inspector.median([3.0, 1.0, 2.0]), 2.0)
+        self.assertEqual(inspector.median([4.0, 1.0, 3.0, 2.0]), 2.5)
+
+        self.assertEqual(inspector.std([]), 0.0)
+        self.assertEqual(inspector.std([3.0]), 0.0)
+        self.assertAlmostEqual(inspector.std([1.0, 3.0]), 2.0 ** 0.5)
+        self.assertAlmostEqual(inspector.std([1.0, 2.0, 3.0]), 1.0)
+
+        cases = [
+            (-1.0, "unstable"),
+            (0.0, "unstable"),
+            (24.999, "unstable"),
+            (25.0, "weak"),
+            (49.999, "weak"),
+            (50.0, "moderate"),
+            (74.999, "moderate"),
+            (75.0, "stable"),
+            (89.999, "stable"),
+            (90.0, "elite"),
+            (100.0, "elite"),
+            (101.0, "elite"),
+        ]
+        for score, expected in cases:
+            with self.subTest(score=score):
+                self.assertEqual(inspector.stability_class(score), expected)
+
+    def test_s5i_feature_stability_complete_artifact_matrix_manifest_and_output_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-stability"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_stability(s5e_ml_dataset_rows(), output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            self.assertEqual(artifact_hashes, S5I_FEATURE_STABILITY_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5I_FEATURE_STABILITY_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5i_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_stability",
+                    rows_total=3,
+                    features_analyzed=32,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+            with (output_dir / "feature_stability_v5c_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(
+                manifest,
+                [{
+                    "engine_version": "v5c",
+                    "rows_total": "3",
+                    "features_analyzed": "32",
+                    "targets_analyzed": "9",
+                    "elite_features": "0",
+                    "stable_features": "0",
+                    "moderate_features": "0",
+                    "weak_features": "10",
+                    "unstable_features": "22",
+                    "stability_status": "WARN",
+                    "stability_warning": "dataset_too_small_for_reliable_stability",
+                    "method": "multi_target_absolute_pearson_stability",
+                }],
+            )
+
+            with (output_dir / "feature_stability_v5c.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                stability_rows = list(csv.DictReader(handle))
+            self.assertEqual(len(stability_rows), 32)
+            self.assertEqual(
+                list(stability_rows[0]),
+                [
+                    "feature_name",
+                    "importance_mean",
+                    "importance_median",
+                    "importance_std",
+                    "rank_mean",
+                    "rank_std",
+                    "target_count",
+                    "top10_count",
+                    "top20_count",
+                    "stability_score",
+                    "stability_class",
+                ],
+            )
+            self.assertEqual(len({row["feature_name"] for row in stability_rows}), 32)
+            self.assertTrue(all(row["target_count"] == "9" for row in stability_rows))
+            self.assertEqual(sum(int(row["top10_count"]) for row in stability_rows), 90)
+            self.assertEqual(sum(int(row["top20_count"]) for row in stability_rows), 180)
+            self.assertEqual(
+                [float(row["stability_score"]) for row in stability_rows],
+                sorted(
+                    [float(row["stability_score"]) for row in stability_rows],
+                    reverse=True,
+                ),
+            )
+
+            with (output_dir / "feature_stability_v5c_target_matrix.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                matrix_rows = list(csv.DictReader(handle))
+            self.assertEqual(len(matrix_rows), 32)
+            self.assertEqual(
+                [row["feature_name"] for row in matrix_rows],
+                sorted(row["feature_name"] for row in matrix_rows),
+            )
+            targets = [
+                "target_winner",
+                "target_loser",
+                "target_quality_good",
+                "target_quality_bad",
+                "target_opportunity_loss_high",
+                "target_exit_efficiency_high",
+                "target_pnl_pct",
+                "target_future_return_24h_pct",
+                "target_future_return_72h_pct",
+            ]
+            expected_matrix_columns = ["feature_name"]
+            for target in targets:
+                expected_matrix_columns.extend([target, f"{target}_rank"])
+            self.assertEqual(list(matrix_rows[0]), expected_matrix_columns)
+
+    def test_s5i_feature_stability_empty_artifact_and_warn_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-stability"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_stability([], output_dir)
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*.csv"))
+            }
+            self.assertEqual(set(artifact_hashes), set(S5I_FEATURE_STABILITY_ARTIFACT_SHA256))
+            self.assertEqual(
+                artifact_hashes["feature_stability_v5c_manifest.csv"],
+                S5I_EMPTY_FEATURE_STABILITY_MANIFEST_CSV_SHA256,
+            )
+            self.assertEqual(
+                artifact_hashes["feature_stability_v5c.csv"],
+                hashlib.sha256(b"").hexdigest(),
+            )
+            self.assertEqual(
+                artifact_hashes["feature_stability_v5c_target_matrix.csv"],
+                hashlib.sha256(b"").hexdigest(),
+            )
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5I_EMPTY_FEATURE_STABILITY_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5i_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_stability",
+                    rows_total=0,
+                    features_analyzed=0,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+            with (output_dir / "feature_stability_v5c_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(manifest[0]["features_analyzed"], "0")
+            self.assertEqual(manifest[0]["targets_analyzed"], "9")
+            self.assertEqual(manifest[0]["stability_status"], "WARN")
+            self.assertEqual(
+                manifest[0]["stability_warning"],
+                "dataset_too_small_for_reliable_stability",
+            )
+
+    def test_s5i_feature_stability_exact_30_row_pass_boundary(self) -> None:
+        base = s5e_ml_dataset_rows()[0]
+        rows = []
+        for index in range(30):
+            row = dict(base)
+            row["trade_id"] = f"BOUNDARY-{index:02d}"
+            row["human_label"] = f"boundary-{index:02d}"
+            rows.append(row)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-stability"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_stability(rows, output_dir)
+
+            with (output_dir / "feature_stability_v5c_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(manifest[0]["rows_total"], "30")
+            self.assertEqual(manifest[0]["stability_status"], "PASS")
+            self.assertEqual(manifest[0]["stability_warning"], "none")
+            self.assertIn("stability_status: PASS\n", stdout.getvalue())
+            self.assertIn("stability_warning: none\n", stdout.getvalue())
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5i_feature_stability_overwrite_and_foreign_csv_listing_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "feature-stability"
+            output_dir.mkdir(parents=True)
+            stability_path = output_dir / "feature_stability_v5c.csv"
+            stability_path.write_bytes(b"stale")
+            foreign_path = output_dir / "foreign.csv"
+            foreign_path.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_feature_stability(s5e_ml_dataset_rows(), output_dir)
+
+            self.assertEqual(
+                hashlib.sha256(stability_path.read_bytes()).hexdigest(),
+                S5I_FEATURE_STABILITY_ARTIFACT_SHA256[stability_path.name],
+            )
+            self.assertEqual(foreign_path.read_bytes(), b"foreign")
+            listed_names = [*S5I_FEATURE_STABILITY_ARTIFACT_SHA256, foreign_path.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5i_expected_stdout(
+                    output_dir,
+                    listed_names,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_stability",
+                    rows_total=3,
+                    features_analyzed=32,
                 ),
             )
             self.assertEqual(stderr.getvalue(), "")
