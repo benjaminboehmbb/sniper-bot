@@ -14,6 +14,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 
+from tools.trade_inspector import aggregate_csv
 from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import csv_persistence
 from tools.trade_inspector import inspect_trades as inspector
@@ -805,6 +806,20 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(existing_output.getvalue(), "")
 
     def test_s5d_aggregate_csv_complete_artifact_manifest_ordering_and_output_contract(self) -> None:
+        for name in (
+            "avg",
+            "group_rows",
+            "group_stats",
+            "parse_cause_weights",
+            "compute_root_cause_attribution",
+            "export_root_cause_attribution_csv",
+            "aggregate_group_rows",
+            "aggregate_top_improvement_rows",
+            "export_aggregate_csvs",
+        ):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(aggregate_csv, name))
+
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "aggregate"
             stdout = io.StringIO()
