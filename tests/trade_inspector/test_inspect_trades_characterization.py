@@ -21,6 +21,7 @@ from tools.trade_inspector import feature_preparation
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import label_registry
+from tools.trade_inspector import leakage_audit
 from tools.trade_inspector import ml_dataset
 from tools.trade_inspector import path_diagnosis
 from tools.trade_inspector import raw_ml_csv
@@ -1461,6 +1462,17 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5g_leakage_rule_precedence_safe_ids_and_order_contract(self) -> None:
+        for name in (
+            "HIGH_LEAKAGE_PREFIXES",
+            "HIGH_LEAKAGE_EXACT",
+            "MEDIUM_LEAKAGE_EXACT",
+            "SAFE_ID_COLUMNS",
+            "audit_feature_leakage",
+            "export_leakage_audit_dataset",
+        ):
+            with self.subTest(binding=name):
+                self.assertIs(getattr(inspector, name), getattr(leakage_audit, name))
+
         model_ready_rows = [{
             "trade_id": "T1",
             "human_label": "one",
