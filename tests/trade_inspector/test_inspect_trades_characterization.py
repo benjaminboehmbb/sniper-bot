@@ -17,6 +17,7 @@ import unittest
 from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
+from tools.trade_inspector import path_diagnosis
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -308,6 +309,22 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         self.assertEqual(snapshot["quality"]["negatives"], ["invalid_duration"])
 
     def test_s3_score_and_direction_boundaries(self) -> None:
+        self.assertIs(inspector.FUTURE_WINDOWS_MIN, path_diagnosis.FUTURE_WINDOWS_MIN)
+        for name in [
+            "quality_flags",
+            "score_band",
+            "signed_diagnosis",
+            "trade_pnl_from_price",
+            "calculate_trade_path",
+            "calculate_counterfactuals",
+            "compute_quality_score",
+            "interpretation_flags",
+            "compute_diagnosis",
+            "compute_confidence_layer",
+        ]:
+            with self.subTest(reexport=name):
+                self.assertIs(getattr(inspector, name), getattr(path_diagnosis, name))
+
         cases = [
             (39, "bad", -1),
             (40, "weak", 0),
