@@ -32,6 +32,12 @@ EXPECTED_ORDERED_ROW_SHA256 = "a79a164bbbeb5a1584e34aadc3c0c04f451445c94e9eec2e9
 S4_REGIME_CASES_SHA256 = "d37f242b767fa32d6ffdbbee148dfd820805f07bdbf0e310090f068659db7b4a"
 S4_TRADE_FAMILY_CASES_SHA256 = "18a1d2ccbd54647b09077dace28af5c7795eb34c90ff64660901962e17c7acab"
 S4_MULTI_ROW_SUMMARY_SHA256 = "b8f5f7bd37b5be8f6a2cc3ca3eccec2b932da183f07143959bfc6133dc41fd45"
+S5_REGISTRY_SHA256 = "eb96ee7fca17655042c102a3162d5d8cdbfaf1bda4ac17789ff00be245b159d6"
+S5_EMPTY_REGISTRY_SHA256 = "451b629a29c79d2735940170b9a228bba8e67f66a373881534267240a5b21475"
+S5_ASSIGNMENT_SHA256 = "e4f22c64c51f3a8405edf7252de58d057b7f759c208fe25eb7b10767954f6ec6"
+S5_CSV_ROWS_SHA256 = "d1cf0f439a99544239b70e95fca11b48485fa190889083c92497d051eed8a57c"
+S5_PARTIAL_CSV_SHA256 = "64c0dea2e1c321cbbcbf78285b8704a51abbc6b0be3117c8c3208ac6082a3284"
+S5_RAW_ML_CSV_SHA256 = "be6e308c2c2467a00f68a589f510e161d7414e4c815624c595c2aa8719173c29"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -484,6 +490,143 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             {item["field_order_sha256"] for item in summary},
             {EXPECTED_FIELD_ORDER_SHA256},
         )
+
+    def test_s5_human_label_list_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            labels_path = root / "labels.txt"
+            labels_path.write_text("# fixture\n\nAlpha\nBETA\n", encoding="utf-8")
+            self.assertEqual(inspector.load_human_labels(labels_path), ["alpha", "beta"])
+
+            missing_path = root / "missing.txt"
+            with self.assertRaisesRegex(FileNotFoundError, r"Missing human label list:"):
+                inspector.load_human_labels(missing_path)
+
+            invalid_cases = [
+                ("grün\n", r"Non-ASCII label: grün"),
+                ("abcdefghi\n", r"Label too long: abcdefghi"),
+                ("two words\n", r"Label too long: two words"),
+                ("a b\n", r"Label contains space: a b"),
+                ("Alpha\nalpha\n", r"Duplicate label: alpha"),
+                ("# only comments\n\n", r"No labels loaded from:"),
+            ]
+            for content, expected_error in invalid_cases:
+                with self.subTest(content=content):
+                    labels_path.write_text(content, encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, expected_error):
+                        inspector.load_human_labels(labels_path)
+
+    def test_s5_label_registry_bytes_and_assignment_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            missing_path = root / "missing.csv"
+            self.assertEqual(inspector.load_label_registry(missing_path), {})
+
+            input_path = root / "input.csv"
+            input_path.write_bytes(
+                b"trade_id,human_label\r\n"
+                b"T2,BETA\r\n"
+                b",alpha\r\n"
+                b"T3,\r\n"
+                b"T2,GAMMA\r\n"
+                b"T1,Alpha\r\n"
+            )
+            self.assertEqual(
+                inspector.load_label_registry(input_path),
+                {"T2": "gamma", "T1": "alpha"},
+            )
+
+            output_path = root / "nested" / "registry.csv"
+            inspector.save_label_registry(output_path, {"T2": "beta", "T1": "alpha"})
+            output_bytes = output_path.read_bytes()
+            self.assertEqual(output_bytes, b"trade_id,human_label\r\nT1,alpha\r\nT2,beta\r\n")
+            self.assertEqual(hashlib.sha256(output_bytes).hexdigest(), S5_REGISTRY_SHA256)
+
+            empty_path = root / "empty.csv"
+            inspector.save_label_registry(empty_path, {})
+            empty_bytes = empty_path.read_bytes()
+            self.assertEqual(empty_bytes, b"trade_id,human_label\r\n")
+            self.assertEqual(hashlib.sha256(empty_bytes).hexdigest(), S5_EMPTY_REGISTRY_SHA256)
+
+            trades = [
+                dict(sample_trade(), side="long", entry_timestamp_utc="2026-01-01T00:00:00+00:00"),
+                dict(sample_trade(), side="short", entry_timestamp_utc="2026-01-01T00:00:00+00:00"),
+                dict(sample_trade(), side="long", entry_timestamp_utc="2026-01-01T00:01:00+00:00"),
+            ]
+            trade_ids = [inspector.build_trade_id(trade) for trade in trades]
+            assigned = inspector.assign_human_labels(trades, ["beta"], {trade_ids[1]: "beta"})
+            self.assertEqual(
+                assigned,
+                {
+                    trade_ids[0]: "auto_label_000002",
+                    trade_ids[1]: "beta",
+                    trade_ids[2]: "auto_label_000005",
+                },
+            )
+            self.assertEqual(canonical_sha256(assigned), S5_ASSIGNMENT_SHA256)
+
+            with self.assertRaisesRegex(ValueError, r"Label registry contains duplicate labels"):
+                inspector.assign_human_labels(
+                    trades,
+                    ["alpha", "beta"],
+                    {trade_ids[0]: "alpha", trade_ids[1]: "alpha"},
+                )
+
+    def test_s5_csv_writer_bytes_and_partial_failure_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+
+            empty_path = root / "nested" / "empty.csv"
+            inspector.write_csv_rows(empty_path, [])
+            self.assertTrue(empty_path.parent.is_dir())
+            self.assertEqual(empty_path.read_bytes(), b"")
+            self.assertEqual(
+                hashlib.sha256(empty_path.read_bytes()).hexdigest(),
+                hashlib.sha256(b"").hexdigest(),
+            )
+
+            rows_path = root / "rows.csv"
+            rows_path.write_text("stale", encoding="utf-8")
+            inspector.write_csv_rows(rows_path, [{"b": "B1", "a": "A1"}, {"b": "B2"}])
+            rows_bytes = rows_path.read_bytes()
+            self.assertEqual(rows_bytes, b"b,a\r\nB1,A1\r\nB2,\r\n")
+            self.assertEqual(hashlib.sha256(rows_bytes).hexdigest(), S5_CSV_ROWS_SHA256)
+
+            partial_path = root / "partial.csv"
+            with self.assertRaisesRegex(ValueError, r"dict contains fields not in fieldnames: 'b'"):
+                inspector.write_csv_rows(partial_path, [{"a": "1"}, {"a": "2", "b": "3"}])
+            partial_bytes = partial_path.read_bytes()
+            self.assertEqual(partial_bytes, b"a\r\n1\r\n")
+            self.assertEqual(hashlib.sha256(partial_bytes).hexdigest(), S5_PARTIAL_CSV_SHA256)
+
+    def test_s5_raw_ml_csv_bytes_stdout_and_empty_failure_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            output_path = root / "nested" / "ml.csv"
+            output_path.parent.mkdir(parents=True)
+            output_path.write_text("stale", encoding="utf-8")
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                inspector.export_ml_csv([build_sample_row()], output_path)
+
+            output_bytes = output_path.read_bytes()
+            header = output_bytes.split(b"\r\n", 1)[0]
+            self.assertEqual(len(header.split(b",")), 127)
+            self.assertEqual(hashlib.sha256(output_bytes).hexdigest(), S5_RAW_ML_CSV_SHA256)
+            self.assertEqual(
+                output.getvalue(),
+                f"ML CSV exported: {output_path}\nrows: 1\n",
+            )
+
+            empty_path = root / "empty" / "ml.csv"
+            empty_output = io.StringIO()
+            with self.assertRaisesRegex(ValueError, r"No trades to export"):
+                with contextlib.redirect_stdout(empty_output):
+                    inspector.export_ml_csv([], empty_path)
+            self.assertTrue(empty_path.parent.is_dir())
+            self.assertFalse(empty_path.exists())
+            self.assertEqual(empty_output.getvalue(), "")
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
