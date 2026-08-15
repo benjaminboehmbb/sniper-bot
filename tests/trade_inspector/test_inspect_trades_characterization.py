@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import __future__
 import argparse
+import ast
 import contextlib
 import csv
 import hashlib
@@ -374,6 +375,8 @@ S5U_FACADE_WILDCARD_NAMES = tuple(
 S5U_FACADE_WILDCARD_NAMES_SHA256 = "653b92ca002c2c8adc5aee88853b803fd952deb1f7aa69ed7a56952226fba517"
 S5V_FACADE_SUPPORT_NAMES = ("Any", "Path", "annotations", "argparse")
 S5V_FACADE_SUPPORT_NAMES_SHA256 = "01a442aad12e7abe76c04b21fb679660d97604a1aabebb7be5f41fed6fd7da92"
+S5W_IMPORT_TABLE_SHA256 = "e0e8d5371ce64583ffa8568d8305cf59d769362a76c20b16345eae79f2d072bb"
+S5W_EXECUTABLE_BOUNDARY_AST_SHA256 = "f0ea0be627ebd2887d7f161de9c610e749cbd38d176e8efffefbc0424d175c46"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -5325,6 +5328,117 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         payload = json.loads(completed.stdout)
         self.assertEqual(payload["identity"], dict.fromkeys(S5V_FACADE_SUPPORT_NAMES, True))
         self.assertEqual(payload["excluded"], dict.fromkeys(S5V_FACADE_SUPPORT_NAMES, True))
+
+    def test_s5w_package_direct_import_table_and_executable_boundary_contract(self) -> None:
+        tree = ast.parse(SCRIPT_PATH.read_text(encoding="utf-8"))
+        import_gates = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.If)
+            and isinstance(node.test, ast.Name)
+            and node.test.id == "__package__"
+        ]
+        self.assertEqual(len(import_gates), 1)
+        gate = import_gates[0]
+
+        def import_table(nodes: list[ast.stmt]) -> list[tuple[str | None, list[tuple[str, str | None]]]]:
+            return [
+                (node.module, [(alias.name, alias.asname) for alias in node.names])
+                for node in nodes
+                if isinstance(node, ast.ImportFrom)
+            ]
+
+        package_table = import_table(gate.body)
+        direct_table = import_table(gate.orelse)
+        self.assertEqual(len(package_table), 22)
+        self.assertEqual(len(direct_table), 22)
+        self.assertTrue(
+            all(isinstance(node, ast.ImportFrom) and node.level == 1 for node in gate.body)
+        )
+        self.assertTrue(
+            all(isinstance(node, ast.ImportFrom) and node.level == 0 for node in gate.orelse)
+        )
+        self.assertEqual(package_table, direct_table)
+        self.assertEqual(
+            hashlib.sha256(
+                json.dumps(
+                    package_table,
+                    separators=(",", ":"),
+                    ensure_ascii=True,
+                ).encode("utf-8")
+            ).hexdigest(),
+            S5W_IMPORT_TABLE_SHA256,
+        )
+        imported_names = [name for _, aliases in package_table for name, _ in aliases]
+        self.assertEqual(len(imported_names), 100)
+        self.assertEqual(len(set(imported_names)), 100)
+        self.assertEqual(set(imported_names), set(inspector.__all__))
+
+        executable_boundaries = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.If)
+            and isinstance(node.test, ast.Compare)
+            and isinstance(node.test.left, ast.Name)
+            and node.test.left.id == "__name__"
+        ]
+        self.assertEqual(len(executable_boundaries), 1)
+        boundary = executable_boundaries[0]
+        self.assertEqual(
+            hashlib.sha256(ast.dump(boundary, include_attributes=False).encode("utf-8")).hexdigest(),
+            S5W_EXECUTABLE_BOUNDARY_AST_SHA256,
+        )
+
+    def test_s5w_package_direct_import_failure_is_fail_closed(self) -> None:
+        probe = """\
+import importlib.abc
+import json
+import pathlib
+import sys
+
+blocked = sys.argv[2]
+mode = sys.argv[3]
+
+class Blocker(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == blocked:
+            raise ModuleNotFoundError(f"blocked:{fullname}")
+        return None
+
+sys.meta_path.insert(0, Blocker())
+if mode == "direct":
+    sys.path.insert(0, str(pathlib.Path(sys.argv[1]).parent))
+
+try:
+    if mode == "package":
+        import tools.trade_inspector.inspect_trades
+    else:
+        import inspect_trades
+except BaseException as exc:
+    print(json.dumps({"type": type(exc).__name__, "message": str(exc)}, sort_keys=True))
+else:
+    print(json.dumps({"type": None, "message": None}, sort_keys=True))
+"""
+        cases = (
+            ("package", "tools.trade_inspector.aggregate_csv"),
+            ("direct", "aggregate_csv"),
+        )
+        for mode, blocked in cases:
+            with self.subTest(mode=mode):
+                completed = subprocess.run(
+                    [sys.executable, "-c", probe, str(SCRIPT_PATH), blocked, mode],
+                    cwd=REPO_ROOT,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                self.assertEqual(completed.stderr, "")
+                self.assertEqual(
+                    json.loads(completed.stdout),
+                    {"type": "ModuleNotFoundError", "message": f"blocked:{blocked}"},
+                )
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
