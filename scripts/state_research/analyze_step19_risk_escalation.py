@@ -1,60 +1,66 @@
 import pandas as pd
 
-trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
-shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
-trades["exit_timestamp_utc"] = pd.to_datetime(trades["exit_timestamp_utc"], utc=True)
-shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
+def main() -> None:
+    trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
+    shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-rows = []
+    trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
+    trades["exit_timestamp_utc"] = pd.to_datetime(trades["exit_timestamp_utc"], utc=True)
+    shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
 
-for _, trade in trades.iterrows():
+    rows = []
 
-    s = shadow[
-        (shadow["timestamp_utc"] >= trade["entry_timestamp_utc"]) &
-        (shadow["timestamp_utc"] <= trade["exit_timestamp_utc"])
-    ].copy()
+    for _, trade in trades.iterrows():
 
-    if len(s) < 3:
-        continue
+        s = shadow[
+            (shadow["timestamp_utc"] >= trade["entry_timestamp_utc"]) &
+            (shadow["timestamp_utc"] <= trade["exit_timestamp_utc"])
+        ].copy()
 
-    pnl = float(trade["pnl"])
+        if len(s) < 3:
+            continue
 
-    rows.append({
-        "win": int(pnl > 0),
-        "pnl": pnl,
-        "entry_risk": float(s.iloc[0]["shadow_risk_score"]),
-        "max_risk": float(s["shadow_risk_score"].max()),
-        "mean_risk": float(s["shadow_risk_score"].mean()),
-        "high_risk_count": int((s["shadow_risk_score"] > 0.5).sum()),
-        "high_risk_pct": float((s["shadow_risk_score"] > 0.5).mean()),
-    })
+        pnl = float(trade["pnl"])
 
-df = pd.DataFrame(rows)
+        rows.append({
+            "win": int(pnl > 0),
+            "pnl": pnl,
+            "entry_risk": float(s.iloc[0]["shadow_risk_score"]),
+            "max_risk": float(s["shadow_risk_score"].max()),
+            "mean_risk": float(s["shadow_risk_score"].mean()),
+            "high_risk_count": int((s["shadow_risk_score"] > 0.5).sum()),
+            "high_risk_pct": float((s["shadow_risk_score"] > 0.5).mean()),
+        })
 
-print()
-print("WINNERS")
-print(df[df["win"] == 1][[
-    "entry_risk",
-    "max_risk",
-    "mean_risk",
-    "high_risk_count",
-    "high_risk_pct"
-]].mean())
+    df = pd.DataFrame(rows)
 
-print()
-print("LOSERS")
-print(df[df["win"] == 0][[
-    "entry_risk",
-    "max_risk",
-    "mean_risk",
-    "high_risk_count",
-    "high_risk_pct"
-]].mean())
+    print()
+    print("WINNERS")
+    print(df[df["win"] == 1][[
+        "entry_risk",
+        "max_risk",
+        "mean_risk",
+        "high_risk_count",
+        "high_risk_pct"
+    ]].mean())
 
-print()
-print("CORRELATIONS")
-print("mean_risk vs pnl:", df["mean_risk"].corr(df["pnl"]))
-print("max_risk vs pnl :", df["max_risk"].corr(df["pnl"]))
-print("high_risk_pct vs pnl :", df["high_risk_pct"].corr(df["pnl"]))
+    print()
+    print("LOSERS")
+    print(df[df["win"] == 0][[
+        "entry_risk",
+        "max_risk",
+        "mean_risk",
+        "high_risk_count",
+        "high_risk_pct"
+    ]].mean())
+
+    print()
+    print("CORRELATIONS")
+    print("mean_risk vs pnl:", df["mean_risk"].corr(df["pnl"]))
+    print("max_risk vs pnl :", df["max_risk"].corr(df["pnl"]))
+    print("high_risk_pct vs pnl :", df["high_risk_pct"].corr(df["pnl"]))
+
+
+if __name__ == "__main__":
+    main()

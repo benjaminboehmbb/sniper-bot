@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -17,8 +21,8 @@ SCRIPT = REPO_ROOT / "scripts" / "state_research" / "analyze_step19_risk_escalat
 TRADES_INPUT = Path("live_logs/trades_l1_auto_analysis.csv")
 SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 
-SOURCE_SHA256 = "2b0eafa4c5b8f94509b608d0ecc026ba5bc7f0032bf33459a9e9a1b639df1fe9"
-SOURCE_LINES = 60
+SOURCE_SHA256 = "11563e497ff72f4e9e95cc2a32656d2b0128594660b4e4a63be11d9b754480c4"
+SOURCE_LINES = 66
 SUCCESS_STDOUT_SHA256 = "b8a823f50b41e113d1617a3785c9faecb019136ee1b15961cb2f017c491f5cff"
 
 RISK_FIELDS = [
@@ -108,6 +112,17 @@ def _is_main_guard(node: ast.AST) -> bool:
     )
 
 
+def _main_function() -> ast.FunctionDef:
+    functions = [
+        node
+        for node in _tree().body
+        if isinstance(node, ast.FunctionDef) and node.name == "main"
+    ]
+    if len(functions) != 1:
+        raise AssertionError(f"expected one main function, found {len(functions)}")
+    return functions[0]
+
+
 def _write_csv(path: Path, rows: tuple[dict[str, str], ...]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -144,7 +159,15 @@ class Step19RiskEscalationCharacterizationTests(unittest.TestCase):
         raw = SCRIPT.read_bytes()
         self.assertEqual(hashlib.sha256(raw).hexdigest(), SOURCE_SHA256)
         self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES)
-        self.assertIn("if len(s) < 3:\n        continue", SCRIPT.read_text(encoding="utf-8"))
+        snapshot_guards = [
+            node
+            for node in ast.walk(_tree())
+            if isinstance(node, ast.If)
+            and ast.unparse(node.test) == "len(s) < 3"
+            and len(node.body) == 1
+            and isinstance(node.body[0], ast.Continue)
+        ]
+        self.assertEqual(len(snapshot_guards), 1)
         high_risk_comparisons = [
             node
             for node in ast.walk(_tree())
@@ -160,14 +183,28 @@ class Step19RiskEscalationCharacterizationTests(unittest.TestCase):
         ]
         self.assertEqual(len(high_risk_comparisons), 2)
 
-    def test_script_remains_an_import_time_executor(self) -> None:
+    def test_entrypoint_is_contained_behind_main_guard(self) -> None:
         tree = _tree()
-        self.assertEqual(
-            [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))],
-            [],
-        )
-        self.assertEqual([node for node in tree.body if _is_main_guard(node)], [])
-        reads = [
+        guards = [node for node in tree.body if _is_main_guard(node)]
+        main_function = _main_function()
+        self.assertEqual(len(guards), 1)
+        self.assertIsInstance(main_function.returns, ast.Constant)
+        self.assertIsNone(main_function.returns.value)
+        self.assertEqual(main_function.args.posonlyargs, [])
+        self.assertEqual(main_function.args.args, [])
+        self.assertEqual(main_function.args.kwonlyargs, [])
+        self.assertIsNone(main_function.args.vararg)
+        self.assertIsNone(main_function.args.kwarg)
+        self.assertEqual(len(guards[0].body), 1)
+        guard_call = guards[0].body[0]
+        self.assertIsInstance(guard_call, ast.Expr)
+        self.assertIsInstance(guard_call.value, ast.Call)
+        self.assertIsInstance(guard_call.value.func, ast.Name)
+        self.assertEqual(guard_call.value.func.id, "main")
+        self.assertEqual(guard_call.value.args, [])
+        self.assertEqual(guard_call.value.keywords, [])
+
+        top_level_reads = [
             node
             for node in tree.body
             if isinstance(node, ast.Assign)
@@ -175,10 +212,16 @@ class Step19RiskEscalationCharacterizationTests(unittest.TestCase):
             and isinstance(node.value.func, ast.Attribute)
             and node.value.func.attr == "read_csv"
         ]
-        self.assertEqual(len(reads), 2)
+        top_level_calls = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+        ]
+        self.assertEqual(top_level_reads, [])
+        self.assertEqual(top_level_calls, [])
 
     def test_fixed_input_read_and_timestamp_conversion_order_is_bound(self) -> None:
-        body = _tree().body
+        body = _main_function().body
         reads = [
             ast.literal_eval(node.value.args[0])
             for node in body
@@ -305,6 +348,28 @@ class Step19RiskEscalationCharacterizationTests(unittest.TestCase):
             and node.func.attr in {"mkdir", "open", "to_csv", "write_bytes", "write_text"}
         ]
         self.assertEqual(writer_calls, [])
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_import_is_silent_and_has_no_filesystem_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step19_risk_escalation_import_") as temp_dir:
+            root = Path(temp_dir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    namespace = runpy.run_path(
+                        str(SCRIPT),
+                        run_name="_step19_risk_escalation_import",
+                    )
+            finally:
+                os.chdir(previous_cwd)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual([path for path in root.rglob("*") if path.is_dir()], [])
+            self.assertTrue(callable(namespace.get("main")))
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
     def test_successful_fixture_stdout_and_nonmutation_are_bound(self) -> None:
