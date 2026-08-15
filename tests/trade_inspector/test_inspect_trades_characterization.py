@@ -372,6 +372,8 @@ S5U_FACADE_WILDCARD_NAMES = tuple(
     if name not in {"Any", "Path", "annotations", "argparse"}
 )
 S5U_FACADE_WILDCARD_NAMES_SHA256 = "653b92ca002c2c8adc5aee88853b803fd952deb1f7aa69ed7a56952226fba517"
+S5V_FACADE_SUPPORT_NAMES = ("Any", "Path", "annotations", "argparse")
+S5V_FACADE_SUPPORT_NAMES_SHA256 = "01a442aad12e7abe76c04b21fb679660d97604a1aabebb7be5f41fed6fd7da92"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -5278,6 +5280,51 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         self.assertTrue(payload["identity"])
         self.assertEqual(payload["fingerprint"], S5U_FACADE_WILDCARD_NAMES_SHA256)
         self.assertEqual(payload["support"], [])
+
+    def test_s5v_support_attribute_compatibility_contract(self) -> None:
+        self.assertEqual(
+            hashlib.sha256(
+                ("\n".join(S5V_FACADE_SUPPORT_NAMES) + "\n").encode("utf-8")
+            ).hexdigest(),
+            S5V_FACADE_SUPPORT_NAMES_SHA256,
+        )
+        expected_objects = {
+            "Any": Any,
+            "Path": Path,
+            "annotations": __future__.annotations,
+            "argparse": argparse,
+        }
+        for name, expected in expected_objects.items():
+            with self.subTest(import_mode="package", name=name):
+                self.assertIs(getattr(inspector, name), expected)
+                self.assertNotIn(name, inspector.__all__)
+
+        probe = "".join(
+            [
+                "import __future__, argparse, json, pathlib, sys, typing;",
+                "path = pathlib.Path(sys.argv[1]);",
+                "sys.path.insert(0, str(path.parent));",
+                "import inspect_trades as module;",
+                "expected = {'Any': typing.Any, 'Path': pathlib.Path, ",
+                "'annotations': __future__.annotations, 'argparse': argparse};",
+                "identity = {name: getattr(module, name) is value for name, value in expected.items()};",
+                "excluded = {name: name not in module.__all__ for name in expected};",
+                "print(json.dumps({'identity': identity, 'excluded': excluded}, sort_keys=True));",
+            ]
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", probe, str(SCRIPT_PATH)],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stderr, "")
+        payload = json.loads(completed.stdout)
+        self.assertEqual(payload["identity"], dict.fromkeys(S5V_FACADE_SUPPORT_NAMES, True))
+        self.assertEqual(payload["excluded"], dict.fromkeys(S5V_FACADE_SUPPORT_NAMES, True))
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
