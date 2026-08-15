@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -20,12 +24,12 @@ TRADES_INPUT = Path("live_logs/trades_l1_auto_analysis.csv")
 SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 
 SOURCE_SHA256 = {
-    "analyze_step18_buckets.py": "42a1a0ba5c432c1ca00eef4b6416485a503a57db5825307ad857f70713919d44",
-    "analyze_step18_trade_lifetime.py": "8f235b82746faa50ebd4ea6bdd33104717ee6b821c92c46453299056db3e1600",
+    "analyze_step18_buckets.py": "89fe1b9cdd1c28027c07775b4e2520a077b0206becf31782b21cff8d882f64ec",
+    "analyze_step18_trade_lifetime.py": "1f9b0d69bff434a84ad8a45243b241ec77dc24412b553645840701dfd02e2af1",
 }
 SOURCE_LINES = {
-    "analyze_step18_buckets.py": 49,
-    "analyze_step18_trade_lifetime.py": 58,
+    "analyze_step18_buckets.py": 55,
+    "analyze_step18_trade_lifetime.py": 64,
 }
 BUCKETS_STDOUT_SHA256 = "4253c8fec7c481c68c4a74763d5d86adcf7dd99ea67869c9c51da98d04f223a0"
 LIFETIME_STDOUT_SHA256 = "bb2c4166fe44f1b76b99398c99fda29a40cee6c8e24902d8c32007c26c5db61c"
@@ -145,15 +149,33 @@ class Step18StdoutPairCharacterizationTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(raw).hexdigest(), SOURCE_SHA256[script.name])
                 self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES[script.name])
 
-    def test_both_scripts_are_currently_import_time_executors(self) -> None:
+    def test_both_entry_points_are_contained_behind_main_guards(self) -> None:
         expected_reads = (TRADES_INPUT.as_posix(), SHADOW_INPUT.as_posix())
         for script in (BUCKETS_SCRIPT, LIFETIME_SCRIPT):
             with self.subTest(script=script.name):
                 tree = _tree(script)
-                self.assertFalse(any(_is_main_guard(node) for node in tree.body))
-                self.assertFalse(
-                    any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) for node in tree.body)
-                )
+                main_guards = [node for node in tree.body if _is_main_guard(node)]
+                main_functions = [
+                    node
+                    for node in tree.body
+                    if isinstance(node, ast.FunctionDef) and node.name == "main"
+                ]
+                self.assertEqual(len(main_guards), 1)
+                self.assertEqual(len(main_functions), 1)
+                main_function = main_functions[0]
+                self.assertEqual(main_function.args.posonlyargs, [])
+                self.assertEqual(main_function.args.args, [])
+                self.assertEqual(main_function.args.kwonlyargs, [])
+                self.assertIsNone(main_function.args.vararg)
+                self.assertIsNone(main_function.args.kwarg)
+                self.assertEqual(len(main_guards[0].body), 1)
+                guard_call = main_guards[0].body[0]
+                self.assertIsInstance(guard_call, ast.Expr)
+                self.assertIsInstance(guard_call.value, ast.Call)
+                self.assertIsInstance(guard_call.value.func, ast.Name)
+                self.assertEqual(guard_call.value.func.id, "main")
+                self.assertEqual(guard_call.value.args, [])
+                self.assertEqual(guard_call.value.keywords, [])
                 top_level_reads = [
                     node.value.args[0].value
                     for node in tree.body
@@ -166,7 +188,19 @@ class Step18StdoutPairCharacterizationTests(unittest.TestCase):
                     and len(node.value.args) == 1
                     and isinstance(node.value.args[0], ast.Constant)
                 ]
-                self.assertEqual(tuple(top_level_reads), expected_reads)
+                self.assertEqual(top_level_reads, [])
+                contained_reads = [
+                    node.args[0].value
+                    for node in ast.walk(main_function)
+                    if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == "pd"
+                    and node.func.attr == "read_csv"
+                    and len(node.args) == 1
+                    and isinstance(node.args[0], ast.Constant)
+                ]
+                self.assertEqual(tuple(contained_reads), expected_reads)
 
     def test_buckets_cut_and_aggregation_contract_is_bound(self) -> None:
         tree = _tree(BUCKETS_SCRIPT)
@@ -277,6 +311,28 @@ class Step18StdoutPairCharacterizationTests(unittest.TestCase):
         self.assertEqual(before, after)
         self.assertEqual(set(after), {TRADES_INPUT.as_posix(), SHADOW_INPUT.as_posix()})
         self.assertEqual(hashlib.sha256(completed.stdout.encode("utf-8")).hexdigest(), LIFETIME_STDOUT_SHA256)
+
+    @unittest.skipUnless(PANDAS_AVAILABLE, "pandas fixture runtime required")
+    def test_import_paths_have_no_input_read_stdout_or_mutation(self) -> None:
+        for script in (BUCKETS_SCRIPT, LIFETIME_SCRIPT):
+            with self.subTest(script=script.name):
+                with tempfile.TemporaryDirectory(prefix="step18_stdout_pair_import_") as temp_dir:
+                    root = Path(temp_dir)
+                    original_cwd = Path.cwd()
+                    stdout = io.StringIO()
+                    try:
+                        os.chdir(root)
+                        with contextlib.redirect_stdout(stdout):
+                            namespace = runpy.run_path(
+                                str(script),
+                                run_name=f"{script.stem}_import_probe",
+                            )
+                    finally:
+                        os.chdir(original_cwd)
+                    self.assertEqual(_file_manifest(root), {})
+                self.assertEqual(stdout.getvalue(), "")
+                self.assertIn("main", namespace)
+                self.assertTrue(callable(namespace["main"]))
 
     @unittest.skipUnless(PANDAS_AVAILABLE, "pandas fixture runtime required")
     def test_missing_first_input_fails_closed_before_stdout(self) -> None:

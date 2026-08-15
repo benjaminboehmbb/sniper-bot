@@ -1,49 +1,55 @@
 import pandas as pd
 
-trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
-shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
-trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
+def main() -> None:
+    trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
+    shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-rows = []
+    shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
+    trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
 
-for _, trade in trades.iterrows():
-    entry_ts = trade["entry_timestamp_utc"]
+    rows = []
 
-    snap = shadow[
-        shadow["timestamp_utc"] <= entry_ts
-    ].tail(1)
+    for _, trade in trades.iterrows():
+        entry_ts = trade["entry_timestamp_utc"]
 
-    if len(snap) == 0:
-        continue
+        snap = shadow[
+            shadow["timestamp_utc"] <= entry_ts
+        ].tail(1)
 
-    snap = snap.iloc[0]
+        if len(snap) == 0:
+            continue
 
-    rows.append({
-        "pnl": float(trade["pnl"]),
-        "win": int(float(trade["pnl"]) > 0.0),
-        "shadow_risk_score": float(snap["shadow_risk_score"]),
-    })
+        snap = snap.iloc[0]
 
-df = pd.DataFrame(rows)
+        rows.append({
+            "pnl": float(trade["pnl"]),
+            "win": int(float(trade["pnl"]) > 0.0),
+            "shadow_risk_score": float(snap["shadow_risk_score"]),
+        })
 
-df["bucket"] = pd.cut(
-    df["shadow_risk_score"],
-    bins=[0,0.2,0.4,0.6,0.8,1.0],
-    include_lowest=True
-)
+    df = pd.DataFrame(rows)
 
-summary = (
-    df.groupby("bucket")
-    .agg(
-        trades=("pnl","count"),
-        avg_pnl=("pnl","mean"),
-        winrate=("win","mean"),
+    df["bucket"] = pd.cut(
+        df["shadow_risk_score"],
+        bins=[0,0.2,0.4,0.6,0.8,1.0],
+        include_lowest=True
     )
-    .reset_index()
-)
 
-print()
-print(summary)
-print()
+    summary = (
+        df.groupby("bucket")
+        .agg(
+            trades=("pnl","count"),
+            avg_pnl=("pnl","mean"),
+            winrate=("win","mean"),
+        )
+        .reset_index()
+    )
+
+    print()
+    print(summary)
+    print()
+
+
+if __name__ == "__main__":
+    main()
