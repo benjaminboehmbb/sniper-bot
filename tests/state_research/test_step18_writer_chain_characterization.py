@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -21,12 +25,12 @@ REPORT_DIR = Path("reports/step18")
 CORE_METRICS = REPORT_DIR / "step18_core_metrics.csv"
 
 SOURCE_SHA256 = {
-    "build_step18_core_pipeline.py": "05bbf39e66bd87ede3902165c070847f25b86bee9c31f6d52a212b5f7d7a3ae9",
-    "analyze_step18_clusters.py": "ada1aea9358dff4b543a90e1ee1761ab39b6aec4623bbdb170825fb51dfcf0ce",
+    "build_step18_core_pipeline.py": "57a819ed2fb04f075e059b5dc60cf4fba3b2c284b4b27e0120f30e01512fcf98",
+    "analyze_step18_clusters.py": "65918c7346b1819862dc17db2124768f0de6c8ca45daa93b0a846a4cbc80c5a3",
 }
 SOURCE_LINES = {
-    "build_step18_core_pipeline.py": 135,
-    "analyze_step18_clusters.py": 80,
+    "build_step18_core_pipeline.py": 141,
+    "analyze_step18_clusters.py": 86,
 }
 
 CORE_OUTPUTS = {
@@ -194,6 +198,17 @@ def _is_main_guard(node: ast.AST) -> bool:
     )
 
 
+def _main_function(path: Path) -> ast.FunctionDef:
+    functions = [
+        node
+        for node in _tree(path).body
+        if isinstance(node, ast.FunctionDef) and node.name == "main"
+    ]
+    if len(functions) != 1:
+        raise AssertionError(f"expected one main function in {path}, found {len(functions)}")
+    return functions[0]
+
+
 def _write_csv(path: Path, rows: tuple[dict[str, str], ...]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -259,20 +274,51 @@ class Step18WriterChainCharacterizationTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(raw).hexdigest(), SOURCE_SHA256[script.name])
                 self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES[script.name])
 
-    def test_both_scripts_are_currently_import_time_executors(self) -> None:
+    def test_both_entry_points_are_contained_behind_main_guards(self) -> None:
         for script in (CORE_SCRIPT, CLUSTER_SCRIPT):
             with self.subTest(script=script.name):
                 tree = _tree(script)
-                self.assertFalse(any(_is_main_guard(node) for node in tree.body))
-                self.assertFalse(
-                    any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) for node in tree.body)
-                )
+                main_guards = [node for node in tree.body if _is_main_guard(node)]
+                main_function = _main_function(script)
+                self.assertEqual(len(main_guards), 1)
+                self.assertEqual(main_function.args.posonlyargs, [])
+                self.assertEqual(main_function.args.args, [])
+                self.assertEqual(main_function.args.kwonlyargs, [])
+                self.assertIsNone(main_function.args.vararg)
+                self.assertIsNone(main_function.args.kwarg)
+                self.assertEqual(len(main_guards[0].body), 1)
+                guard_call = main_guards[0].body[0]
+                self.assertIsInstance(guard_call, ast.Expr)
+                self.assertIsInstance(guard_call.value, ast.Call)
+                self.assertIsInstance(guard_call.value.func, ast.Name)
+                self.assertEqual(guard_call.value.func.id, "main")
+                self.assertEqual(guard_call.value.args, [])
+                self.assertEqual(guard_call.value.keywords, [])
+
+                top_level_effects = [
+                    node
+                    for node in tree.body
+                    if isinstance(node, ast.Expr)
+                    and isinstance(node.value, ast.Call)
+                    and isinstance(node.value.func, ast.Attribute)
+                    and node.value.func.attr in {"mkdir", "to_csv"}
+                ]
+                top_level_reads = [
+                    node
+                    for node in tree.body
+                    if isinstance(node, ast.Assign)
+                    and isinstance(node.value, ast.Call)
+                    and isinstance(node.value.func, ast.Attribute)
+                    and node.value.func.attr == "read_csv"
+                ]
+                self.assertEqual(top_level_effects, [])
+                self.assertEqual(top_level_reads, [])
 
     def test_core_mkdir_precedes_input_read(self) -> None:
-        tree = _tree(CORE_SCRIPT)
+        main_function = _main_function(CORE_SCRIPT)
         mkdir_index = next(
             index
-            for index, node in enumerate(tree.body)
+            for index, node in enumerate(main_function.body)
             if isinstance(node, ast.Expr)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -280,7 +326,7 @@ class Step18WriterChainCharacterizationTests(unittest.TestCase):
         )
         read_index = next(
             index
-            for index, node in enumerate(tree.body)
+            for index, node in enumerate(main_function.body)
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -331,7 +377,7 @@ class Step18WriterChainCharacterizationTests(unittest.TestCase):
     def test_required_and_implicit_core_columns_are_bound(self) -> None:
         required_assignments = [
             node
-            for node in _tree(CORE_SCRIPT).body
+            for node in ast.walk(_tree(CORE_SCRIPT))
             if isinstance(node, ast.Assign)
             and any(isinstance(target, ast.Name) and target.id == "required" for target in node.targets)
         ]
@@ -346,6 +392,30 @@ class Step18WriterChainCharacterizationTests(unittest.TestCase):
             and node.slice.value == "shadow_risk_level"
         ]
         self.assertGreaterEqual(len(shadow_risk_level_reads), 2)
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "numpy/pandas fixture runtime required")
+    def test_imports_are_silent_and_have_no_filesystem_side_effects(self) -> None:
+        for script in (CORE_SCRIPT, CLUSTER_SCRIPT):
+            with self.subTest(script=script.name):
+                with tempfile.TemporaryDirectory(prefix="step18_writer_import_") as temp_dir:
+                    root = Path(temp_dir)
+                    stdout = io.StringIO()
+                    stderr = io.StringIO()
+                    previous_cwd = Path.cwd()
+                    try:
+                        os.chdir(root)
+                        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                            namespace = runpy.run_path(
+                                str(script),
+                                run_name=f"_step18_import_{script.stem}",
+                            )
+                    finally:
+                        os.chdir(previous_cwd)
+                    self.assertEqual(stdout.getvalue(), "")
+                    self.assertEqual(stderr.getvalue(), "")
+                    self.assertEqual(_raw_file_manifest(root), {})
+                    self.assertEqual(_directories(root), set())
+                    self.assertTrue(callable(namespace.get("main")))
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "numpy/pandas fixture runtime required")
     def test_successful_chain_outputs_and_fingerprints_are_bound(self) -> None:
