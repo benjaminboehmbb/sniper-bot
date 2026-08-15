@@ -17,6 +17,7 @@ from unittest import mock
 
 from tools.trade_inspector import aggregate_csv
 from tools.trade_inspector import archive_intake as intake
+from tools.trade_inspector import console_reporting
 from tools.trade_inspector import csv_persistence
 from tools.trade_inspector import cross_archive_feature_importance
 from tools.trade_inspector import cross_archive_root_cause
@@ -4201,7 +4202,7 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         ]
         for name in reporting_names:
             with self.subTest(name=name):
-                self.assertEqual(getattr(inspector, name).__module__, inspector.__name__)
+                self.assertIs(getattr(inspector, name), getattr(console_reporting, name))
 
         trade = sample_trade()
         audit_rows = sample_audit_rows()
