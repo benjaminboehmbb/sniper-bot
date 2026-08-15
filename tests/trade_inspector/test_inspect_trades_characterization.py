@@ -366,6 +366,12 @@ S5S_FACADE_PUBLIC_NAMES = (
     "ts_key",
     "write_csv_rows",
 )
+S5U_FACADE_WILDCARD_NAMES = tuple(
+    name
+    for name in S5S_FACADE_PUBLIC_NAMES
+    if name not in {"Any", "Path", "annotations", "argparse"}
+)
+S5U_FACADE_WILDCARD_NAMES_SHA256 = "653b92ca002c2c8adc5aee88853b803fd952deb1f7aa69ed7a56952226fba517"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -5215,6 +5221,63 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         }
         self.assertEqual(direct_owner_tails, package_owner_tails)
         self.assertEqual(direct_owner_tails["main"], "cli_orchestration")
+
+    def test_s5u_package_facade_explicit_wildcard_contract(self) -> None:
+        self.assertEqual(inspector.__all__, S5U_FACADE_WILDCARD_NAMES)
+        self.assertEqual(len(inspector.__all__), 100)
+        self.assertEqual(len(set(inspector.__all__)), 100)
+        self.assertEqual(
+            hashlib.sha256(("\n".join(inspector.__all__) + "\n").encode("utf-8")).hexdigest(),
+            S5U_FACADE_WILDCARD_NAMES_SHA256,
+        )
+
+        namespace: dict[str, object] = {}
+        exec("from tools.trade_inspector.inspect_trades import *", namespace)
+        exported_names = tuple(sorted(name for name in namespace if not name.startswith("_")))
+        self.assertEqual(exported_names, S5U_FACADE_WILDCARD_NAMES)
+        for name in exported_names:
+            with self.subTest(name=name):
+                self.assertIs(namespace[name], getattr(inspector, name))
+
+        for support_name in ("Any", "Path", "annotations", "argparse"):
+            with self.subTest(support_name=support_name):
+                self.assertTrue(hasattr(inspector, support_name))
+                self.assertNotIn(support_name, inspector.__all__)
+                self.assertNotIn(support_name, namespace)
+
+    def test_s5u_direct_script_explicit_wildcard_contract(self) -> None:
+        probe = "".join(
+            [
+                "import hashlib, json, pathlib, sys;",
+                "path = pathlib.Path(sys.argv[1]);",
+                "sys.path.insert(0, str(path.parent));",
+                "import inspect_trades as module;",
+                "namespace = {};",
+                "exec('from inspect_trades import *', namespace);",
+                "names = tuple(sorted(name for name in namespace if not name.startswith('_')));",
+                "identity = all(namespace[name] is getattr(module, name) for name in names);",
+                "fingerprint = hashlib.sha256(('\\n'.join(module.__all__) + '\\n').encode()).hexdigest();",
+                "support = [name for name in ('Any', 'Path', 'annotations', 'argparse') if name in namespace];",
+                "print(json.dumps({'all': module.__all__, 'names': names, 'identity': identity, ",
+                "'fingerprint': fingerprint, 'support': support}, sort_keys=True));",
+            ]
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", probe, str(SCRIPT_PATH)],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stderr, "")
+        payload = json.loads(completed.stdout)
+        self.assertEqual(tuple(payload["all"]), S5U_FACADE_WILDCARD_NAMES)
+        self.assertEqual(tuple(payload["names"]), S5U_FACADE_WILDCARD_NAMES)
+        self.assertTrue(payload["identity"])
+        self.assertEqual(payload["fingerprint"], S5U_FACADE_WILDCARD_NAMES_SHA256)
+        self.assertEqual(payload["support"], [])
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
