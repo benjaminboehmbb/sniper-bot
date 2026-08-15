@@ -204,6 +204,16 @@ S5M_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_SHA256 = "75d33b19cb909d65137f5bd7
 S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_CSV_SHA256 = "a183b64db67889b1e2990cb6fb36a01357fdacb7b439b6c6b84f092f409db8ef"
 S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_SUMMARY_SHA256 = "ae7216fce548b0cd30a0ed0e240d106e2df01d12a6f4df026ce932c20c4144b9"
 S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_SHA256 = "77e16b2cb6f2036de7a9926a7b884fb65c60f0cfeaa0144231f9d6e5206cdb8e"
+S5N_CROSS_ARCHIVE_ROOT_CAUSE_ARTIFACT_SHA256 = {
+    "cross_archive_root_cause_attribution_v7d.csv": "518580900e60497996678b15f5628f1297ab1a5c075a88df51cfe37c3fbb7c52",
+    "cross_archive_root_cause_trades_v7d.csv": "7e04210700f3d3168b7cee62edf188c6e74746ffacdf95107262e32f91903576",
+    "cross_archive_root_cause_v7d_manifest.csv": "85fb3edad4fba9e64d197cefceb4538084b275ad85712a5d061c8b9e211b3be0",
+    "v7d_cross_archive_root_cause_summary.md": "ae05713244443204e994f5db4b4aeaf9504472ee858043c56259164abfc086a2",
+}
+S5N_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_SHA256 = "16807c6d1bd1c8d6d8e8534cff39a55fd394543afd7b615d66361c93b47f8241"
+S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_CSV_SHA256 = "0eecd2fcd8575ac5a572ec0db7e50cbc3e04a4c262e6d6ae33a33d00599ca2ff"
+S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_SUMMARY_SHA256 = "8acbc8bfb62086e55b366d668036dbb0455b624f72ea9a65f37303255d4c5037"
+S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_SHA256 = "3ad06651f751952b31bad929b142c42e14dd0b3368f73dc8299f786c812b50d5"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -765,6 +775,23 @@ def s5m_expected_stdout(
         f"importance_rows: {importance_rows}\n"
         f"feature_importance_status: {status}\n"
         f"feature_importance_warning: {warning}\n"
+        + "".join(f" - {output_dir / name}\n" for name in sorted(artifact_names))
+    )
+
+
+def s5n_expected_stdout(
+    output_dir: Path,
+    artifact_names: list[str],
+    *,
+    archive_id: str,
+    trades: int,
+    root_cause_groups: int,
+) -> str:
+    return (
+        f"Cross-archive root cause export directory: {output_dir}\n"
+        f"archive_id: {archive_id}\n"
+        f"trades: {trades}\n"
+        f"root_cause_groups: {root_cause_groups}\n"
         + "".join(f" - {output_dir / name}\n" for name in sorted(artifact_names))
     )
 
@@ -3665,6 +3692,244 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                     importance_rows=297,
                     status="WARN",
                     warning="dataset_too_small_for_reliable_cross_archive_feature_importance",
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5n_cross_archive_root_cause_complete_artifacts_manifest_and_output_contract(self) -> None:
+        rows = s5e_ml_dataset_rows()
+        for row in rows:
+            row["archive_id"] = "ARCHIVE-A"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-root-cause"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_root_cause(rows, output_dir, "CALL-SCOPE")
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*"))
+            }
+            self.assertEqual(artifact_hashes, S5N_CROSS_ARCHIVE_ROOT_CAUSE_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5N_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_SHA256,
+            )
+
+            with (output_dir / "cross_archive_root_cause_v7d_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(manifest, [{
+                "engine_version": "v7d",
+                "archive_id": "CALL-SCOPE",
+                "archive_count": "1",
+                "trade_count": "3",
+                "root_cause_groups": "3",
+                "mode": "single_archive_infrastructure_validation",
+                "statistical_interpretation_allowed": "no",
+                "minimum_recommended_archives": "2",
+                "minimum_recommended_trades": "30",
+            }])
+
+            with (output_dir / "cross_archive_root_cause_trades_v7d.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                trades = list(csv.DictReader(handle))
+            self.assertEqual([row["local_trade_id"] for row in trades], ["A", "K", "Z"])
+            self.assertEqual(
+                [row["global_trade_id"] for row in trades],
+                ["CALL-SCOPE::A", "CALL-SCOPE::K", "CALL-SCOPE::Z"],
+            )
+            self.assertTrue(all(row["archive_id"] == "CALL-SCOPE" for row in trades))
+            self.assertTrue(all(row["root_cause"] == "early_exit" for row in trades))
+
+            with (output_dir / "cross_archive_root_cause_attribution_v7d.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                attribution = list(csv.DictReader(handle))
+            self.assertEqual(
+                [row["root_cause"] for row in attribution],
+                ["early_exit", "entry_filter_quality", "risk_management"],
+            )
+            self.assertEqual(
+                [float(row["cause_share_pct"]) for row in attribution],
+                [0.95, 0.03, 0.02],
+            )
+            self.assertTrue(all(row["archive_scope"] == "single_archive_validation" for row in attribution))
+            self.assertTrue(all(row["archive_count"] == "1" for row in attribution))
+            self.assertTrue(all(row["source_archive_id"] == "CALL-SCOPE" for row in attribution))
+            self.assertTrue(all(row["statistical_interpretation_allowed"] == "no" for row in attribution))
+
+            self.assertEqual(
+                stdout.getvalue(),
+                s5n_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    archive_id="CALL-SCOPE",
+                    trades=3,
+                    root_cause_groups=3,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5n_cross_archive_root_cause_id_precedence_and_unknown_fallback_contract(self) -> None:
+        rows = [
+            {"trade_id": "TRADE", "stable_trade_id": "STABLE", "local_trade_id": "LOCAL", "id": "ID"},
+            {"trade_id": "", "stable_trade_id": "STABLE", "local_trade_id": "LOCAL", "id": "ID"},
+            {"trade_id": "", "stable_trade_id": "", "local_trade_id": "LOCAL", "id": "ID"},
+            {"trade_id": "", "stable_trade_id": "", "local_trade_id": "", "id": "ID"},
+            {"trade_id": "", "stable_trade_id": "", "local_trade_id": "", "id": ""},
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-root-cause"
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                inspector.export_cross_archive_root_cause(rows, output_dir, "SCOPE")
+            with (output_dir / "cross_archive_root_cause_trades_v7d.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                trades = list(csv.DictReader(handle))
+            self.assertEqual(
+                [row["local_trade_id"] for row in trades],
+                ["TRADE", "STABLE", "LOCAL", "ID", "T000005"],
+            )
+            self.assertEqual(
+                [row["global_trade_id"] for row in trades],
+                [
+                    "SCOPE::TRADE",
+                    "SCOPE::STABLE",
+                    "SCOPE::LOCAL",
+                    "SCOPE::ID",
+                    "SCOPE::T000005",
+                ],
+            )
+            self.assertEqual([row["trade_index"] for row in trades], ["1", "2", "3", "4", "5"])
+            self.assertTrue(all(row["root_cause"] == "unknown_cause" for row in trades))
+
+    def test_s5n_cross_archive_root_cause_empty_artifact_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-root-cause"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_root_cause([], output_dir, "EMPTY")
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*"))
+            }
+            self.assertEqual(set(artifact_hashes), set(S5N_CROSS_ARCHIVE_ROOT_CAUSE_ARTIFACT_SHA256))
+            self.assertEqual(
+                artifact_hashes["cross_archive_root_cause_v7d_manifest.csv"],
+                S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_CSV_SHA256,
+            )
+            self.assertEqual(
+                artifact_hashes["v7d_cross_archive_root_cause_summary.md"],
+                S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_SUMMARY_SHA256,
+            )
+            self.assertEqual(
+                artifact_hashes["cross_archive_root_cause_trades_v7d.csv"],
+                hashlib.sha256(b"").hexdigest(),
+            )
+            self.assertEqual(
+                artifact_hashes["cross_archive_root_cause_attribution_v7d.csv"],
+                hashlib.sha256(b"").hexdigest(),
+            )
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5n_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    archive_id="EMPTY",
+                    trades=0,
+                    root_cause_groups=0,
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5n_cross_archive_root_cause_exact_archive_and_trade_threshold_contract(self) -> None:
+        base = s5e_ml_dataset_rows()[0]
+
+        def build_boundary_rows(count: int, *, two_archives: bool) -> list[dict[str, object]]:
+            rows = []
+            for index in range(count):
+                row = dict(base)
+                row["trade_id"] = f"BOUNDARY-{index:02d}"
+                row["archive_id"] = "A" if not two_archives or index % 2 == 0 else "B"
+                rows.append(row)
+            return rows
+
+        cases = [
+            (29, True, "2", "multi_archive_analysis", "no"),
+            (30, False, "1", "single_archive_infrastructure_validation", "no"),
+            (30, True, "2", "multi_archive_analysis", "yes"),
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            for index, (count, two_archives, archive_count, mode, allowed) in enumerate(cases):
+                output_dir = root / f"case-{index}"
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    inspector.export_cross_archive_root_cause(
+                        build_boundary_rows(count, two_archives=two_archives),
+                        output_dir,
+                        "BOUNDARY",
+                    )
+                with (output_dir / "cross_archive_root_cause_v7d_manifest.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    manifest = list(csv.DictReader(handle))[0]
+                self.assertEqual(manifest["archive_count"], archive_count)
+                self.assertEqual(manifest["trade_count"], str(count))
+                self.assertEqual(manifest["mode"], mode)
+                self.assertEqual(manifest["statistical_interpretation_allowed"], allowed)
+
+                with (output_dir / "cross_archive_root_cause_attribution_v7d.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    attribution = list(csv.DictReader(handle))
+                self.assertTrue(all(row["archive_scope"] == "single_archive_validation" for row in attribution))
+                self.assertTrue(all(row["archive_count"] == "1" for row in attribution))
+                self.assertTrue(all(row["source_archive_id"] == "BOUNDARY" for row in attribution))
+                self.assertTrue(all(row["statistical_interpretation_allowed"] == allowed for row in attribution))
+
+    def test_s5n_cross_archive_root_cause_overwrite_and_foreign_listing_contract(self) -> None:
+        rows = s5e_ml_dataset_rows()
+        for row in rows:
+            row["archive_id"] = "ARCHIVE-A"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-root-cause"
+            output_dir.mkdir()
+            trades_path = output_dir / "cross_archive_root_cause_trades_v7d.csv"
+            trades_path.write_bytes(b"stale")
+            foreign = output_dir / "foreign.keep"
+            foreign.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_root_cause(rows, output_dir, "CALL-SCOPE")
+
+            self.assertEqual(
+                hashlib.sha256(trades_path.read_bytes()).hexdigest(),
+                S5N_CROSS_ARCHIVE_ROOT_CAUSE_ARTIFACT_SHA256[trades_path.name],
+            )
+            self.assertEqual(foreign.read_bytes(), b"foreign")
+            listed_names = [*S5N_CROSS_ARCHIVE_ROOT_CAUSE_ARTIFACT_SHA256, foreign.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5n_expected_stdout(
+                    output_dir,
+                    listed_names,
+                    archive_id="CALL-SCOPE",
+                    trades=3,
+                    root_cause_groups=3,
                 ),
             )
             self.assertEqual(stderr.getvalue(), "")
