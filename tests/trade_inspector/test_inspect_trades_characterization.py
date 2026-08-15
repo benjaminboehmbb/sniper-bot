@@ -377,6 +377,9 @@ S5V_FACADE_SUPPORT_NAMES = ("Any", "Path", "annotations", "argparse")
 S5V_FACADE_SUPPORT_NAMES_SHA256 = "01a442aad12e7abe76c04b21fb679660d97604a1aabebb7be5f41fed6fd7da92"
 S5W_IMPORT_TABLE_SHA256 = "e0e8d5371ce64583ffa8568d8305cf59d769362a76c20b16345eae79f2d072bb"
 S5W_EXECUTABLE_BOUNDARY_AST_SHA256 = "f0ea0be627ebd2887d7f161de9c610e749cbd38d176e8efffefbc0424d175c46"
+S5Y_OWNER_TABLE_AST_SHA256 = "0d0c979e223a93426866ea250cf216c35579f70f4c30ffc39e9774c366ef0532"
+S5Y_ALL_DERIVATION_AST_SHA256 = "74a0bea76fa176637f6359bc1fa415631a3c8d60652718330a4546c256e17002"
+S5Y_BINDING_LOOP_AST_SHA256 = "4563a0e4fa008a81e4c53d07058ec5a71eaf565061b526ef2da155ce8267018c"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -5329,50 +5332,81 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         self.assertEqual(payload["identity"], dict.fromkeys(S5V_FACADE_SUPPORT_NAMES, True))
         self.assertEqual(payload["excluded"], dict.fromkeys(S5V_FACADE_SUPPORT_NAMES, True))
 
-    def test_s5w_package_direct_import_table_and_executable_boundary_contract(self) -> None:
+    def test_s5y_single_owner_table_binding_and_executable_boundary_contract(self) -> None:
         tree = ast.parse(SCRIPT_PATH.read_text(encoding="utf-8"))
-        import_gates = [
-            node
+        assignments = {
+            node.targets[0].id: node
             for node in tree.body
-            if isinstance(node, ast.If)
-            and isinstance(node.test, ast.Name)
-            and node.test.id == "__package__"
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        }
+        table_assignment = assignments["_EXPORTS_BY_OWNER"]
+        owner_table = ast.literal_eval(table_assignment.value)
+        normalized_table = [
+            (owner, [(name, None) for name in names])
+            for owner, names in owner_table
         ]
-        self.assertEqual(len(import_gates), 1)
-        gate = import_gates[0]
 
-        def import_table(nodes: list[ast.stmt]) -> list[tuple[str | None, list[tuple[str, str | None]]]]:
-            return [
-                (node.module, [(alias.name, alias.asname) for alias in node.names])
-                for node in nodes
-                if isinstance(node, ast.ImportFrom)
-            ]
-
-        package_table = import_table(gate.body)
-        direct_table = import_table(gate.orelse)
-        self.assertEqual(len(package_table), 22)
-        self.assertEqual(len(direct_table), 22)
-        self.assertTrue(
-            all(isinstance(node, ast.ImportFrom) and node.level == 1 for node in gate.body)
-        )
-        self.assertTrue(
-            all(isinstance(node, ast.ImportFrom) and node.level == 0 for node in gate.orelse)
-        )
-        self.assertEqual(package_table, direct_table)
+        self.assertEqual(len(owner_table), 22)
         self.assertEqual(
             hashlib.sha256(
                 json.dumps(
-                    package_table,
+                    normalized_table,
                     separators=(",", ":"),
                     ensure_ascii=True,
                 ).encode("utf-8")
             ).hexdigest(),
             S5W_IMPORT_TABLE_SHA256,
         )
-        imported_names = [name for _, aliases in package_table for name, _ in aliases]
+        self.assertEqual(
+            hashlib.sha256(
+                ast.dump(table_assignment, include_attributes=False).encode("utf-8")
+            ).hexdigest(),
+            S5Y_OWNER_TABLE_AST_SHA256,
+        )
+
+        imported_names = [name for _, names in owner_table for name in names]
         self.assertEqual(len(imported_names), 100)
         self.assertEqual(len(set(imported_names)), 100)
         self.assertEqual(set(imported_names), set(inspector.__all__))
+        self.assertEqual(tuple(sorted(imported_names)), inspector.__all__)
+
+        all_assignment = assignments["__all__"]
+        self.assertEqual(
+            hashlib.sha256(
+                ast.dump(all_assignment, include_attributes=False).encode("utf-8")
+            ).hexdigest(),
+            S5Y_ALL_DERIVATION_AST_SHA256,
+        )
+
+        binding_loops = [node for node in tree.body if isinstance(node, ast.For)]
+        self.assertEqual(len(binding_loops), 1)
+        self.assertEqual(
+            hashlib.sha256(
+                ast.dump(binding_loops[0], include_attributes=False).encode("utf-8")
+            ).hexdigest(),
+            S5Y_BINDING_LOOP_AST_SHA256,
+        )
+        self.assertFalse(any(isinstance(node, ast.Try) for node in ast.walk(tree)))
+        self.assertFalse(
+            any(
+                isinstance(node, ast.If)
+                and isinstance(node.test, ast.Name)
+                and node.test.id == "__package__"
+                for node in tree.body
+            )
+        )
+        self.assertTrue(
+            any(
+                isinstance(node, ast.Import)
+                and any(
+                    alias.name == "importlib" and alias.asname == "_importlib"
+                    for alias in node.names
+                )
+                for node in tree.body
+            )
+        )
 
         executable_boundaries = [
             node
@@ -5388,6 +5422,42 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             hashlib.sha256(ast.dump(boundary, include_attributes=False).encode("utf-8")).hexdigest(),
             S5W_EXECUTABLE_BOUNDARY_AST_SHA256,
         )
+
+    def test_s5y_package_direct_owner_module_mode_contract(self) -> None:
+        package_owners = tuple(owner for owner, _ in inspector._EXPORTS_BY_OWNER)
+        self.assertEqual(len(package_owners), 22)
+        self.assertTrue(
+            all(f"tools.trade_inspector.{owner}" in sys.modules for owner in package_owners)
+        )
+
+        probe = "".join(
+            [
+                "import json, pathlib, sys;",
+                "path = pathlib.Path(sys.argv[1]);",
+                "sys.path.insert(0, str(path.parent));",
+                "import inspect_trades as module;",
+                "owners = [owner for owner, _ in module._EXPORTS_BY_OWNER];",
+                "direct = [owner for owner in owners if owner in sys.modules];",
+                "package = [owner for owner in owners if f'tools.trade_inspector.{owner}' in sys.modules];",
+                "print(json.dumps({'owners': owners, 'direct': direct, 'package': package, ",
+                "'module_package': module.__package__}, sort_keys=True));",
+            ]
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", probe, str(SCRIPT_PATH)],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stderr, "")
+        payload = json.loads(completed.stdout)
+        self.assertEqual(tuple(payload["owners"]), package_owners)
+        self.assertEqual(tuple(payload["direct"]), package_owners)
+        self.assertEqual(payload["package"], [])
+        self.assertEqual(payload["module_package"], "")
 
     def test_s5w_package_direct_import_failure_is_fail_closed(self) -> None:
         probe = """\
