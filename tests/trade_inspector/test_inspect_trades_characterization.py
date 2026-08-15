@@ -4492,6 +4492,402 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         )
         self.assertEqual(stderr.getvalue(), "")
 
+    def test_s5r_main_parser_defaults_and_early_route_precedence_contract(self) -> None:
+        expected_defaults = {
+            "archive_dir": "live_logs/archive/P79A_pre_run_2026-06-10",
+            "market_csv": "data/l1_full_run.csv",
+            "trade_index": None,
+            "summary": False,
+            "aggregate": False,
+            "export_ml_csv": "",
+            "export_aggregate_csv_dir": "",
+            "export_ml_dataset_dir": "",
+            "export_feature_prep_dir": "",
+            "export_leakage_audit_dir": "",
+            "export_feature_importance_dir": "",
+            "export_feature_stability_dir": "",
+            "export_signal_discovery_dir": "",
+            "export_global_trades_dir": "",
+            "export_cross_archive_root_cause_dir": "",
+            "export_cross_archive_feature_importance_dir": "",
+            "export_cross_archive_signal_discovery_dir": "",
+            "export_multi_archive_loader_dir": "",
+            "archive_registry_md": "docs/trade_inspector/V7B_ARCHIVE_REGISTRY_P79A_2026-06-14.md",
+            "archive_id": "P79A_pre_run_2026-06-10",
+            "label_list": "config/trade_inspector/human_labels.txt",
+            "label_registry": "config/trade_inspector/trade_label_registry.csv",
+            "update_label_registry": False,
+            "run_regression_tests": True,
+            "archive_intake_dir": "",
+            "run_archive_intake": False,
+        }
+
+        with mock.patch.object(sys, "argv", ["inspect_trades.py", "--run-regression-tests"]):
+            with mock.patch.object(inspector, "run_builtin_regression_validation", return_value=41) as regression_mock:
+                with mock.patch.object(inspector, "read_jsonl") as read_mock:
+                    self.assertEqual(inspector.main(), 41)
+
+        regression_mock.assert_called_once()
+        self.assertEqual(vars(regression_mock.call_args.args[0]), expected_defaults)
+        read_mock.assert_not_called()
+
+        argv = [
+            "inspect_trades.py",
+            "--run-regression-tests",
+            "--run-archive-intake",
+            "--archive-intake-dir",
+            "/fixture/intake",
+            "--summary",
+        ]
+        with mock.patch.object(sys, "argv", argv):
+            with mock.patch.object(inspector, "run_builtin_regression_validation", return_value=43) as regression_mock:
+                with mock.patch.object(inspector, "run_archive_intake_validation") as intake_mock:
+                    with mock.patch.object(inspector, "read_jsonl") as read_mock:
+                        self.assertEqual(inspector.main(), 43)
+
+        regression_mock.assert_called_once()
+        intake_mock.assert_not_called()
+        read_mock.assert_not_called()
+
+    def test_s5r_main_archive_intake_route_and_missing_argument_contract(self) -> None:
+        argv = [
+            "inspect_trades.py",
+            "--run-archive-intake",
+            "--archive-intake-dir",
+            "/fixture/intake",
+        ]
+        with mock.patch.object(sys, "argv", argv):
+            with mock.patch.object(inspector, "run_archive_intake_validation", return_value=47) as intake_mock:
+                with mock.patch.object(inspector, "read_jsonl") as read_mock:
+                    self.assertEqual(inspector.main(), 47)
+
+        intake_mock.assert_called_once()
+        intake_args = intake_mock.call_args.args[0]
+        self.assertEqual(intake_args.archive_intake_dir, "/fixture/intake")
+        self.assertEqual(intake_args.archive_dir, "live_logs/archive/P79A_pre_run_2026-06-10")
+        read_mock.assert_not_called()
+
+        with mock.patch.object(sys, "argv", ["inspect_trades.py", "--run-archive-intake"]):
+            with mock.patch.object(inspector, "run_archive_intake_validation") as intake_mock:
+                with mock.patch.object(inspector, "read_jsonl") as read_mock:
+                    with self.assertRaisesRegex(
+                        SystemExit,
+                        "^--archive-intake-dir is required with --run-archive-intake$",
+                    ):
+                        inspector.main()
+
+        intake_mock.assert_not_called()
+        read_mock.assert_not_called()
+
+    def test_s5r_main_common_loading_and_trade_route_precedence_contract(self) -> None:
+        trades = [{"trade_id": "T1"}]
+        audit_rows = [{"event": "AUDIT"}]
+        log_rows = [{"event": "REGIME"}]
+        regime_index = {"REGIME": {"risk": "GOOD"}}
+        timestamps = ["2026-01-01T00:00:00+00:00"]
+        prices = [100.0]
+        labels = ["alpha"]
+        registry = {"T0": "existing"}
+        label_map = {"T1": "alpha"}
+        rows = [{"trade_id": "T1", "label": "alpha"}]
+        entry = {"event": "ENTRY"}
+        exit_ = {"event": "EXIT"}
+        events: list[tuple[str, tuple[object, ...]]] = []
+
+        def record(name: str, value: object):
+            def callable_(*args: object):
+                events.append((name, args))
+                return value
+
+            return callable_
+
+        def read_jsonl(path: Path):
+            events.append(("read_jsonl", (path,)))
+            if path.name == "trades_l1.jsonl":
+                return trades
+            return audit_rows
+
+        argv = [
+            "inspect_trades.py",
+            "--trade-index",
+            "1",
+            "--summary",
+            "--aggregate",
+            "--export-ml-csv",
+            "/fixture/ml.csv",
+            "--export-cross-archive-root-cause-dir",
+            "/fixture/root",
+            "--update-label-registry",
+        ]
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(sys, "argv", argv))
+            stack.enter_context(mock.patch.object(inspector, "read_jsonl", side_effect=read_jsonl))
+            stack.enter_context(mock.patch.object(inspector, "parse_key_value_log", side_effect=record("parse_log", log_rows)))
+            stack.enter_context(mock.patch.object(inspector, "build_regime_index", side_effect=record("build_regime", regime_index)))
+            stack.enter_context(mock.patch.object(inspector, "parse_market_rows", side_effect=record("parse_market", (timestamps, prices))))
+            stack.enter_context(mock.patch.object(inspector, "load_human_labels", side_effect=record("load_labels", labels)))
+            stack.enter_context(mock.patch.object(inspector, "load_label_registry", side_effect=record("load_registry", registry)))
+            stack.enter_context(mock.patch.object(inspector, "assign_human_labels", side_effect=record("assign_labels", label_map)))
+            stack.enter_context(mock.patch.object(inspector, "save_label_registry", side_effect=record("save_registry", None)))
+            stack.enter_context(mock.patch.object(inspector, "build_rows", side_effect=record("build_rows", rows)))
+            stack.enter_context(mock.patch.object(inspector, "find_matching_entry_exit", side_effect=record("find_entry_exit", (entry, exit_))))
+            stack.enter_context(mock.patch.object(inspector, "print_trade_report", side_effect=record("print_trade", None)))
+            summary_mock = stack.enter_context(mock.patch.object(inspector, "print_summary"))
+            aggregate_mock = stack.enter_context(mock.patch.object(inspector, "print_aggregate_intelligence"))
+            ml_mock = stack.enter_context(mock.patch.object(inspector, "export_ml_csv"))
+            cross_mock = stack.enter_context(mock.patch.object(inspector, "export_cross_archive_root_cause"))
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                self.assertEqual(inspector.main(), 0)
+
+        self.assertEqual(
+            events,
+            [
+                ("read_jsonl", (Path("live_logs/archive/P79A_pre_run_2026-06-10/trades_l1.jsonl"),)),
+                ("read_jsonl", (Path("live_logs/archive/P79A_pre_run_2026-06-10/execution_audit.jsonl"),)),
+                ("parse_log", (Path("live_logs/archive/P79A_pre_run_2026-06-10/l1_paper.log"),)),
+                ("build_regime", (log_rows,)),
+                ("parse_market", (Path("data/l1_full_run.csv"),)),
+                ("load_labels", (Path("config/trade_inspector/human_labels.txt"),)),
+                ("load_registry", (Path("config/trade_inspector/trade_label_registry.csv"),)),
+                ("assign_labels", (trades, labels, registry)),
+                ("save_registry", (Path("config/trade_inspector/trade_label_registry.csv"), label_map)),
+                ("build_rows", (trades, audit_rows, regime_index, timestamps, prices, label_map)),
+                ("find_entry_exit", (trades[0], audit_rows)),
+                (
+                    "print_trade",
+                    (1, trades[0], entry, exit_, audit_rows, regime_index, timestamps, prices, label_map),
+                ),
+            ],
+        )
+        summary_mock.assert_not_called()
+        aggregate_mock.assert_not_called()
+        ml_mock.assert_not_called()
+        cross_mock.assert_not_called()
+        self.assertEqual(stderr.getvalue(), "")
+        self.assertEqual(
+            stdout.getvalue(),
+            "".join(
+                [
+                    "TRADE INSPECTOR V6\n",
+                    "archive_dir: live_logs/archive/P79A_pre_run_2026-06-10\n",
+                    "trades: 1\n",
+                    "audit_events: 1\n",
+                    "regime_events: 1\n",
+                    "market_rows: 1\n",
+                    "human_labels_loaded: 1\n",
+                    "label_registry_entries: 1\n",
+                    "\n",
+                ]
+            ),
+        )
+
+    def test_s5r_main_ordered_route_delegation_matrix_contract(self) -> None:
+        trades = [{"trade_id": "T1"}]
+        audit_rows = [{"event": "AUDIT"}]
+        log_rows = [{"event": "REGIME"}]
+        regime_index = {"REGIME": {}}
+        timestamps = ["2026-01-01T00:00:00+00:00"]
+        prices = [100.0]
+        labels = ["alpha"]
+        registry = {"T1": "alpha"}
+        label_map = {"T1": "alpha"}
+        rows = [{"trade_id": "T1"}]
+        empty_cross_rows: list[dict[str, object]] = []
+        default_archive_id = "P79A_pre_run_2026-06-10"
+        default_registry = Path("docs/trade_inspector/V7B_ARCHIVE_REGISTRY_P79A_2026-06-14.md")
+        default_market = Path("data/l1_full_run.csv")
+        default_labels = Path("config/trade_inspector/human_labels.txt")
+        default_label_registry = Path("config/trade_inspector/trade_label_registry.csv")
+
+        route_specs = [
+            ("print_summary", ["--summary"], (rows,)),
+            ("print_aggregate_intelligence", ["--aggregate"], (rows,)),
+            ("export_ml_csv", ["--export-ml-csv", "/fixture/ml.csv"], (rows, Path("/fixture/ml.csv"))),
+            ("export_aggregate_csvs", ["--export-aggregate-csv-dir", "/fixture/aggregate"], (rows, Path("/fixture/aggregate"))),
+            ("export_ml_dataset", ["--export-ml-dataset-dir", "/fixture/dataset"], (rows, Path("/fixture/dataset"))),
+            ("export_feature_preparation", ["--export-feature-prep-dir", "/fixture/prep"], (rows, Path("/fixture/prep"))),
+            ("export_leakage_audit_dataset", ["--export-leakage-audit-dir", "/fixture/leakage"], (rows, Path("/fixture/leakage"))),
+            ("export_feature_importance", ["--export-feature-importance-dir", "/fixture/importance"], (rows, Path("/fixture/importance"))),
+            ("export_feature_stability", ["--export-feature-stability-dir", "/fixture/stability"], (rows, Path("/fixture/stability"))),
+            ("export_predictive_signal_discovery", ["--export-signal-discovery-dir", "/fixture/signals"], (rows, Path("/fixture/signals"))),
+            ("export_global_trade_database", ["--export-global-trades-dir", "/fixture/global"], (rows, Path("/fixture/global"), default_archive_id)),
+            ("export_cross_archive_root_cause", ["--export-cross-archive-root-cause-dir", "/fixture/root"], (empty_cross_rows, Path("/fixture/root"), "MULTI_ARCHIVE_REGISTRY")),
+            ("export_cross_archive_feature_importance", ["--export-cross-archive-feature-importance-dir", "/fixture/cross-importance"], (empty_cross_rows, Path("/fixture/cross-importance"), "MULTI_ARCHIVE_REGISTRY")),
+            ("export_cross_archive_signal_discovery", ["--export-cross-archive-signal-discovery-dir", "/fixture/cross-signals"], (empty_cross_rows, Path("/fixture/cross-signals"), "MULTI_ARCHIVE_REGISTRY")),
+            (
+                "export_multi_archive_loader",
+                ["--export-multi-archive-loader-dir", "/fixture/loader"],
+                (default_registry, Path("/fixture/loader"), default_market, default_labels, default_label_registry),
+            ),
+        ]
+        delegate_names = [name for name, _, _ in route_specs]
+
+        for route_index, (selected_name, _, expected_args) in enumerate(route_specs):
+            with self.subTest(route=selected_name):
+                argv = ["inspect_trades.py"]
+                for _, tokens, _ in route_specs[route_index:]:
+                    argv.extend(tokens)
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with contextlib.ExitStack() as stack:
+                    stack.enter_context(mock.patch.object(sys, "argv", argv))
+                    stack.enter_context(mock.patch.object(inspector, "read_jsonl", side_effect=[trades, audit_rows]))
+                    stack.enter_context(mock.patch.object(inspector, "parse_key_value_log", return_value=log_rows))
+                    stack.enter_context(mock.patch.object(inspector, "build_regime_index", return_value=regime_index))
+                    stack.enter_context(mock.patch.object(inspector, "parse_market_rows", return_value=(timestamps, prices)))
+                    stack.enter_context(mock.patch.object(inspector, "load_human_labels", return_value=labels))
+                    stack.enter_context(mock.patch.object(inspector, "load_label_registry", return_value=registry))
+                    stack.enter_context(mock.patch.object(inspector, "assign_human_labels", return_value=label_map))
+                    stack.enter_context(mock.patch.object(inspector, "build_rows", return_value=rows))
+                    stack.enter_context(mock.patch.object(inspector, "load_archive_registry_md", return_value=[]))
+                    delegates = {
+                        name: stack.enter_context(mock.patch.object(inspector, name))
+                        for name in delegate_names
+                    }
+                    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                        self.assertEqual(inspector.main(), 0)
+
+                delegates[selected_name].assert_called_once_with(*expected_args)
+                for name, delegate_mock in delegates.items():
+                    if name != selected_name:
+                        delegate_mock.assert_not_called()
+                self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5r_main_cross_archive_success_and_aggregated_failure_contract(self) -> None:
+        trades = [{"trade_id": "T1"}]
+        audit_rows = [{"event": "AUDIT"}]
+        log_rows = [{"event": "REGIME"}]
+        rows = [{"trade_id": "LOCAL"}]
+        registry_rows = [
+            {"include_in_v7": "no", "archive_id": "SKIP", "archive_path": "/fixture/skip"},
+            {"include_in_v7": "yes", "archive_id": "A", "archive_path": "/fixture/a"},
+            {"include_in_v7": " YES ", "archive_id": "B", "archive_path": "/fixture/b"},
+        ]
+        row_a = {"global_trade_id": "A::1"}
+        row_b = {"global_trade_id": "B::1"}
+
+        def invoke(loader_side_effect: list[object]):
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.ExitStack() as stack:
+                stack.enter_context(
+                    mock.patch.object(
+                        sys,
+                        "argv",
+                        ["inspect_trades.py", "--export-cross-archive-root-cause-dir", "/fixture/root"],
+                    )
+                )
+                stack.enter_context(mock.patch.object(inspector, "read_jsonl", side_effect=[trades, audit_rows]))
+                stack.enter_context(mock.patch.object(inspector, "parse_key_value_log", return_value=log_rows))
+                stack.enter_context(mock.patch.object(inspector, "build_regime_index", return_value={}))
+                stack.enter_context(mock.patch.object(inspector, "parse_market_rows", return_value=(["T"], [1.0])))
+                stack.enter_context(mock.patch.object(inspector, "load_human_labels", return_value=[]))
+                stack.enter_context(mock.patch.object(inspector, "load_label_registry", return_value={}))
+                stack.enter_context(mock.patch.object(inspector, "assign_human_labels", return_value={}))
+                stack.enter_context(mock.patch.object(inspector, "build_rows", return_value=rows))
+                registry_mock = stack.enter_context(
+                    mock.patch.object(inspector, "load_archive_registry_md", return_value=registry_rows)
+                )
+                loader_mock = stack.enter_context(
+                    mock.patch.object(inspector, "load_rows_for_archive", side_effect=loader_side_effect)
+                )
+                export_mock = stack.enter_context(mock.patch.object(inspector, "export_cross_archive_root_cause"))
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    result = inspector.main()
+            return result, registry_mock, loader_mock, export_mock, stdout.getvalue(), stderr.getvalue()
+
+        result, registry_mock, loader_mock, export_mock, stdout, stderr = invoke([[row_a], [row_b]])
+        self.assertEqual(result, 0)
+        registry_mock.assert_called_once_with(
+            Path("docs/trade_inspector/V7B_ARCHIVE_REGISTRY_P79A_2026-06-14.md")
+        )
+        self.assertEqual(
+            loader_mock.call_args_list,
+            [
+                mock.call(
+                    "A",
+                    Path("/fixture/a"),
+                    Path("data/l1_full_run.csv"),
+                    Path("config/trade_inspector/human_labels.txt"),
+                    Path("config/trade_inspector/trade_label_registry.csv"),
+                ),
+                mock.call(
+                    "B",
+                    Path("/fixture/b"),
+                    Path("data/l1_full_run.csv"),
+                    Path("config/trade_inspector/human_labels.txt"),
+                    Path("config/trade_inspector/trade_label_registry.csv"),
+                ),
+            ],
+        )
+        export_mock.assert_called_once_with(
+            [row_a, row_b],
+            Path("/fixture/root"),
+            "MULTI_ARCHIVE_REGISTRY",
+        )
+        self.assertIn("cross_archive_rows: 2\n", stdout)
+        self.assertIn("cross_archive_archives: 3\n", stdout)
+        self.assertEqual(stderr, "")
+
+        with self.assertRaisesRegex(
+            SystemExit,
+            "^Cross-archive load failed: A: broken A \\| B: broken B$",
+        ):
+            invoke([ValueError("broken A"), RuntimeError("broken B")])
+
+    def test_s5r_main_no_selection_exact_output_contract(self) -> None:
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(sys, "argv", ["inspect_trades.py"]))
+            stack.enter_context(mock.patch.object(inspector, "read_jsonl", side_effect=[[], []]))
+            stack.enter_context(mock.patch.object(inspector, "parse_key_value_log", return_value=[]))
+            stack.enter_context(mock.patch.object(inspector, "build_regime_index", return_value={}))
+            stack.enter_context(mock.patch.object(inspector, "parse_market_rows", return_value=([], [])))
+            stack.enter_context(mock.patch.object(inspector, "load_human_labels", return_value=[]))
+            stack.enter_context(mock.patch.object(inspector, "load_label_registry", return_value={}))
+            stack.enter_context(mock.patch.object(inspector, "assign_human_labels", return_value={}))
+            stack.enter_context(mock.patch.object(inspector, "build_rows", return_value=[]))
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                self.assertEqual(inspector.main(), 0)
+
+        expected_lines = [
+            "TRADE INSPECTOR V6",
+            "archive_dir: live_logs/archive/P79A_pre_run_2026-06-10",
+            "trades: 0",
+            "audit_events: 0",
+            "regime_events: 0",
+            "market_rows: 0",
+            "human_labels_loaded: 0",
+            "label_registry_entries: 0",
+            "",
+            "No selection provided.",
+            "Examples:",
+            "python3 tools/trade_inspector/inspect_trades.py --trade-index 1",
+            "python3 tools/trade_inspector/inspect_trades.py --summary",
+            "python3 tools/trade_inspector/inspect_trades.py --aggregate",
+            "python3 tools/trade_inspector/inspect_trades.py --export-ml-csv data/processed/trade_inspector/ml_v3.csv",
+            "python3 tools/trade_inspector/inspect_trades.py --export-aggregate-csv-dir reports/trade_inspector/aggregate_v3a",
+            "python3 tools/trade_inspector/inspect_trades.py --export-ml-dataset-dir data/ml/trade_inspector_v4",
+            "python3 tools/trade_inspector/inspect_trades.py --export-feature-prep-dir data/ml/trade_inspector_v4b",
+            "python3 tools/trade_inspector/inspect_trades.py --export-leakage-audit-dir data/ml/trade_inspector_v4c",
+            "python3 tools/trade_inspector/inspect_trades.py --export-feature-importance-dir data/ml/trade_inspector_v5",
+            "python3 tools/trade_inspector/inspect_trades.py --export-feature-stability-dir data/ml/trade_inspector_v5c",
+            "python3 tools/trade_inspector/inspect_trades.py --export-signal-discovery-dir data/ml/trade_inspector_v6",
+            "python3 tools/trade_inspector/inspect_trades.py --export-global-trades-dir outputs/trade_inspector/v7 --archive-id P79A_pre_run_2026-06-10",
+            "python3 tools/trade_inspector/inspect_trades.py --export-cross-archive-root-cause-dir outputs/trade_inspector/v7d --archive-id P79A_pre_run_2026-06-10",
+            "python3 tools/trade_inspector/inspect_trades.py --export-cross-archive-feature-importance-dir outputs/trade_inspector/v7e --archive-id P79A_pre_run_2026-06-10",
+            "python3 tools/trade_inspector/inspect_trades.py --export-cross-archive-signal-discovery-dir outputs/trade_inspector/v7f --archive-id P79A_pre_run_2026-06-10",
+            "python3 tools/trade_inspector/inspect_trades.py --export-multi-archive-loader-dir outputs/trade_inspector/v7g --archive-registry-md docs/trade_inspector/V7B_ARCHIVE_REGISTRY_P79A_2026-06-14.md",
+            "python3 tools/trade_inspector/inspect_trades.py --run-regression-tests",
+            "python3 tools/trade_inspector/inspect_trades.py --run-archive-intake --archive-intake-dir live_logs/archive/P79A_pre_run_2026-06-10",
+            "",
+        ]
+        self.assertEqual(stdout.getvalue(), "\n".join(expected_lines))
+        self.assertEqual(stderr.getvalue(), "")
+
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
         snapshot = build_s3_snapshot(sample_trade(), timestamps, prices)
