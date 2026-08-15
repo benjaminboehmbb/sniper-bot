@@ -1,64 +1,70 @@
 import pandas as pd
 
-trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
-shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
-shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
+def main() -> None:
+    trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
+    shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-rows = []
+    trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
+    shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
 
-for _, trade in trades.iterrows():
+    rows = []
 
-    entry_ts = trade["entry_timestamp_utc"]
+    for _, trade in trades.iterrows():
 
-    snap = shadow[
-        shadow["timestamp_utc"] <= entry_ts
-    ].tail(1)
+        entry_ts = trade["entry_timestamp_utc"]
 
-    if len(snap) == 0:
-        continue
+        snap = shadow[
+            shadow["timestamp_utc"] <= entry_ts
+        ].tail(1)
 
-    snap = snap.iloc[0]
+        if len(snap) == 0:
+            continue
 
-    pnl = float(trade["pnl"])
+        snap = snap.iloc[0]
 
-    rows.append({
-        "pnl": pnl,
-        "win": int(pnl > 0.0),
-        "entry_shadow_risk": float(snap["shadow_risk_score"]),
-    })
+        pnl = float(trade["pnl"])
 
-df = pd.DataFrame(rows)
+        rows.append({
+            "pnl": pnl,
+            "win": int(pnl > 0.0),
+            "entry_shadow_risk": float(snap["shadow_risk_score"]),
+        })
 
-print()
-print("ENTRY_RISK vs PNL")
-print(df["entry_shadow_risk"].corr(df["pnl"]))
-print()
+    df = pd.DataFrame(rows)
 
-print("ENTRY_RISK vs WIN")
-print(df["entry_shadow_risk"].corr(df["win"]))
-print()
+    print()
+    print("ENTRY_RISK vs PNL")
+    print(df["entry_shadow_risk"].corr(df["pnl"]))
+    print()
 
-print("threshold,trades,blocked,total_pnl,winrate,pf")
+    print("ENTRY_RISK vs WIN")
+    print(df["entry_shadow_risk"].corr(df["win"]))
+    print()
 
-for threshold in [0.35,0.40,0.45,0.50,0.55,0.60]:
+    print("threshold,trades,blocked,total_pnl,winrate,pf")
 
-    kept = df[df["entry_shadow_risk"] <= threshold]
+    for threshold in [0.35,0.40,0.45,0.50,0.55,0.60]:
 
-    wins = kept[kept["pnl"] > 0]
-    losses = kept[kept["pnl"] <= 0]
+        kept = df[df["entry_shadow_risk"] <= threshold]
 
-    gross_profit = wins["pnl"].sum()
-    gross_loss = abs(losses["pnl"].sum())
+        wins = kept[kept["pnl"] > 0]
+        losses = kept[kept["pnl"] <= 0]
 
-    pf = gross_profit / gross_loss if gross_loss > 0 else float("inf")
+        gross_profit = wins["pnl"].sum()
+        gross_loss = abs(losses["pnl"].sum())
 
-    print(
-        f"{threshold},"
-        f"{len(kept)},"
-        f"{len(df)-len(kept)},"
-        f"{kept['pnl'].sum():.2f},"
-        f"{kept['win'].mean():.4f},"
-        f"{pf:.4f}"
-    )
+        pf = gross_profit / gross_loss if gross_loss > 0 else float("inf")
+
+        print(
+            f"{threshold},"
+            f"{len(kept)},"
+            f"{len(df)-len(kept)},"
+            f"{kept['pnl'].sum():.2f},"
+            f"{kept['win'].mean():.4f},"
+            f"{pf:.4f}"
+        )
+
+
+if __name__ == "__main__":
+    main()
