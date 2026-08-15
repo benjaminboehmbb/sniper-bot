@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -17,8 +21,8 @@ SCRIPT = REPO_ROOT / "scripts" / "state_research" / "analyze_step19_blocked_winn
 TRADES_INPUT = Path("live_logs/trades_l1_auto_analysis.csv")
 SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 
-SOURCE_SHA256 = "fee296edf91a8f38d41f1f57fb8fbc560d607968fa326c2a3e905bbfe45b6644"
-SOURCE_LINES = 45
+SOURCE_SHA256 = "f62a34fd96055610a222dab685f62b50b316755be362176043ea197d4cc6908a"
+SOURCE_LINES = 51
 SUCCESS_STDOUT_SHA256 = "353a9ce33e95ad176e95bb0436841dee245726fd3be3ab02ca4493430294722b"
 
 FULL_RUNTIME_AVAILABLE = importlib.util.find_spec("pandas") is not None
@@ -106,6 +110,17 @@ def _is_main_guard(node: ast.AST) -> bool:
     )
 
 
+def _main_function() -> ast.FunctionDef:
+    functions = [
+        node
+        for node in _tree().body
+        if isinstance(node, ast.FunctionDef) and node.name == "main"
+    ]
+    if len(functions) != 1:
+        raise AssertionError(f"expected one main function, found {len(functions)}")
+    return functions[0]
+
+
 def _write_csv(path: Path, rows: tuple[dict[str, str], ...]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
@@ -151,18 +166,48 @@ class Step19BlockedWinnersCharacterizationTests(unittest.TestCase):
         self.assertEqual(len(threshold_assignments), 1)
         self.assertEqual(ast.literal_eval(threshold_assignments[0].value), 0.4)
 
-    def test_script_is_an_import_time_executor(self) -> None:
+    def test_entrypoint_is_contained_behind_main_guard(self) -> None:
         tree = _tree()
-        self.assertFalse(any(_is_main_guard(node) for node in tree.body))
-        self.assertFalse(
-            any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) for node in tree.body)
-        )
+        guards = [node for node in tree.body if _is_main_guard(node)]
+        main_function = _main_function()
+        self.assertEqual(len(guards), 1)
+        self.assertIsInstance(main_function.returns, ast.Constant)
+        self.assertIsNone(main_function.returns.value)
+        self.assertEqual(main_function.args.posonlyargs, [])
+        self.assertEqual(main_function.args.args, [])
+        self.assertEqual(main_function.args.kwonlyargs, [])
+        self.assertIsNone(main_function.args.vararg)
+        self.assertIsNone(main_function.args.kwarg)
+        self.assertEqual(len(guards[0].body), 1)
+        guard_call = guards[0].body[0]
+        self.assertIsInstance(guard_call, ast.Expr)
+        self.assertIsInstance(guard_call.value, ast.Call)
+        self.assertIsInstance(guard_call.value.func, ast.Name)
+        self.assertEqual(guard_call.value.func.id, "main")
+        self.assertEqual(guard_call.value.args, [])
+        self.assertEqual(guard_call.value.keywords, [])
+
+        top_level_reads = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "read_csv"
+        ]
+        top_level_calls = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+        ]
+        self.assertEqual(top_level_reads, [])
+        self.assertEqual(top_level_calls, [])
 
     def test_fixed_input_read_and_timestamp_conversion_order_is_bound(self) -> None:
-        tree = _tree()
+        body = _main_function().body
         reads = [
             ast.literal_eval(node.value.args[0])
-            for node in tree.body
+            for node in body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -171,7 +216,7 @@ class Step19BlockedWinnersCharacterizationTests(unittest.TestCase):
         self.assertEqual(reads, [TRADES_INPUT.as_posix(), SHADOW_INPUT.as_posix()])
         conversions = [
             ast.literal_eval(node.value.args[0].slice)
-            for node in tree.body
+            for node in body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -269,6 +314,28 @@ class Step19BlockedWinnersCharacterizationTests(unittest.TestCase):
             and node.func.attr in {"mkdir", "open", "to_csv", "write_bytes", "write_text"}
         ]
         self.assertEqual(writer_calls, [])
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_import_is_silent_and_has_no_filesystem_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step19_blocked_winners_import_") as temp_dir:
+            root = Path(temp_dir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    namespace = runpy.run_path(
+                        str(SCRIPT),
+                        run_name="_step19_blocked_winners_import",
+                    )
+            finally:
+                os.chdir(previous_cwd)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual([path for path in root.rglob("*") if path.is_dir()], [])
+            self.assertTrue(callable(namespace.get("main")))
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
     def test_successful_fixture_stdout_and_nonmutation_are_bound(self) -> None:
