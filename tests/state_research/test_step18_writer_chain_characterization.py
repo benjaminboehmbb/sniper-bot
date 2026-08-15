@@ -81,8 +81,8 @@ CORE_COLUMNS = (
 )
 
 CHAIN_FINGERPRINTS = {
-    "core_stdout": "82d731ea08544b2221d0bb0f2b6d3208953c0420259b0c00fd6cbf2b9b2231c8",
-    "cluster_stdout": "ab31fff40acefb92a171b8c92296bf9fda99a319414f488f7be88cd15e65aa69",
+    "core_stdout": "a5b8162b0f5180547232b5dc612409356ab210ad3953e53a64a7dbb8dd6f0c14",
+    "cluster_stdout": "1572efed45b7ad613311ddffe40d1d41dd3f53e72f97664c6c69ffa2e73343fb",
     "reports/step18/step18_core_metrics.csv": "5dc9a669dbce1761e1f47d9d959c6c7f29fa6f19913a852286519ea87a25cf5f",
     "reports/step18/step18_regime_summary.csv": "9224ad812b32d0e20e893028cfdda3dc8b3cb0db17bc7ef44b1aa0406827b71d",
     "reports/step18/step18_boundary_events.csv": "28d4a1da686d894d8893eb6813ace1883f0062fd69178084311cac8ccb5b8444",
@@ -451,8 +451,12 @@ class Step18WriterChainCharacterizationTests(unittest.TestCase):
             )
 
             actual_fingerprints = {
-                "core_stdout": hashlib.sha256(core_result.stdout.encode("utf-8")).hexdigest(),
-                "cluster_stdout": hashlib.sha256(cluster_result.stdout.encode("utf-8")).hexdigest(),
+                "core_stdout": hashlib.sha256(
+                    _normalized_slashes(core_result.stdout).encode("utf-8")
+                ).hexdigest(),
+                "cluster_stdout": hashlib.sha256(
+                    _normalized_slashes(cluster_result.stdout).encode("utf-8")
+                ).hexdigest(),
             }
             actual_fingerprints.update(
                 {
