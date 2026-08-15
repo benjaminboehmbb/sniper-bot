@@ -601,7 +601,7 @@ def export_global_trade_database(rows: list[dict[str, Any]], output_dir: Path, a
         "output_file": "global_trades_v7c.csv",
         "summary_file": "v7c_global_trade_database_summary.md",
         "status": "infrastructure_validation",
-        "statistical_interpretation_allowed": statistical_allowed,
+        "statistical_interpretation_allowed": "no",
     }]
     write_csv_rows(output_dir / "global_trades_v7c_manifest.csv", manifest)
 
