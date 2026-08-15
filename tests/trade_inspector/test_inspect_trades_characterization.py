@@ -245,6 +245,16 @@ S5P_CONSOLE_REPORTING_STDOUT_LINES = {
     "aggregate_empty": 51,
     "group_reverse_false": 5,
 }
+S5Q_REGRESSION_VALIDATION_STDOUT_SHA256 = {
+    "pass": "08b621f09760de5e98c2d241213d20099062c1b9bd36e544ac7ea22084426927",
+    "count_fail": "bde1c54afb6f13653649bf3b6e434d0e2eb205cbb34de0857e9fbc70c9a43f10",
+    "analysis_fail": "8ee9b0b64ad4736ed424582802e553708c4841a6d1ddc5755ebdf6bb6c62bb60",
+}
+S5Q_REGRESSION_VALIDATION_STDOUT_LINES = {
+    "pass": 18,
+    "count_fail": 22,
+    "analysis_fail": 23,
+}
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -4291,6 +4301,184 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         self.assertEqual(
             len(stdout.getvalue().splitlines()),
             S5P_CONSOLE_REPORTING_STDOUT_LINES["group_reverse_false"],
+        )
+        self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5q_builtin_regression_validation_pass_and_fail_output_contracts(self) -> None:
+        cases = [
+            ("pass", 9, True, 4, 0),
+            ("count_fail", 8, True, 4, 1),
+            ("analysis_fail", 9, False, 0, 1),
+        ]
+        group_keys = [
+            "entry_regime_label",
+            "entry_risk_label",
+            "regime_aligned",
+            "risk_good_at_entry",
+            "entry_score_at_entry",
+            "entry_atr_signal",
+            "entry_ma200_signal",
+            "entry_mfi_signal",
+            "trade_family_group",
+            "trade_family",
+        ]
+        pair_specs = [
+            ("entry_regime_label", "entry_risk_label"),
+            ("entry_regime_label", "entry_atr_signal"),
+            ("entry_risk_label", "regime_aligned"),
+            ("entry_ma200_signal", "entry_mfi_signal"),
+            ("entry_score_at_entry", "entry_risk_label"),
+            ("trade_family_group", "entry_risk_label"),
+        ]
+
+        for name, row_count, valid_analysis, root_count, expected_exit in cases:
+            with self.subTest(name=name):
+                trades = [{"trade_id": f"T{index:02d}"} for index in range(row_count)]
+                audit_rows = [{"event": "AUDIT"}]
+                log_rows = [{"event": "REGIME"}]
+                regime_index = {"regime": {}}
+                timestamps = ["2026-01-01T00:00:00+00:00"]
+                prices = [100.0]
+                labels = ["alpha"]
+                registry = {"existing": "label"}
+                label_map = {f"T{index:02d}": "alpha" for index in range(row_count)}
+                rows = [{"trade_id": f"T{index:02d}"} for index in range(row_count)]
+
+                discovery_rows = [
+                    {
+                        "reliability_class": "NOT_ACTIONABLE",
+                        "warning_level": "HIGH",
+                        "discovery_status": "WATCH" if index < 6 else "LOW_SUPPORT",
+                    }
+                    for index in range(57)
+                ] if valid_analysis else []
+                chunk_lengths = [3] * 10 + [4, 4, 4, 5, 5, 5]
+                chunks: list[list[dict[str, object]]] = []
+                offset = 0
+                for length in chunk_lengths:
+                    chunks.append(discovery_rows[offset:offset + length])
+                    offset += length
+                signal_chunks = chunks[:10]
+                pair_chunks = chunks[10:]
+
+                args = SimpleNamespace(
+                    archive_dir="/fixture/archive",
+                    market_csv="/fixture/market.csv",
+                    label_list="/fixture/labels.txt",
+                    label_registry="/fixture/registry.csv",
+                    archive_id="CALL-SCOPE",
+                )
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+
+                with contextlib.ExitStack() as stack:
+                    read_mock = stack.enter_context(
+                        mock.patch.object(inspector, "read_jsonl", side_effect=[trades, audit_rows])
+                    )
+                    log_mock = stack.enter_context(
+                        mock.patch.object(inspector, "parse_key_value_log", return_value=log_rows)
+                    )
+                    regime_mock = stack.enter_context(
+                        mock.patch.object(inspector, "build_regime_index", return_value=regime_index)
+                    )
+                    market_mock = stack.enter_context(
+                        mock.patch.object(inspector, "parse_market_rows", return_value=(timestamps, prices))
+                    )
+                    labels_mock = stack.enter_context(
+                        mock.patch.object(inspector, "load_human_labels", return_value=labels)
+                    )
+                    registry_mock = stack.enter_context(
+                        mock.patch.object(inspector, "load_label_registry", return_value=registry)
+                    )
+                    assignment_mock = stack.enter_context(
+                        mock.patch.object(inspector, "assign_human_labels", return_value=label_map)
+                    )
+                    build_rows_mock = stack.enter_context(
+                        mock.patch.object(inspector, "build_rows", return_value=rows)
+                    )
+                    signal_mock = stack.enter_context(
+                        mock.patch.object(inspector, "discover_signal_groups", side_effect=signal_chunks)
+                    )
+                    pair_mock = stack.enter_context(
+                        mock.patch.object(inspector, "discover_pair_groups", side_effect=pair_chunks)
+                    )
+                    root_mock = stack.enter_context(
+                        mock.patch.object(
+                            inspector,
+                            "compute_root_cause_attribution",
+                            return_value=[{"root_cause": f"R{index}"} for index in range(root_count)],
+                        )
+                    )
+                    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                        exit_code = inspector.run_builtin_regression_validation(args)
+
+                self.assertEqual(exit_code, expected_exit)
+                self.assertEqual(
+                    hashlib.sha256(stdout.getvalue().encode()).hexdigest(),
+                    S5Q_REGRESSION_VALIDATION_STDOUT_SHA256[name],
+                )
+                self.assertEqual(
+                    len(stdout.getvalue().splitlines()),
+                    S5Q_REGRESSION_VALIDATION_STDOUT_LINES[name],
+                )
+                self.assertEqual(stderr.getvalue(), "")
+                self.assertEqual(
+                    read_mock.call_args_list,
+                    [
+                        mock.call(Path("/fixture/archive/trades_l1.jsonl")),
+                        mock.call(Path("/fixture/archive/execution_audit.jsonl")),
+                    ],
+                )
+                log_mock.assert_called_once_with(Path("/fixture/archive/l1_paper.log"))
+                regime_mock.assert_called_once_with(log_rows)
+                market_mock.assert_called_once_with(Path("/fixture/market.csv"))
+                labels_mock.assert_called_once_with(Path("/fixture/labels.txt"))
+                registry_mock.assert_called_once_with(Path("/fixture/registry.csv"))
+                assignment_mock.assert_called_once_with(trades, labels, registry)
+                build_rows_mock.assert_called_once_with(
+                    trades,
+                    audit_rows,
+                    regime_index,
+                    timestamps,
+                    prices,
+                    label_map,
+                )
+                self.assertEqual(
+                    signal_mock.call_args_list,
+                    [mock.call(rows, key) for key in group_keys],
+                )
+                self.assertEqual(
+                    pair_mock.call_args_list,
+                    [mock.call(rows, key_a, key_b) for key_a, key_b in pair_specs],
+                )
+                root_mock.assert_called_once_with(rows)
+
+    def test_s5q_builtin_regression_validation_input_exception_propagation_contract(self) -> None:
+        args = SimpleNamespace(
+            archive_dir="/fixture/archive",
+            market_csv="/fixture/market.csv",
+            label_list="/fixture/labels.txt",
+            label_registry="/fixture/registry.csv",
+            archive_id="CALL-SCOPE",
+        )
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with mock.patch.object(inspector, "read_jsonl", side_effect=ValueError("broken fixture")) as read_mock:
+            with self.assertRaisesRegex(ValueError, "broken fixture"):
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    inspector.run_builtin_regression_validation(args)
+
+        read_mock.assert_called_once_with(Path("/fixture/archive/trades_l1.jsonl"))
+        self.assertEqual(
+            stdout.getvalue(),
+            "".join(
+                [
+                    "TRADE INSPECTOR V7H REGRESSION VALIDATION\n",
+                    "archive_dir: /fixture/archive\n",
+                    "market_csv: /fixture/market.csv\n",
+                    "\n",
+                ]
+            ),
         )
         self.assertEqual(stderr.getvalue(), "")
 
