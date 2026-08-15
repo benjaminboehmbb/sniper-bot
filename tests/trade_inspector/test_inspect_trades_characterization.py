@@ -4564,7 +4564,7 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         intake_mock.assert_called_once()
         intake_args = intake_mock.call_args.args[0]
         self.assertEqual(intake_args.archive_intake_dir, "/fixture/intake")
-        self.assertEqual(intake_args.archive_dir, "live_logs/archive/P79A_pre_run_2026-06-10")
+        self.assertEqual(intake_args.archive_dir, "/fixture/intake")
         read_mock.assert_not_called()
 
         with mock.patch.object(sys, "argv", ["inspect_trades.py", "--run-archive-intake"]):
@@ -4578,6 +4578,33 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
 
         intake_mock.assert_not_called()
         read_mock.assert_not_called()
+
+    def test_s5ra_main_archive_intake_uses_requested_target_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            requested_target = Path(temp_dir) / "requested-intake"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with mock.patch.object(
+                sys,
+                "argv",
+                [
+                    "inspect_trades.py",
+                    "--run-archive-intake",
+                    "--archive-intake-dir",
+                    str(requested_target),
+                ],
+            ):
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    self.assertEqual(inspector.main(), 1)
+
+        self.assertIn(f"archive_dir: {requested_target}\n", stdout.getvalue())
+        self.assertIn(
+            f"ERROR: archive directory missing: {requested_target}\n",
+            stdout.getvalue(),
+        )
+        self.assertIn("ARCHIVE_INTAKE: FAIL\n", stdout.getvalue())
+        self.assertNotIn("archive_dir: live_logs/archive/P79A_pre_run_2026-06-10\n", stdout.getvalue())
+        self.assertEqual(stderr.getvalue(), "")
 
     def test_s5r_main_common_loading_and_trade_route_precedence_contract(self) -> None:
         trades = [{"trade_id": "T1"}]

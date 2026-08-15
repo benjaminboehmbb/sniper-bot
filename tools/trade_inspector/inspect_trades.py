@@ -270,6 +270,7 @@ def main() -> int:
     if args.run_archive_intake:
         if not args.archive_intake_dir:
             raise SystemExit("--archive-intake-dir is required with --run-archive-intake")
+        args.archive_dir = args.archive_intake_dir
         return run_archive_intake_validation(args)
 
     archive_dir = Path(args.archive_dir)
