@@ -25,6 +25,7 @@ from tools.trade_inspector import feature_importance
 from tools.trade_inspector import feature_discovery
 from tools.trade_inspector import feature_preparation
 from tools.trade_inspector import feature_stability
+from tools.trade_inspector import global_trade_database
 from tools.trade_inspector import inspect_trades as inspector
 from tools.trade_inspector import inspection_primitives as primitives
 from tools.trade_inspector import label_registry
@@ -3953,6 +3954,11 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5o_global_trade_database_repaired_complete_artifact_contract(self) -> None:
+        self.assertIs(
+            inspector.export_global_trade_database,
+            global_trade_database.export_global_trade_database,
+        )
+
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "global-trade-database"
             stdout = io.StringIO()
