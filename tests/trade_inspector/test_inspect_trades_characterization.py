@@ -185,6 +185,24 @@ S5L_CROSS_ARCHIVE_SIGNAL_MANIFEST_SHA256 = "e07b71e49bed90ac7618a15bb89b16eb5c09
 S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_MANIFEST_CSV_SHA256 = "40f0bd5f1086b8ea2b15b80a004e04ee2802b09266aac8af0df89d3691f2f9df"
 S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_SUMMARY_SHA256 = "3f4b5f13d3d5f38287ae3221f6a35c073d15a19f1471eaebb95d54c961551fb8"
 S5L_EMPTY_CROSS_ARCHIVE_SIGNAL_MANIFEST_SHA256 = "43acf4c3008bf448036431de39f5ed16ffe9f8709c326a60a1e43ff7de19ab07"
+S5M_CROSS_ARCHIVE_FEATURE_IMPORTANCE_ARTIFACT_SHA256 = {
+    "cross_archive_feature_importance_v7e.csv": "749950a0dacef53d7e7a208ecb5a118ffbbe442403ec32a9a63fb2d93f2e8910",
+    "cross_archive_feature_importance_v7e_manifest.csv": "0c7f7368ba18b46a769f9dbfe3d445a0037a8b61afbaa6c4a7e95e00ed194811",
+    "cross_archive_feature_importance_v7e_target_exit_efficiency_high.csv": "47beb040614707771a8d8050c2c8969ad9ba27b61966179333c343d86129ecc0",
+    "cross_archive_feature_importance_v7e_target_future_return_24h_pct.csv": "d225f91d6a3b15caeea9b81fcb10e6188e66c13a4349aca346e7e87bef755d3c",
+    "cross_archive_feature_importance_v7e_target_future_return_72h_pct.csv": "880ea35a2b4c7980f0ef7db314e0256874de1959ca4455cf886b5da5c0d6d6d0",
+    "cross_archive_feature_importance_v7e_target_loser.csv": "bcb0f9d2bdd682ceb38129dee56bc4db0516d7f39ec1e69183f12514e96afc5f",
+    "cross_archive_feature_importance_v7e_target_opportunity_loss_high.csv": "ad928ff18362af19e2c6db67d8ae929f7d31dbc427822a9017f7fb8560c52c0e",
+    "cross_archive_feature_importance_v7e_target_pnl_pct.csv": "27d01db73db281c77d3b42c19168fdbb504189a376de6c65ae851f813a1c692e",
+    "cross_archive_feature_importance_v7e_target_quality_bad.csv": "e2c848c3212cec8e261299846f2a473cf6cefbb80cc7f76f93b6c5d3859d9457",
+    "cross_archive_feature_importance_v7e_target_quality_good.csv": "e298ce3935cc72601e2506d78892dcff0159fa5778dd09d1ce05e8c7806488cf",
+    "cross_archive_feature_importance_v7e_target_winner.csv": "197b101b8f83d51dcb40fa4b20a58ff7dc896a167a9e8aeef9d5f39353590808",
+    "v7e_cross_archive_feature_importance_summary.md": "d013f26ac5cc6b9e79317314c6c10b4ba7ebc7e3a3154cc39b2c795782a985ad",
+}
+S5M_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_SHA256 = "75d33b19cb909d65137f5bd7549266360a80e3d750e26637aa9e502870da6dc3"
+S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_CSV_SHA256 = "a183b64db67889b1e2990cb6fb36a01357fdacb7b439b6c6b84f092f409db8ef"
+S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_SUMMARY_SHA256 = "ae7216fce548b0cd30a0ed0e240d106e2df01d12a6f4df026ce932c20c4144b9"
+S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_SHA256 = "77e16b2cb6f2036de7a9926a7b884fb65c60f0cfeaa0144231f9d6e5206cdb8e"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -722,6 +740,30 @@ def s5l_expected_stdout(
         f"high_warning_groups: {high_warning}\n"
         f"signal_discovery_status: {status}\n"
         f"signal_discovery_warning: {warning}\n"
+        + "".join(f" - {output_dir / name}\n" for name in sorted(artifact_names))
+    )
+
+
+def s5m_expected_stdout(
+    output_dir: Path,
+    artifact_names: list[str],
+    *,
+    archive_id: str,
+    rows_total: int,
+    allowed_features: int,
+    importance_rows: int,
+    status: str,
+    warning: str,
+) -> str:
+    return (
+        f"Cross-archive feature importance export directory: {output_dir}\n"
+        f"archive_id: {archive_id}\n"
+        f"rows_total: {rows_total}\n"
+        f"allowed_features: {allowed_features}\n"
+        "targets_evaluated: 9\n"
+        f"importance_rows: {importance_rows}\n"
+        f"feature_importance_status: {status}\n"
+        f"feature_importance_warning: {warning}\n"
         + "".join(f" - {output_dir / name}\n" for name in sorted(artifact_names))
     )
 
@@ -3382,6 +3424,241 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                     high_warning=16,
                     status="WARN",
                     warning="dataset_too_small_for_reliable_cross_archive_signal_discovery",
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5m_cross_archive_feature_importance_complete_artifacts_manifest_and_output_contract(self) -> None:
+        rows = s5e_ml_dataset_rows()
+        for row in rows:
+            row["archive_id"] = "ARCHIVE-A"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-feature-importance"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_feature_importance(rows, output_dir, "CALL-SCOPE")
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*"))
+            }
+            self.assertEqual(
+                artifact_hashes,
+                S5M_CROSS_ARCHIVE_FEATURE_IMPORTANCE_ARTIFACT_SHA256,
+            )
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5M_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_SHA256,
+            )
+
+            with (output_dir / "cross_archive_feature_importance_v7e_manifest.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                manifest = list(csv.DictReader(handle))
+            self.assertEqual(manifest, [{
+                "engine_version": "v7e",
+                "archive_id": "CALL-SCOPE",
+                "archive_count": "1",
+                "rows_total": "3",
+                "allowed_features": "33",
+                "targets_evaluated": "9",
+                "importance_rows": "297",
+                "method": "absolute_pearson_correlation_after_leakage_audit",
+                "model_training": "not_performed",
+                "mode": "single_archive_infrastructure_validation",
+                "feature_importance_status": "WARN",
+                "feature_importance_warning": "dataset_too_small_for_reliable_cross_archive_feature_importance",
+                "statistical_interpretation_allowed": "no",
+                "minimum_recommended_archives": "2",
+                "minimum_recommended_trades": "30",
+            }])
+
+            with (output_dir / "cross_archive_feature_importance_v7e.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                combined = list(csv.DictReader(handle))
+            expected_targets = [
+                "target_winner",
+                "target_loser",
+                "target_quality_good",
+                "target_quality_bad",
+                "target_opportunity_loss_high",
+                "target_exit_efficiency_high",
+                "target_pnl_pct",
+                "target_future_return_24h_pct",
+                "target_future_return_72h_pct",
+            ]
+            self.assertEqual(len(combined), 297)
+            self.assertEqual(
+                [float(row["importance_score"]) for row in combined],
+                sorted((float(row["importance_score"]) for row in combined), reverse=True),
+            )
+            self.assertEqual(
+                {target: sum(1 for row in combined if row["target_column"] == target) for target in expected_targets},
+                {target: 33 for target in expected_targets},
+            )
+            self.assertTrue(all(row["archive_scope"] == "single_archive_validation" for row in combined))
+            self.assertTrue(all(row["archive_count"] == "1" for row in combined))
+            self.assertTrue(all(row["source_archive_id"] == "CALL-SCOPE" for row in combined))
+            self.assertTrue(all(row["statistical_interpretation_allowed"] == "no" for row in combined))
+            for target in expected_targets:
+                with self.subTest(target=target):
+                    with (output_dir / f"cross_archive_feature_importance_v7e_{target}.csv").open(
+                        "r", encoding="utf-8", newline=""
+                    ) as handle:
+                        target_rows = list(csv.DictReader(handle))
+                    self.assertEqual(len(target_rows), 33)
+                    self.assertTrue(all(row["target_column"] == target for row in target_rows))
+
+            self.assertEqual(
+                stdout.getvalue(),
+                s5m_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    archive_id="CALL-SCOPE",
+                    rows_total=3,
+                    allowed_features=33,
+                    importance_rows=297,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_cross_archive_feature_importance",
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5m_cross_archive_feature_importance_empty_artifact_and_warn_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-feature-importance"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_feature_importance([], output_dir, "EMPTY")
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*"))
+            }
+            self.assertEqual(
+                set(artifact_hashes),
+                set(S5M_CROSS_ARCHIVE_FEATURE_IMPORTANCE_ARTIFACT_SHA256),
+            )
+            self.assertEqual(
+                artifact_hashes["cross_archive_feature_importance_v7e_manifest.csv"],
+                S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_CSV_SHA256,
+            )
+            self.assertEqual(
+                artifact_hashes["v7e_cross_archive_feature_importance_summary.md"],
+                S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_SUMMARY_SHA256,
+            )
+            for name, digest in artifact_hashes.items():
+                if name not in {
+                    "cross_archive_feature_importance_v7e_manifest.csv",
+                    "v7e_cross_archive_feature_importance_summary.md",
+                }:
+                    self.assertEqual(digest, hashlib.sha256(b"").hexdigest())
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5M_EMPTY_CROSS_ARCHIVE_FEATURE_IMPORTANCE_MANIFEST_SHA256,
+            )
+            self.assertEqual(
+                stdout.getvalue(),
+                s5m_expected_stdout(
+                    output_dir,
+                    list(artifact_hashes),
+                    archive_id="EMPTY",
+                    rows_total=0,
+                    allowed_features=0,
+                    importance_rows=0,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_cross_archive_feature_importance",
+                ),
+            )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5m_cross_archive_feature_importance_exact_archive_and_trade_threshold_contract(self) -> None:
+        base = s5e_ml_dataset_rows()[0]
+
+        def build_boundary_rows(count: int, *, two_archives: bool) -> list[dict[str, object]]:
+            rows = []
+            for index in range(count):
+                row = dict(base)
+                row["trade_id"] = f"BOUNDARY-{index:02d}"
+                row["human_label"] = f"boundary-{index:02d}"
+                row["archive_id"] = "A" if not two_archives or index % 2 == 0 else "B"
+                rows.append(row)
+            return rows
+
+        cases = [
+            (29, True, "2", "multi_archive_analysis", "WARN", "no"),
+            (30, False, "1", "single_archive_infrastructure_validation", "PASS", "no"),
+            (30, True, "2", "multi_archive_analysis", "PASS", "yes"),
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            for index, (count, two_archives, archive_count, mode, status, allowed) in enumerate(cases):
+                output_dir = root / f"case-{index}"
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    inspector.export_cross_archive_feature_importance(
+                        build_boundary_rows(count, two_archives=two_archives),
+                        output_dir,
+                        "BOUNDARY",
+                    )
+                with (output_dir / "cross_archive_feature_importance_v7e_manifest.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    manifest = list(csv.DictReader(handle))[0]
+                self.assertEqual(manifest["archive_count"], archive_count)
+                self.assertEqual(manifest["rows_total"], str(count))
+                self.assertEqual(manifest["mode"], mode)
+                self.assertEqual(manifest["feature_importance_status"], status)
+                self.assertEqual(manifest["statistical_interpretation_allowed"], allowed)
+
+                with (output_dir / "cross_archive_feature_importance_v7e.csv").open(
+                    "r", encoding="utf-8", newline=""
+                ) as handle:
+                    combined = list(csv.DictReader(handle))
+                self.assertEqual(len(combined), int(manifest["importance_rows"]))
+                self.assertTrue(all(row["archive_scope"] == "single_archive_validation" for row in combined))
+                self.assertTrue(all(row["archive_count"] == "1" for row in combined))
+                self.assertTrue(all(row["source_archive_id"] == "BOUNDARY" for row in combined))
+                self.assertTrue(all(row["statistical_interpretation_allowed"] == allowed for row in combined))
+
+    def test_s5m_cross_archive_feature_importance_overwrite_and_foreign_listing_contract(self) -> None:
+        rows = s5e_ml_dataset_rows()
+        for row in rows:
+            row["archive_id"] = "ARCHIVE-A"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "cross-archive-feature-importance"
+            output_dir.mkdir()
+            combined_path = output_dir / "cross_archive_feature_importance_v7e.csv"
+            combined_path.write_bytes(b"stale")
+            foreign = output_dir / "foreign.keep"
+            foreign.write_bytes(b"foreign")
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                inspector.export_cross_archive_feature_importance(rows, output_dir, "CALL-SCOPE")
+
+            self.assertEqual(
+                hashlib.sha256(combined_path.read_bytes()).hexdigest(),
+                S5M_CROSS_ARCHIVE_FEATURE_IMPORTANCE_ARTIFACT_SHA256[combined_path.name],
+            )
+            self.assertEqual(foreign.read_bytes(), b"foreign")
+            listed_names = [*S5M_CROSS_ARCHIVE_FEATURE_IMPORTANCE_ARTIFACT_SHA256, foreign.name]
+            self.assertEqual(
+                stdout.getvalue(),
+                s5m_expected_stdout(
+                    output_dir,
+                    listed_names,
+                    archive_id="CALL-SCOPE",
+                    rows_total=3,
+                    allowed_features=33,
+                    importance_rows=297,
+                    status="WARN",
+                    warning="dataset_too_small_for_reliable_cross_archive_feature_importance",
                 ),
             )
             self.assertEqual(stderr.getvalue(), "")
