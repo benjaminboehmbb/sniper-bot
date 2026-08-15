@@ -14,7 +14,7 @@ from unittest import mock
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "state_research" / "analyze_step18_predictive_power.py"
-SOURCE_SHA256 = "49f992538ada5ab7ce795aecdd33eced7b6d6e68199998eeb49292807b88e2ad"
+SOURCE_SHA256 = "e32bd3d6545d92d210e317bf9f6db43aa353238f265108cd8b1c558c1b213751"
 FIXTURE_STDOUT_SHA256 = "7a50a1c59d6541da387a6939600f075a48a3b23cd37fbb5eaf25d3f0787987f5"
 INPUT_PATH = "live_logs/passive_shadow_risk_snapshots.csv"
 METRIC_COLUMNS = (
@@ -72,14 +72,43 @@ class AnalyzeStep18PredictivePowerCharacterizationTests(unittest.TestCase):
     def test_source_identity_is_bound(self) -> None:
         raw = SCRIPT_PATH.read_bytes()
         self.assertEqual(hashlib.sha256(raw).hexdigest(), SOURCE_SHA256)
-        self.assertEqual(len(raw.decode("utf-8").splitlines()), 21)
+        self.assertEqual(len(raw.decode("utf-8").splitlines()), 27)
 
-    def test_entry_point_is_currently_import_time_execution(self) -> None:
+    def test_entry_point_is_contained_behind_main_guard(self) -> None:
         tree = _tree()
-        self.assertFalse(any(_is_main_guard(node) for node in tree.body))
-        self.assertFalse(any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) for node in tree.body))
+        main_guards = [node for node in tree.body if _is_main_guard(node)]
+        main_functions = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "main"
+        ]
+        self.assertEqual(len(main_guards), 1)
+        self.assertEqual(len(main_functions), 1)
+        self.assertEqual(main_functions[0].args.posonlyargs, [])
+        self.assertEqual(main_functions[0].args.args, [])
+        self.assertEqual(main_functions[0].args.kwonlyargs, [])
+        self.assertIsNone(main_functions[0].args.vararg)
+        self.assertIsNone(main_functions[0].args.kwarg)
+        self.assertEqual(len(main_guards[0].body), 1)
+        guard_call = main_guards[0].body[0]
+        self.assertIsInstance(guard_call, ast.Expr)
+        self.assertIsInstance(guard_call.value, ast.Call)
+        self.assertIsInstance(guard_call.value.func, ast.Name)
+        self.assertEqual(guard_call.value.func.id, "main")
+        self.assertEqual(guard_call.value.args, [])
+        self.assertEqual(guard_call.value.keywords, [])
 
         read_calls = [
+            node
+            for node in ast.walk(main_functions[0])
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "pd"
+            and node.func.attr == "read_csv"
+        ]
+        self.assertEqual(len(read_calls), 1)
+        all_read_calls = [
             node
             for node in ast.walk(tree)
             if isinstance(node, ast.Call)
@@ -88,7 +117,7 @@ class AnalyzeStep18PredictivePowerCharacterizationTests(unittest.TestCase):
             and node.func.value.id == "pd"
             and node.func.attr == "read_csv"
         ]
-        self.assertEqual(len(read_calls), 1)
+        self.assertEqual(len(all_read_calls), 1)
         self.assertEqual(len(read_calls[0].args), 1)
         self.assertIsInstance(read_calls[0].args[0], ast.Constant)
         self.assertEqual(read_calls[0].args[0].value, INPUT_PATH)
@@ -96,7 +125,7 @@ class AnalyzeStep18PredictivePowerCharacterizationTests(unittest.TestCase):
     def test_metric_column_order_is_bound(self) -> None:
         cols_assignments = [
             node
-            for node in _tree().body
+            for node in ast.walk(_tree())
             if isinstance(node, ast.Assign)
             and any(isinstance(target, ast.Name) and target.id == "cols" for target in node.targets)
         ]
@@ -142,7 +171,7 @@ class AnalyzeStep18PredictivePowerCharacterizationTests(unittest.TestCase):
         stdout = io.StringIO()
         with mock.patch.dict(sys.modules, {"pandas": _pandas_fixture(read_csv)}):
             with contextlib.redirect_stdout(stdout):
-                runpy.run_path(str(SCRIPT_PATH), run_name="step18_predictive_power_fixture")
+                runpy.run_path(str(SCRIPT_PATH), run_name="__main__")
 
         self.assertEqual(observed_paths, [INPUT_PATH])
         expected_lines = ["", "---- STEP18 DISTRIBUTIONS ----", ""]
@@ -156,6 +185,22 @@ class AnalyzeStep18PredictivePowerCharacterizationTests(unittest.TestCase):
             FIXTURE_STDOUT_SHA256,
         )
 
+    def test_import_path_has_no_input_read_or_stdout(self) -> None:
+        def read_csv(path: str) -> _FixtureFrame:
+            raise AssertionError(f"import attempted to read {path}")
+
+        stdout = io.StringIO()
+        with mock.patch.dict(sys.modules, {"pandas": _pandas_fixture(read_csv)}):
+            with contextlib.redirect_stdout(stdout):
+                namespace = runpy.run_path(
+                    str(SCRIPT_PATH),
+                    run_name="step18_predictive_power_import_probe",
+                )
+
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertIn("main", namespace)
+        self.assertTrue(callable(namespace["main"]))
+
     def test_missing_input_fails_closed_before_stdout(self) -> None:
         def read_csv(path: str) -> _FixtureFrame:
             raise FileNotFoundError(path)
@@ -164,7 +209,7 @@ class AnalyzeStep18PredictivePowerCharacterizationTests(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"pandas": _pandas_fixture(read_csv)}):
             with contextlib.redirect_stdout(stdout):
                 with self.assertRaisesRegex(FileNotFoundError, INPUT_PATH):
-                    runpy.run_path(str(SCRIPT_PATH), run_name="step18_predictive_power_missing_input")
+                    runpy.run_path(str(SCRIPT_PATH), run_name="__main__")
 
         self.assertEqual(stdout.getvalue(), "")
 

@@ -1,21 +1,27 @@
 import pandas as pd
 
-df = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-cols = [
-    "shadow_risk_score",
-    "regime_mismatch_score",
-    "atr_stress_score",
-    "adverse_score_pressure",
-]
+def main() -> None:
+    df = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-print()
-print("---- STEP18 DISTRIBUTIONS ----")
-print()
+    cols = [
+        "shadow_risk_score",
+        "regime_mismatch_score",
+        "atr_stress_score",
+        "adverse_score_pressure",
+    ]
 
-for c in cols:
-    print(c)
-    print(df[c].describe())
+    print()
+    print("---- STEP18 DISTRIBUTIONS ----")
     print()
 
-print("DONE")
+    for c in cols:
+        print(c)
+        print(df[c].describe())
+        print()
+
+    print("DONE")
+
+
+if __name__ == "__main__":
+    main()
