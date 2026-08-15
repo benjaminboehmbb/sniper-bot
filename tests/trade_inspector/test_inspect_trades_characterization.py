@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import __future__
+import argparse
 import contextlib
 import csv
 import hashlib
@@ -12,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 from types import SimpleNamespace
+from typing import Any
 import unittest
 from unittest import mock
 
@@ -257,6 +260,112 @@ S5Q_REGRESSION_VALIDATION_STDOUT_LINES = {
     "count_fail": 22,
     "analysis_fail": 23,
 }
+S5S_FACADE_PUBLIC_NAMES = (
+    "Any",
+    "DEFAULT_ARCHIVE_DIR",
+    "DEFAULT_LABEL_LIST",
+    "DEFAULT_LABEL_REGISTRY",
+    "DEFAULT_MARKET_CSV",
+    "FUTURE_WINDOWS_MIN",
+    "HIGH_LEAKAGE_EXACT",
+    "HIGH_LEAKAGE_PREFIXES",
+    "MEDIUM_LEAKAGE_EXACT",
+    "NON_FEATURE_COLUMNS",
+    "Path",
+    "SAFE_ID_COLUMNS",
+    "TARGET_COLUMNS",
+    "add_ml_targets",
+    "aggregate_group_rows",
+    "aggregate_top_improvement_rows",
+    "annotations",
+    "argparse",
+    "assign_human_labels",
+    "audit_feature_leakage",
+    "avg",
+    "build_category_maps",
+    "build_feature_catalog",
+    "build_ml_dataset_rows",
+    "build_ml_row",
+    "build_model_ready_rows",
+    "build_regime_index",
+    "build_rows",
+    "build_trade_family",
+    "build_trade_id",
+    "calculate_counterfactuals",
+    "calculate_trade_path",
+    "chart_time",
+    "classify_signal_reliability",
+    "classify_signal_support",
+    "compact_trade_time",
+    "compute_confidence_layer",
+    "compute_diagnosis",
+    "compute_quality_score",
+    "compute_root_cause_attribution",
+    "count_valid_jsonl",
+    "dataset_split_from_trade_id",
+    "discover_pair_groups",
+    "discover_signal_groups",
+    "evaluate_split_quality",
+    "export_aggregate_csvs",
+    "export_cross_archive_feature_importance",
+    "export_cross_archive_root_cause",
+    "export_cross_archive_signal_discovery",
+    "export_feature_importance",
+    "export_feature_preparation",
+    "export_feature_stability",
+    "export_global_trade_database",
+    "export_leakage_audit_dataset",
+    "export_ml_csv",
+    "export_ml_dataset",
+    "export_multi_archive_loader",
+    "export_predictive_signal_discovery",
+    "export_root_cause_attribution_csv",
+    "extract_regime_features",
+    "feature_importance_rows",
+    "find_matching_entry_exit",
+    "group_rows",
+    "group_stats",
+    "interpretation_flags",
+    "is_number_like",
+    "load_archive_registry_md",
+    "load_human_labels",
+    "load_label_registry",
+    "load_rows_for_archive",
+    "main",
+    "market_price",
+    "market_timestamp",
+    "median",
+    "parse_cause_weights",
+    "parse_key_value_log",
+    "parse_market_rows",
+    "parse_ts",
+    "pearson_abs",
+    "print_aggregate_intelligence",
+    "print_group_table",
+    "print_kv",
+    "print_root_cause_attribution",
+    "print_split_quality",
+    "print_summary",
+    "print_top_improvement_candidates",
+    "print_trade_family_summary",
+    "print_trade_report",
+    "quality_flags",
+    "read_jsonl",
+    "run_archive_intake_validation",
+    "run_builtin_regression_validation",
+    "safe_float",
+    "safe_int",
+    "safe_rate",
+    "safe_text",
+    "save_label_registry",
+    "score_band",
+    "signed_diagnosis",
+    "stability_class",
+    "std",
+    "trade_pnl_from_price",
+    "ts_key",
+    "write_csv_rows",
+)
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -4921,6 +5030,191 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         ]
         self.assertEqual(stdout.getvalue(), "\n".join(expected_lines))
         self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5s_facade_complete_public_reexport_identity_contract(self) -> None:
+        public_names = tuple(sorted(name for name in vars(inspector) if not name.startswith("_")))
+        self.assertEqual(public_names, S5S_FACADE_PUBLIC_NAMES)
+
+        support_names = {"Any", "Path", "annotations", "argparse"}
+        self.assertIs(inspector.Any, Any)
+        self.assertIs(inspector.Path, Path)
+        self.assertIs(inspector.annotations, __future__.annotations)
+        self.assertIs(inspector.argparse, argparse)
+
+        owner_groups = {
+            aggregate_csv: (
+                "aggregate_group_rows",
+                "aggregate_top_improvement_rows",
+                "avg",
+                "compute_root_cause_attribution",
+                "export_aggregate_csvs",
+                "export_root_cause_attribution_csv",
+                "group_rows",
+                "group_stats",
+                "parse_cause_weights",
+            ),
+            intake: ("count_valid_jsonl", "run_archive_intake_validation"),
+            cli_orchestration: (
+                "DEFAULT_ARCHIVE_DIR",
+                "DEFAULT_LABEL_LIST",
+                "DEFAULT_LABEL_REGISTRY",
+                "DEFAULT_MARKET_CSV",
+                "main",
+            ),
+            console_reporting: (
+                "print_aggregate_intelligence",
+                "print_group_table",
+                "print_root_cause_attribution",
+                "print_summary",
+                "print_top_improvement_candidates",
+                "print_trade_family_summary",
+                "print_trade_report",
+            ),
+            csv_persistence: ("write_csv_rows",),
+            cross_archive_feature_importance: ("export_cross_archive_feature_importance",),
+            cross_archive_root_cause: ("export_cross_archive_root_cause",),
+            cross_archive_signal_discovery: ("export_cross_archive_signal_discovery",),
+            feature_preparation: (
+                "NON_FEATURE_COLUMNS",
+                "TARGET_COLUMNS",
+                "build_category_maps",
+                "build_feature_catalog",
+                "build_model_ready_rows",
+                "export_feature_preparation",
+                "is_number_like",
+            ),
+            feature_importance: (
+                "export_feature_importance",
+                "feature_importance_rows",
+                "pearson_abs",
+            ),
+            feature_discovery: (
+                "classify_signal_reliability",
+                "classify_signal_support",
+                "discover_pair_groups",
+                "discover_signal_groups",
+                "export_predictive_signal_discovery",
+                "safe_rate",
+            ),
+            feature_stability: (
+                "export_feature_stability",
+                "median",
+                "stability_class",
+                "std",
+            ),
+            global_trade_database: ("export_global_trade_database",),
+            primitives: ("parse_ts", "safe_float", "safe_int", "safe_text", "ts_key"),
+            label_registry: (
+                "assign_human_labels",
+                "load_human_labels",
+                "load_label_registry",
+                "save_label_registry",
+            ),
+            leakage_audit: (
+                "HIGH_LEAKAGE_EXACT",
+                "HIGH_LEAKAGE_PREFIXES",
+                "MEDIUM_LEAKAGE_EXACT",
+                "SAFE_ID_COLUMNS",
+                "audit_feature_leakage",
+                "export_leakage_audit_dataset",
+            ),
+            ml_dataset: (
+                "add_ml_targets",
+                "build_ml_dataset_rows",
+                "dataset_split_from_trade_id",
+                "evaluate_split_quality",
+                "export_ml_dataset",
+                "print_kv",
+                "print_split_quality",
+            ),
+            multi_archive_loader: (
+                "export_multi_archive_loader",
+                "load_archive_registry_md",
+                "load_rows_for_archive",
+                "market_price",
+                "market_timestamp",
+                "parse_key_value_log",
+                "parse_market_rows",
+                "read_jsonl",
+            ),
+            path_diagnosis: (
+                "FUTURE_WINDOWS_MIN",
+                "calculate_counterfactuals",
+                "calculate_trade_path",
+                "compute_confidence_layer",
+                "compute_diagnosis",
+                "compute_quality_score",
+                "interpretation_flags",
+                "quality_flags",
+                "score_band",
+                "signed_diagnosis",
+                "trade_pnl_from_price",
+            ),
+            raw_ml_csv: ("export_ml_csv",),
+            regression_validation: ("run_builtin_regression_validation",),
+            regime_identity_rows: (
+                "build_ml_row",
+                "build_regime_index",
+                "build_rows",
+                "build_trade_family",
+                "build_trade_id",
+                "chart_time",
+                "compact_trade_time",
+                "extract_regime_features",
+                "find_matching_entry_exit",
+            ),
+        }
+
+        covered_names: set[str] = set()
+        for owner, names in owner_groups.items():
+            for name in names:
+                with self.subTest(owner=owner.__name__, name=name):
+                    self.assertIs(getattr(inspector, name), getattr(owner, name))
+                    self.assertNotIn(name, covered_names)
+                    covered_names.add(name)
+
+        self.assertEqual(covered_names, set(S5S_FACADE_PUBLIC_NAMES) - support_names)
+
+    def test_s5s_direct_script_facade_surface_and_owner_contract(self) -> None:
+        probe = "".join(
+            [
+                "import json, pathlib, runpy, sys;",
+                "path = pathlib.Path(sys.argv[1]);",
+                "sys.path.insert(0, str(path.parent));",
+                "namespace = runpy.run_path(str(path), run_name='inspect_trades_direct_probe');",
+                "names = sorted(name for name in namespace if not name.startswith('_'));",
+                "owners = {name: getattr(namespace[name], '__module__', type(namespace[name]).__module__) ",
+                "for name in names};",
+                "print(json.dumps({'names': names, 'owners': owners}, sort_keys=True));",
+            ]
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", probe, str(SCRIPT_PATH)],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stderr, "")
+        payload = json.loads(completed.stdout)
+        self.assertEqual(tuple(payload["names"]), S5S_FACADE_PUBLIC_NAMES)
+
+        package_owner_tails = {
+            name: getattr(
+                getattr(inspector, name),
+                "__module__",
+                type(getattr(inspector, name)).__module__,
+            ).rsplit(".", 1)[-1]
+            for name in S5S_FACADE_PUBLIC_NAMES
+        }
+        direct_owner_tails = {
+            name: owner.rsplit(".", 1)[-1]
+            for name, owner in payload["owners"].items()
+        }
+        self.assertEqual(direct_owner_tails, package_owner_tails)
+        self.assertEqual(direct_owner_tails["main"], "cli_orchestration")
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
