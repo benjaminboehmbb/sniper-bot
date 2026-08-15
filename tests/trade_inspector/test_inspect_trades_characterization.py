@@ -228,6 +228,22 @@ S5O_EMPTY_GLOBAL_TRADE_DATABASE_ARTIFACT_SHA256 = {
     "v7c_global_trade_database_summary.md": "dbdf848215a5408060c79d170858a92f5697b7da8eeb594799e6ac1701bbf178",
 }
 S5O_EMPTY_GLOBAL_TRADE_DATABASE_MANIFEST_SHA256 = "40d6f366a69f9c7e2462890a195be0fee455446032573b075171f44544eae37a"
+S5P_CONSOLE_REPORTING_STDOUT_SHA256 = {
+    "trade_report": "761f3586f2718be32d5e7b6812ccc0189f138b318759c2b0e995d6a685d18a22",
+    "summary": "484345703e38ff381cbd33a40a76b1125a395f68e3846279cabfe3e109c33b21",
+    "summary_empty": "147e452576c2b62ef6437ca034350531d9e41137cf3583c6705ae38fa1d6ab65",
+    "aggregate": "0ac4243cebffe58a20ec3a4d12ca782b2a3104e5bc5275fa41b4882d12a89450",
+    "aggregate_empty": "c237b78299779d558eab6d708e85c7365b4cf7bc7c1575659c133d4495fa1a8a",
+    "group_reverse_false": "42a9c58b2918c81a6ae9b448385cc7c6aa4afbe6be1746f6af324159962722ab",
+}
+S5P_CONSOLE_REPORTING_STDOUT_LINES = {
+    "trade_report": 118,
+    "summary": 19,
+    "summary_empty": 18,
+    "aggregate": 64,
+    "aggregate_empty": 51,
+    "group_reverse_false": 5,
+}
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -4172,6 +4188,110 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                 ),
             )
             self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5p_console_reporting_inline_surface_and_complete_output_contract(self) -> None:
+        reporting_names = [
+            "print_trade_report",
+            "print_summary",
+            "print_group_table",
+            "print_trade_family_summary",
+            "print_top_improvement_candidates",
+            "print_root_cause_attribution",
+            "print_aggregate_intelligence",
+        ]
+        for name in reporting_names:
+            with self.subTest(name=name):
+                self.assertEqual(getattr(inspector, name).__module__, inspector.__name__)
+
+        trade = sample_trade()
+        audit_rows = sample_audit_rows()
+        entry, exit_ = inspector.find_matching_entry_exit(trade, audit_rows)
+        timestamps, prices = sample_market_path()
+        trade_id = inspector.build_trade_id(trade)
+
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            inspector.print_trade_report(
+                1,
+                trade,
+                entry,
+                exit_,
+                audit_rows,
+                sample_regime_index(),
+                timestamps,
+                prices,
+                {trade_id: "alpha"},
+            )
+        self.assertEqual(
+            hashlib.sha256(stdout.getvalue().encode()).hexdigest(),
+            S5P_CONSOLE_REPORTING_STDOUT_SHA256["trade_report"],
+        )
+        self.assertEqual(
+            len(stdout.getvalue().splitlines()),
+            S5P_CONSOLE_REPORTING_STDOUT_LINES["trade_report"],
+        )
+        self.assertEqual(stderr.getvalue(), "")
+
+        for name, callable_ in (
+            ("summary", lambda: inspector.print_summary(s5e_ml_dataset_rows())),
+            ("aggregate", lambda: inspector.print_aggregate_intelligence(s5e_ml_dataset_rows())),
+        ):
+            with self.subTest(name=name):
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    callable_()
+                self.assertEqual(
+                    hashlib.sha256(stdout.getvalue().encode()).hexdigest(),
+                    S5P_CONSOLE_REPORTING_STDOUT_SHA256[name],
+                )
+                self.assertEqual(
+                    len(stdout.getvalue().splitlines()),
+                    S5P_CONSOLE_REPORTING_STDOUT_LINES[name],
+                )
+                self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5p_console_reporting_empty_output_contract(self) -> None:
+        for name, callable_ in (
+            ("summary_empty", lambda: inspector.print_summary([])),
+            ("aggregate_empty", lambda: inspector.print_aggregate_intelligence([])),
+        ):
+            with self.subTest(name=name):
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    callable_()
+                self.assertEqual(
+                    hashlib.sha256(stdout.getvalue().encode()).hexdigest(),
+                    S5P_CONSOLE_REPORTING_STDOUT_SHA256[name],
+                )
+                self.assertEqual(
+                    len(stdout.getvalue().splitlines()),
+                    S5P_CONSOLE_REPORTING_STDOUT_LINES[name],
+                )
+                self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5p_console_reporting_group_reverse_false_contract(self) -> None:
+        rows = s5e_ml_dataset_rows()
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            inspector.print_group_table(
+                "ASCENDING GROUPS",
+                inspector.group_rows(rows, "quality_class"),
+                "total_pnl",
+                reverse=False,
+            )
+        self.assertEqual(
+            hashlib.sha256(stdout.getvalue().encode()).hexdigest(),
+            S5P_CONSOLE_REPORTING_STDOUT_SHA256["group_reverse_false"],
+        )
+        self.assertEqual(
+            len(stdout.getvalue().splitlines()),
+            S5P_CONSOLE_REPORTING_STDOUT_LINES["group_reverse_false"],
+        )
+        self.assertEqual(stderr.getvalue(), "")
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
         timestamps, prices = sample_market_path()
