@@ -18,6 +18,7 @@ from unittest import mock
 from tools.trade_inspector import aggregate_csv
 from tools.trade_inspector import archive_intake as intake
 from tools.trade_inspector import csv_persistence
+from tools.trade_inspector import cross_archive_feature_importance
 from tools.trade_inspector import cross_archive_signal_discovery
 from tools.trade_inspector import feature_importance
 from tools.trade_inspector import feature_discovery
@@ -3429,6 +3430,11 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s5m_cross_archive_feature_importance_complete_artifacts_manifest_and_output_contract(self) -> None:
+        self.assertIs(
+            inspector.export_cross_archive_feature_importance,
+            cross_archive_feature_importance.export_cross_archive_feature_importance,
+        )
+
         rows = s5e_ml_dataset_rows()
         for row in rows:
             row["archive_id"] = "ARCHIVE-A"
