@@ -215,6 +215,16 @@ S5N_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_SHA256 = "16807c6d1bd1c8d6d8e8534cff39a55f
 S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_CSV_SHA256 = "0eecd2fcd8575ac5a572ec0db7e50cbc3e04a4c262e6d6ae33a33d00599ca2ff"
 S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_SUMMARY_SHA256 = "8acbc8bfb62086e55b366d668036dbb0455b624f72ea9a65f37303255d4c5037"
 S5N_EMPTY_CROSS_ARCHIVE_ROOT_CAUSE_MANIFEST_SHA256 = "3ad06651f751952b31bad929b142c42e14dd0b3368f73dc8299f786c812b50d5"
+S5O_GLOBAL_TRADE_DATABASE_PARTIAL_ARTIFACT_SHA256 = {
+    "global_trades_v7c.csv": "184fd8c2f3076e5b4509b77bf7ae0dd5bd513615c05b08de4677c2b35e4ca5ea",
+    "v7c_global_trade_database_summary.md": "7a792198bed8f875edbec92d34020bec8b199bca84654bcfb49f2ce2c64e3094",
+}
+S5O_GLOBAL_TRADE_DATABASE_PARTIAL_MANIFEST_SHA256 = "3401c9ed6f636842ba2aa8b125c5c633d3d99ab9852840645851fce481b5ec5f"
+S5O_EMPTY_GLOBAL_TRADE_DATABASE_PARTIAL_ARTIFACT_SHA256 = {
+    "global_trades_v7c.csv": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "v7c_global_trade_database_summary.md": "dbdf848215a5408060c79d170858a92f5697b7da8eeb594799e6ac1701bbf178",
+}
+S5O_EMPTY_GLOBAL_TRADE_DATABASE_PARTIAL_MANIFEST_SHA256 = "4947fbb95f9d147b3c9d612c086e16298a9d0a6e62c49bfad4e8ac39220e008c"
 S3_SCENARIO_SHA256 = {
     "long": "de903d536a9874756c6a74bd6325f8e8bfea20ee6157222923efe024a5863aa1",
     "short": "c9cd9800a4a4de3f2b64daf9c6ec3c7df328308615064c37aff5bc9441a23276",
@@ -3938,6 +3948,158 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                     root_cause_groups=3,
                 ),
             )
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5o_global_trade_database_current_fail_closed_partial_artifact_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "global-trade-database"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with self.assertRaisesRegex(NameError, "name 'statistical_allowed' is not defined"):
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    inspector.export_global_trade_database(
+                        s5e_ml_dataset_rows(),
+                        output_dir,
+                        "CALL-SCOPE",
+                    )
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*"))
+            }
+            self.assertEqual(artifact_hashes, S5O_GLOBAL_TRADE_DATABASE_PARTIAL_ARTIFACT_SHA256)
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5O_GLOBAL_TRADE_DATABASE_PARTIAL_MANIFEST_SHA256,
+            )
+            self.assertFalse((output_dir / "global_trades_v7c_manifest.csv").exists())
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+
+            with (output_dir / "global_trades_v7c.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                reader = csv.DictReader(handle)
+                global_rows = list(reader)
+            self.assertEqual(len(reader.fieldnames or []), 131)
+            self.assertEqual(
+                (reader.fieldnames or [])[-4:],
+                ["archive_id", "local_trade_id", "global_trade_id", "v7_global_row_index"],
+            )
+            self.assertEqual([row["local_trade_id"] for row in global_rows], ["A", "K", "Z"])
+            self.assertEqual(
+                [row["global_trade_id"] for row in global_rows],
+                ["CALL-SCOPE::A", "CALL-SCOPE::K", "CALL-SCOPE::Z"],
+            )
+            self.assertEqual([row["v7_global_row_index"] for row in global_rows], ["1", "2", "3"])
+            self.assertTrue(all(row["archive_id"] == "CALL-SCOPE" for row in global_rows))
+
+    def test_s5o_global_trade_database_current_fail_closed_empty_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "global-trade-database"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with self.assertRaisesRegex(NameError, "name 'statistical_allowed' is not defined"):
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    inspector.export_global_trade_database([], output_dir, "EMPTY")
+
+            artifact_hashes = {
+                path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted(output_dir.glob("*"))
+            }
+            self.assertEqual(
+                artifact_hashes,
+                S5O_EMPTY_GLOBAL_TRADE_DATABASE_PARTIAL_ARTIFACT_SHA256,
+            )
+            self.assertEqual(
+                canonical_sha256(artifact_hashes),
+                S5O_EMPTY_GLOBAL_TRADE_DATABASE_PARTIAL_MANIFEST_SHA256,
+            )
+            self.assertFalse((output_dir / "global_trades_v7c_manifest.csv").exists())
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+
+    def test_s5o_global_trade_database_current_id_precedence_before_failure_contract(self) -> None:
+        rows = [
+            {"trade_id": "TRADE", "stable_trade_id": "STABLE", "local_trade_id": "LOCAL", "id": "ID"},
+            {"trade_id": "", "stable_trade_id": "STABLE", "local_trade_id": "LOCAL", "id": "ID"},
+            {"trade_id": "", "stable_trade_id": "", "local_trade_id": "LOCAL", "id": "ID"},
+            {"trade_id": "", "stable_trade_id": "", "local_trade_id": "", "id": "ID"},
+            {"trade_id": "", "stable_trade_id": "", "local_trade_id": "", "id": ""},
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "global-trade-database"
+            with self.assertRaisesRegex(NameError, "name 'statistical_allowed' is not defined"):
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    inspector.export_global_trade_database(rows, output_dir, "SCOPE")
+            with (output_dir / "global_trades_v7c.csv").open(
+                "r", encoding="utf-8", newline=""
+            ) as handle:
+                global_rows = list(csv.DictReader(handle))
+            self.assertEqual(
+                [row["local_trade_id"] for row in global_rows],
+                ["TRADE", "STABLE", "LOCAL", "ID", "T000005"],
+            )
+            self.assertEqual(
+                [row["global_trade_id"] for row in global_rows],
+                [
+                    "SCOPE::TRADE",
+                    "SCOPE::STABLE",
+                    "SCOPE::LOCAL",
+                    "SCOPE::ID",
+                    "SCOPE::T000005",
+                ],
+            )
+            self.assertEqual([row["v7_global_row_index"] for row in global_rows], ["1", "2", "3", "4", "5"])
+
+    def test_s5o_global_trade_database_current_failure_is_independent_of_trade_and_archive_counts(self) -> None:
+        for count, two_archives in ((29, True), (30, False), (30, True)):
+            with self.subTest(count=count, two_archives=two_archives):
+                rows = [
+                    {
+                        "trade_id": f"BOUNDARY-{index:02d}",
+                        "archive_id": "A" if not two_archives or index % 2 == 0 else "B",
+                    }
+                    for index in range(count)
+                ]
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    output_dir = Path(temp_dir) / "global-trade-database"
+                    with self.assertRaisesRegex(NameError, "name 'statistical_allowed' is not defined"):
+                        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                            inspector.export_global_trade_database(rows, output_dir, "BOUNDARY")
+                    self.assertFalse((output_dir / "global_trades_v7c_manifest.csv").exists())
+                    with (output_dir / "global_trades_v7c.csv").open(
+                        "r", encoding="utf-8", newline=""
+                    ) as handle:
+                        global_rows = list(csv.DictReader(handle))
+                    self.assertEqual(len(global_rows), count)
+
+    def test_s5o_global_trade_database_current_overwrite_and_foreign_preservation_before_failure_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir) / "global-trade-database"
+            output_dir.mkdir()
+            trades_path = output_dir / "global_trades_v7c.csv"
+            trades_path.write_bytes(b"stale")
+            foreign = output_dir / "foreign.keep"
+            foreign.write_bytes(b"foreign")
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with self.assertRaisesRegex(NameError, "name 'statistical_allowed' is not defined"):
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    inspector.export_global_trade_database(
+                        s5e_ml_dataset_rows(),
+                        output_dir,
+                        "CALL-SCOPE",
+                    )
+
+            self.assertEqual(
+                hashlib.sha256(trades_path.read_bytes()).hexdigest(),
+                S5O_GLOBAL_TRADE_DATABASE_PARTIAL_ARTIFACT_SHA256[trades_path.name],
+            )
+            self.assertEqual(foreign.read_bytes(), b"foreign")
+            self.assertFalse((output_dir / "global_trades_v7c_manifest.csv").exists())
+            self.assertEqual(stdout.getvalue(), "")
             self.assertEqual(stderr.getvalue(), "")
 
     def test_s3_long_path_and_diagnosis_snapshot(self) -> None:
