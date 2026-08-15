@@ -1,44 +1,50 @@
 import pandas as pd
 
-trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
-shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
-trades["exit_timestamp_utc"] = pd.to_datetime(trades["exit_timestamp_utc"], utc=True)
-shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
+def main() -> None:
+    trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
+    shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-rows = []
+    trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
+    trades["exit_timestamp_utc"] = pd.to_datetime(trades["exit_timestamp_utc"], utc=True)
+    shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
 
-for _, trade in trades.iterrows():
+    rows = []
 
-    trade_shadow = shadow[
-        (shadow["timestamp_utc"] >= trade["entry_timestamp_utc"]) &
-        (shadow["timestamp_utc"] <= trade["exit_timestamp_utc"])
-    ]
+    for _, trade in trades.iterrows():
 
-    if len(trade_shadow) == 0:
-        continue
+        trade_shadow = shadow[
+            (shadow["timestamp_utc"] >= trade["entry_timestamp_utc"]) &
+            (shadow["timestamp_utc"] <= trade["exit_timestamp_utc"])
+        ]
 
-    rows.append({
-        "pnl": float(trade["pnl"]),
-        "win": int(float(trade["pnl"]) > 0),
-        "mean_shadow_risk": float(trade_shadow["shadow_risk_score"].mean()),
-    })
+        if len(trade_shadow) == 0:
+            continue
 
-df = pd.DataFrame(rows)
+        rows.append({
+            "pnl": float(trade["pnl"]),
+            "win": int(float(trade["pnl"]) > 0),
+            "mean_shadow_risk": float(trade_shadow["shadow_risk_score"].mean()),
+        })
 
-print()
-print("TOTAL TRADES:", len(df))
-print()
+    df = pd.DataFrame(rows)
 
-for threshold in [0.50, 0.60, 0.70, 0.80]:
-
-    kept = df[df["mean_shadow_risk"] <= threshold]
-    blocked = df[df["mean_shadow_risk"] > threshold]
-
-    print("THRESHOLD", threshold)
-    print(" kept_trades :", len(kept))
-    print(" blocked     :", len(blocked))
-    print(" kept_pnl    :", round(kept["pnl"].sum(), 2))
-    print(" kept_winrate:", round(kept["win"].mean(), 4))
     print()
+    print("TOTAL TRADES:", len(df))
+    print()
+
+    for threshold in [0.50, 0.60, 0.70, 0.80]:
+
+        kept = df[df["mean_shadow_risk"] <= threshold]
+        blocked = df[df["mean_shadow_risk"] > threshold]
+
+        print("THRESHOLD", threshold)
+        print(" kept_trades :", len(kept))
+        print(" blocked     :", len(blocked))
+        print(" kept_pnl    :", round(kept["pnl"].sum(), 2))
+        print(" kept_winrate:", round(kept["win"].mean(), 4))
+        print()
+
+
+if __name__ == "__main__":
+    main()
