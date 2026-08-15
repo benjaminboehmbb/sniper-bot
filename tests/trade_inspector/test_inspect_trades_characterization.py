@@ -35,6 +35,7 @@ from tools.trade_inspector import ml_dataset
 from tools.trade_inspector import multi_archive_loader
 from tools.trade_inspector import path_diagnosis
 from tools.trade_inspector import raw_ml_csv
+from tools.trade_inspector import regression_validation
 from tools.trade_inspector import regime_identity_rows
 
 
@@ -4305,6 +4306,11 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         self.assertEqual(stderr.getvalue(), "")
 
     def test_s5q_builtin_regression_validation_pass_and_fail_output_contracts(self) -> None:
+        self.assertIs(
+            inspector.run_builtin_regression_validation,
+            regression_validation.run_builtin_regression_validation,
+        )
+
         cases = [
             ("pass", 9, True, 4, 0),
             ("count_fail", 8, True, 4, 1),
@@ -4373,38 +4379,38 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
 
                 with contextlib.ExitStack() as stack:
                     read_mock = stack.enter_context(
-                        mock.patch.object(inspector, "read_jsonl", side_effect=[trades, audit_rows])
+                        mock.patch.object(regression_validation, "read_jsonl", side_effect=[trades, audit_rows])
                     )
                     log_mock = stack.enter_context(
-                        mock.patch.object(inspector, "parse_key_value_log", return_value=log_rows)
+                        mock.patch.object(regression_validation, "parse_key_value_log", return_value=log_rows)
                     )
                     regime_mock = stack.enter_context(
-                        mock.patch.object(inspector, "build_regime_index", return_value=regime_index)
+                        mock.patch.object(regression_validation, "build_regime_index", return_value=regime_index)
                     )
                     market_mock = stack.enter_context(
-                        mock.patch.object(inspector, "parse_market_rows", return_value=(timestamps, prices))
+                        mock.patch.object(regression_validation, "parse_market_rows", return_value=(timestamps, prices))
                     )
                     labels_mock = stack.enter_context(
-                        mock.patch.object(inspector, "load_human_labels", return_value=labels)
+                        mock.patch.object(regression_validation, "load_human_labels", return_value=labels)
                     )
                     registry_mock = stack.enter_context(
-                        mock.patch.object(inspector, "load_label_registry", return_value=registry)
+                        mock.patch.object(regression_validation, "load_label_registry", return_value=registry)
                     )
                     assignment_mock = stack.enter_context(
-                        mock.patch.object(inspector, "assign_human_labels", return_value=label_map)
+                        mock.patch.object(regression_validation, "assign_human_labels", return_value=label_map)
                     )
                     build_rows_mock = stack.enter_context(
-                        mock.patch.object(inspector, "build_rows", return_value=rows)
+                        mock.patch.object(regression_validation, "build_rows", return_value=rows)
                     )
                     signal_mock = stack.enter_context(
-                        mock.patch.object(inspector, "discover_signal_groups", side_effect=signal_chunks)
+                        mock.patch.object(regression_validation, "discover_signal_groups", side_effect=signal_chunks)
                     )
                     pair_mock = stack.enter_context(
-                        mock.patch.object(inspector, "discover_pair_groups", side_effect=pair_chunks)
+                        mock.patch.object(regression_validation, "discover_pair_groups", side_effect=pair_chunks)
                     )
                     root_mock = stack.enter_context(
                         mock.patch.object(
-                            inspector,
+                            regression_validation,
                             "compute_root_cause_attribution",
                             return_value=[{"root_cause": f"R{index}"} for index in range(root_count)],
                         )
@@ -4463,7 +4469,11 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         )
         stdout = io.StringIO()
         stderr = io.StringIO()
-        with mock.patch.object(inspector, "read_jsonl", side_effect=ValueError("broken fixture")) as read_mock:
+        with mock.patch.object(
+            regression_validation,
+            "read_jsonl",
+            side_effect=ValueError("broken fixture"),
+        ) as read_mock:
             with self.assertRaisesRegex(ValueError, "broken fixture"):
                 with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                     inspector.run_builtin_regression_validation(args)
