@@ -17,6 +17,7 @@ from unittest import mock
 
 from tools.trade_inspector import aggregate_csv
 from tools.trade_inspector import archive_intake as intake
+from tools.trade_inspector import cli_orchestration
 from tools.trade_inspector import console_reporting
 from tools.trade_inspector import csv_persistence
 from tools.trade_inspector import cross_archive_feature_importance
@@ -4493,6 +4494,12 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         self.assertEqual(stderr.getvalue(), "")
 
     def test_s5r_main_parser_defaults_and_early_route_precedence_contract(self) -> None:
+        self.assertIs(inspector.main, cli_orchestration.main)
+        self.assertIs(inspector.DEFAULT_ARCHIVE_DIR, cli_orchestration.DEFAULT_ARCHIVE_DIR)
+        self.assertIs(inspector.DEFAULT_MARKET_CSV, cli_orchestration.DEFAULT_MARKET_CSV)
+        self.assertIs(inspector.DEFAULT_LABEL_LIST, cli_orchestration.DEFAULT_LABEL_LIST)
+        self.assertIs(inspector.DEFAULT_LABEL_REGISTRY, cli_orchestration.DEFAULT_LABEL_REGISTRY)
+
         expected_defaults = {
             "archive_dir": "live_logs/archive/P79A_pre_run_2026-06-10",
             "market_csv": "data/l1_full_run.csv",
@@ -4523,8 +4530,8 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         }
 
         with mock.patch.object(sys, "argv", ["inspect_trades.py", "--run-regression-tests"]):
-            with mock.patch.object(inspector, "run_builtin_regression_validation", return_value=41) as regression_mock:
-                with mock.patch.object(inspector, "read_jsonl") as read_mock:
+            with mock.patch.object(cli_orchestration, "run_builtin_regression_validation", return_value=41) as regression_mock:
+                with mock.patch.object(cli_orchestration, "read_jsonl") as read_mock:
                     self.assertEqual(inspector.main(), 41)
 
         regression_mock.assert_called_once()
@@ -4540,9 +4547,9 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             "--summary",
         ]
         with mock.patch.object(sys, "argv", argv):
-            with mock.patch.object(inspector, "run_builtin_regression_validation", return_value=43) as regression_mock:
-                with mock.patch.object(inspector, "run_archive_intake_validation") as intake_mock:
-                    with mock.patch.object(inspector, "read_jsonl") as read_mock:
+            with mock.patch.object(cli_orchestration, "run_builtin_regression_validation", return_value=43) as regression_mock:
+                with mock.patch.object(cli_orchestration, "run_archive_intake_validation") as intake_mock:
+                    with mock.patch.object(cli_orchestration, "read_jsonl") as read_mock:
                         self.assertEqual(inspector.main(), 43)
 
         regression_mock.assert_called_once()
@@ -4557,8 +4564,8 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
             "/fixture/intake",
         ]
         with mock.patch.object(sys, "argv", argv):
-            with mock.patch.object(inspector, "run_archive_intake_validation", return_value=47) as intake_mock:
-                with mock.patch.object(inspector, "read_jsonl") as read_mock:
+            with mock.patch.object(cli_orchestration, "run_archive_intake_validation", return_value=47) as intake_mock:
+                with mock.patch.object(cli_orchestration, "read_jsonl") as read_mock:
                     self.assertEqual(inspector.main(), 47)
 
         intake_mock.assert_called_once()
@@ -4568,8 +4575,8 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         read_mock.assert_not_called()
 
         with mock.patch.object(sys, "argv", ["inspect_trades.py", "--run-archive-intake"]):
-            with mock.patch.object(inspector, "run_archive_intake_validation") as intake_mock:
-                with mock.patch.object(inspector, "read_jsonl") as read_mock:
+            with mock.patch.object(cli_orchestration, "run_archive_intake_validation") as intake_mock:
+                with mock.patch.object(cli_orchestration, "read_jsonl") as read_mock:
                     with self.assertRaisesRegex(
                         SystemExit,
                         "^--archive-intake-dir is required with --run-archive-intake$",
@@ -4650,21 +4657,21 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         stderr = io.StringIO()
         with contextlib.ExitStack() as stack:
             stack.enter_context(mock.patch.object(sys, "argv", argv))
-            stack.enter_context(mock.patch.object(inspector, "read_jsonl", side_effect=read_jsonl))
-            stack.enter_context(mock.patch.object(inspector, "parse_key_value_log", side_effect=record("parse_log", log_rows)))
-            stack.enter_context(mock.patch.object(inspector, "build_regime_index", side_effect=record("build_regime", regime_index)))
-            stack.enter_context(mock.patch.object(inspector, "parse_market_rows", side_effect=record("parse_market", (timestamps, prices))))
-            stack.enter_context(mock.patch.object(inspector, "load_human_labels", side_effect=record("load_labels", labels)))
-            stack.enter_context(mock.patch.object(inspector, "load_label_registry", side_effect=record("load_registry", registry)))
-            stack.enter_context(mock.patch.object(inspector, "assign_human_labels", side_effect=record("assign_labels", label_map)))
-            stack.enter_context(mock.patch.object(inspector, "save_label_registry", side_effect=record("save_registry", None)))
-            stack.enter_context(mock.patch.object(inspector, "build_rows", side_effect=record("build_rows", rows)))
-            stack.enter_context(mock.patch.object(inspector, "find_matching_entry_exit", side_effect=record("find_entry_exit", (entry, exit_))))
-            stack.enter_context(mock.patch.object(inspector, "print_trade_report", side_effect=record("print_trade", None)))
-            summary_mock = stack.enter_context(mock.patch.object(inspector, "print_summary"))
-            aggregate_mock = stack.enter_context(mock.patch.object(inspector, "print_aggregate_intelligence"))
-            ml_mock = stack.enter_context(mock.patch.object(inspector, "export_ml_csv"))
-            cross_mock = stack.enter_context(mock.patch.object(inspector, "export_cross_archive_root_cause"))
+            stack.enter_context(mock.patch.object(cli_orchestration, "read_jsonl", side_effect=read_jsonl))
+            stack.enter_context(mock.patch.object(cli_orchestration, "parse_key_value_log", side_effect=record("parse_log", log_rows)))
+            stack.enter_context(mock.patch.object(cli_orchestration, "build_regime_index", side_effect=record("build_regime", regime_index)))
+            stack.enter_context(mock.patch.object(cli_orchestration, "parse_market_rows", side_effect=record("parse_market", (timestamps, prices))))
+            stack.enter_context(mock.patch.object(cli_orchestration, "load_human_labels", side_effect=record("load_labels", labels)))
+            stack.enter_context(mock.patch.object(cli_orchestration, "load_label_registry", side_effect=record("load_registry", registry)))
+            stack.enter_context(mock.patch.object(cli_orchestration, "assign_human_labels", side_effect=record("assign_labels", label_map)))
+            stack.enter_context(mock.patch.object(cli_orchestration, "save_label_registry", side_effect=record("save_registry", None)))
+            stack.enter_context(mock.patch.object(cli_orchestration, "build_rows", side_effect=record("build_rows", rows)))
+            stack.enter_context(mock.patch.object(cli_orchestration, "find_matching_entry_exit", side_effect=record("find_entry_exit", (entry, exit_))))
+            stack.enter_context(mock.patch.object(cli_orchestration, "print_trade_report", side_effect=record("print_trade", None)))
+            summary_mock = stack.enter_context(mock.patch.object(cli_orchestration, "print_summary"))
+            aggregate_mock = stack.enter_context(mock.patch.object(cli_orchestration, "print_aggregate_intelligence"))
+            ml_mock = stack.enter_context(mock.patch.object(cli_orchestration, "export_ml_csv"))
+            cross_mock = stack.enter_context(mock.patch.object(cli_orchestration, "export_cross_archive_root_cause"))
             with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 self.assertEqual(inspector.main(), 0)
 
@@ -4760,17 +4767,17 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                 stderr = io.StringIO()
                 with contextlib.ExitStack() as stack:
                     stack.enter_context(mock.patch.object(sys, "argv", argv))
-                    stack.enter_context(mock.patch.object(inspector, "read_jsonl", side_effect=[trades, audit_rows]))
-                    stack.enter_context(mock.patch.object(inspector, "parse_key_value_log", return_value=log_rows))
-                    stack.enter_context(mock.patch.object(inspector, "build_regime_index", return_value=regime_index))
-                    stack.enter_context(mock.patch.object(inspector, "parse_market_rows", return_value=(timestamps, prices)))
-                    stack.enter_context(mock.patch.object(inspector, "load_human_labels", return_value=labels))
-                    stack.enter_context(mock.patch.object(inspector, "load_label_registry", return_value=registry))
-                    stack.enter_context(mock.patch.object(inspector, "assign_human_labels", return_value=label_map))
-                    stack.enter_context(mock.patch.object(inspector, "build_rows", return_value=rows))
-                    stack.enter_context(mock.patch.object(inspector, "load_archive_registry_md", return_value=[]))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "read_jsonl", side_effect=[trades, audit_rows]))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "parse_key_value_log", return_value=log_rows))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "build_regime_index", return_value=regime_index))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "parse_market_rows", return_value=(timestamps, prices)))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "load_human_labels", return_value=labels))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "load_label_registry", return_value=registry))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "assign_human_labels", return_value=label_map))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "build_rows", return_value=rows))
+                    stack.enter_context(mock.patch.object(cli_orchestration, "load_archive_registry_md", return_value=[]))
                     delegates = {
-                        name: stack.enter_context(mock.patch.object(inspector, name))
+                        name: stack.enter_context(mock.patch.object(cli_orchestration, name))
                         for name in delegate_names
                     }
                     with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
@@ -4806,21 +4813,21 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
                         ["inspect_trades.py", "--export-cross-archive-root-cause-dir", "/fixture/root"],
                     )
                 )
-                stack.enter_context(mock.patch.object(inspector, "read_jsonl", side_effect=[trades, audit_rows]))
-                stack.enter_context(mock.patch.object(inspector, "parse_key_value_log", return_value=log_rows))
-                stack.enter_context(mock.patch.object(inspector, "build_regime_index", return_value={}))
-                stack.enter_context(mock.patch.object(inspector, "parse_market_rows", return_value=(["T"], [1.0])))
-                stack.enter_context(mock.patch.object(inspector, "load_human_labels", return_value=[]))
-                stack.enter_context(mock.patch.object(inspector, "load_label_registry", return_value={}))
-                stack.enter_context(mock.patch.object(inspector, "assign_human_labels", return_value={}))
-                stack.enter_context(mock.patch.object(inspector, "build_rows", return_value=rows))
+                stack.enter_context(mock.patch.object(cli_orchestration, "read_jsonl", side_effect=[trades, audit_rows]))
+                stack.enter_context(mock.patch.object(cli_orchestration, "parse_key_value_log", return_value=log_rows))
+                stack.enter_context(mock.patch.object(cli_orchestration, "build_regime_index", return_value={}))
+                stack.enter_context(mock.patch.object(cli_orchestration, "parse_market_rows", return_value=(["T"], [1.0])))
+                stack.enter_context(mock.patch.object(cli_orchestration, "load_human_labels", return_value=[]))
+                stack.enter_context(mock.patch.object(cli_orchestration, "load_label_registry", return_value={}))
+                stack.enter_context(mock.patch.object(cli_orchestration, "assign_human_labels", return_value={}))
+                stack.enter_context(mock.patch.object(cli_orchestration, "build_rows", return_value=rows))
                 registry_mock = stack.enter_context(
-                    mock.patch.object(inspector, "load_archive_registry_md", return_value=registry_rows)
+                    mock.patch.object(cli_orchestration, "load_archive_registry_md", return_value=registry_rows)
                 )
                 loader_mock = stack.enter_context(
-                    mock.patch.object(inspector, "load_rows_for_archive", side_effect=loader_side_effect)
+                    mock.patch.object(cli_orchestration, "load_rows_for_archive", side_effect=loader_side_effect)
                 )
-                export_mock = stack.enter_context(mock.patch.object(inspector, "export_cross_archive_root_cause"))
+                export_mock = stack.enter_context(mock.patch.object(cli_orchestration, "export_cross_archive_root_cause"))
                 with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                     result = inspector.main()
             return result, registry_mock, loader_mock, export_mock, stdout.getvalue(), stderr.getvalue()
@@ -4869,14 +4876,14 @@ class TradeInspectorCharacterizationTests(unittest.TestCase):
         stderr = io.StringIO()
         with contextlib.ExitStack() as stack:
             stack.enter_context(mock.patch.object(sys, "argv", ["inspect_trades.py"]))
-            stack.enter_context(mock.patch.object(inspector, "read_jsonl", side_effect=[[], []]))
-            stack.enter_context(mock.patch.object(inspector, "parse_key_value_log", return_value=[]))
-            stack.enter_context(mock.patch.object(inspector, "build_regime_index", return_value={}))
-            stack.enter_context(mock.patch.object(inspector, "parse_market_rows", return_value=([], [])))
-            stack.enter_context(mock.patch.object(inspector, "load_human_labels", return_value=[]))
-            stack.enter_context(mock.patch.object(inspector, "load_label_registry", return_value={}))
-            stack.enter_context(mock.patch.object(inspector, "assign_human_labels", return_value={}))
-            stack.enter_context(mock.patch.object(inspector, "build_rows", return_value=[]))
+            stack.enter_context(mock.patch.object(cli_orchestration, "read_jsonl", side_effect=[[], []]))
+            stack.enter_context(mock.patch.object(cli_orchestration, "parse_key_value_log", return_value=[]))
+            stack.enter_context(mock.patch.object(cli_orchestration, "build_regime_index", return_value={}))
+            stack.enter_context(mock.patch.object(cli_orchestration, "parse_market_rows", return_value=([], [])))
+            stack.enter_context(mock.patch.object(cli_orchestration, "load_human_labels", return_value=[]))
+            stack.enter_context(mock.patch.object(cli_orchestration, "load_label_registry", return_value={}))
+            stack.enter_context(mock.patch.object(cli_orchestration, "assign_human_labels", return_value={}))
+            stack.enter_context(mock.patch.object(cli_orchestration, "build_rows", return_value=[]))
             with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
                 self.assertEqual(inspector.main(), 0)
 
