@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -19,8 +23,9 @@ LIFECYCLE_INPUT = Path("live_logs/trade_lifecycle_snapshots.csv")
 SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 OUTPUT = Path("reports/step18/step20D_dynamic_exposure_scaling.csv")
 
-SOURCE_SHA256 = "04bdee183f4854753068851361867cc34283bd77204ac2af1e1adc51365c1fd0"
-SOURCE_LINES = 128
+SOURCE_SHA256 = "40809ef7a8b70fd73dc33ab342baa1b195a576729328657cef0f2a5ca7a851ca"
+SOURCE_LINES = 134
+RUNTIME_AST_SHA256 = "3fae083f08461d5f1ca53ee213871ea3709ec20f137c9ae557c3587ac1893b85"
 START_CAPITAL = 10000.0
 
 FULL_RUNTIME_AVAILABLE = importlib.util.find_spec("pandas") is not None
@@ -102,10 +107,27 @@ def _is_main_guard(node: ast.AST) -> bool:
     )
 
 
-def _multiplier_function() -> ast.FunctionDef:
+def _main_function() -> ast.FunctionDef:
     functions = [
         node
         for node in _tree().body
+        if isinstance(node, ast.FunctionDef) and node.name == "main"
+    ]
+    if len(functions) != 1:
+        raise AssertionError(f"expected one main function, found {len(functions)}")
+    return functions[0]
+
+
+def _runtime_ast_sha256() -> str:
+    runtime_module = ast.Module(body=_main_function().body, type_ignores=[])
+    payload = ast.dump(runtime_module, include_attributes=False).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _multiplier_function() -> ast.FunctionDef:
+    functions = [
+        node
+        for node in _main_function().body
         if isinstance(node, ast.FunctionDef) and node.name == "multiplier_from_streaks"
     ]
     if len(functions) != 1:
@@ -116,7 +138,7 @@ def _multiplier_function() -> ast.FunctionDef:
 def _calc_stats_function() -> ast.FunctionDef:
     functions = [
         node
-        for node in _tree().body
+        for node in _main_function().body
         if isinstance(node, ast.FunctionDef) and node.name == "calc_stats"
     ]
     if len(functions) != 1:
@@ -127,7 +149,7 @@ def _calc_stats_function() -> ast.FunctionDef:
 def _trade_loop() -> ast.For:
     loops = [
         node
-        for node in _tree().body
+        for node in _main_function().body
         if isinstance(node, ast.For)
         and isinstance(node.iter, ast.Call)
         and isinstance(node.iter.func, ast.Attribute)
@@ -189,7 +211,7 @@ def _run(root: Path) -> subprocess.CompletedProcess[str]:
 class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
     maxDiff = None
 
-    def test_source_identity_constant_functions_and_import_time_executor_are_bound(self) -> None:
+    def test_source_identity_constant_functions_and_encapsulated_executor_are_bound(self) -> None:
         raw = SCRIPT.read_bytes()
         self.assertEqual(hashlib.sha256(raw).hexdigest(), SOURCE_SHA256)
         self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES)
@@ -205,10 +227,34 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
         self.assertEqual(assignments, {"START_CAPITAL": START_CAPITAL})
         self.assertEqual(
             [node.name for node in tree.body if isinstance(node, ast.FunctionDef)],
+            ["main"],
+        )
+        main_function = _main_function()
+        self.assertEqual(
+            [node.name for node in main_function.body if isinstance(node, ast.FunctionDef)],
             ["multiplier_from_streaks", "calc_stats"],
         )
-        self.assertEqual([node for node in tree.body if _is_main_guard(node)], [])
-        reads = [
+        self.assertIsInstance(main_function.returns, ast.Constant)
+        self.assertIsNone(main_function.returns.value)
+        self.assertEqual(main_function.args.posonlyargs, [])
+        self.assertEqual(main_function.args.args, [])
+        self.assertEqual(main_function.args.kwonlyargs, [])
+        self.assertIsNone(main_function.args.vararg)
+        self.assertIsNone(main_function.args.kwarg)
+
+        guards = [node for node in tree.body if _is_main_guard(node)]
+        self.assertEqual(len(guards), 1)
+        self.assertEqual(len(guards[0].body), 1)
+        guard_call = guards[0].body[0]
+        self.assertIsInstance(guard_call, ast.Expr)
+        self.assertIsInstance(guard_call.value, ast.Call)
+        self.assertIsInstance(guard_call.value.func, ast.Name)
+        self.assertEqual(guard_call.value.func.id, "main")
+        self.assertEqual(guard_call.value.args, [])
+        self.assertEqual(guard_call.value.keywords, [])
+        self.assertEqual(_runtime_ast_sha256(), RUNTIME_AST_SHA256)
+
+        top_level_reads = [
             node
             for node in tree.body
             if isinstance(node, ast.Assign)
@@ -216,14 +262,18 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
             and isinstance(node.value.func, ast.Attribute)
             and node.value.func.attr == "read_csv"
         ]
-        self.assertEqual(len(reads), 3)
-        first_function_index = next(index for index, node in enumerate(tree.body) if isinstance(node, ast.FunctionDef))
-        self.assertTrue(all(tree.body.index(node) < first_function_index for node in reads))
+        top_level_calls = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+        ]
+        self.assertEqual(top_level_reads, [])
+        self.assertEqual(top_level_calls, [])
 
     def test_fixed_read_and_timestamp_conversion_order_are_bound(self) -> None:
         reads = [
             ast.literal_eval(node.value.args[0])
-            for node in _tree().body
+            for node in _main_function().body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -235,7 +285,7 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
         )
         conversions = [
             ast.literal_eval(node.value.args[0].slice)
-            for node in _tree().body
+            for node in _main_function().body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -254,7 +304,7 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
         )
         utc_keywords = [
             node.value.keywords
-            for node in _tree().body
+            for node in _main_function().body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -334,6 +384,7 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
 
     def test_stats_stdout_distribution_and_writer_contract_are_bound(self) -> None:
         tree = _tree()
+        body = _main_function().body
         function = _calc_stats_function()
         source = ast.unparse(function)
         self.assertEqual([argument.arg for argument in function.args.args], ["pnl_col"])
@@ -360,7 +411,7 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
         )
         calls = [
             ast.literal_eval(node.value.args[0])
-            for node in tree.body
+            for node in body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Name)
@@ -372,7 +423,7 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
 
         out_assignment = next(
             node
-            for node in tree.body
+            for node in body
             if isinstance(node, ast.Assign)
             and len(node.targets) == 1
             and isinstance(node.targets[0], ast.Name)
@@ -381,7 +432,7 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
         self.assertEqual(ast.literal_eval(out_assignment.value), OUTPUT.as_posix())
         writes = [
             node
-            for node in tree.body
+            for node in body
             if isinstance(node, ast.Expr)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -400,6 +451,30 @@ class Step20DDynamicExposureScalingCharacterizationTests(unittest.TestCase):
             ],
             [],
         )
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_import_is_silent_and_has_no_filesystem_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step20d_dynamic_exposure_import_") as temp_dir:
+            root = Path(temp_dir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    namespace = runpy.run_path(
+                        str(SCRIPT),
+                        run_name="_step20d_dynamic_exposure_import",
+                    )
+            finally:
+                os.chdir(previous_cwd)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual(_directories(root), set())
+            self.assertTrue(callable(namespace.get("main")))
+            self.assertNotIn("multiplier_from_streaks", namespace)
+            self.assertNotIn("calc_stats", namespace)
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
     def test_successful_fixture_stdout_csv_and_input_nonmutation_are_bound(self) -> None:
