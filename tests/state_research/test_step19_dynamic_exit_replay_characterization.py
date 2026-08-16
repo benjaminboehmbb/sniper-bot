@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -17,8 +21,9 @@ SCRIPT = REPO_ROOT / "scripts" / "state_research" / "analyze_step19_dynamic_exit
 TRADES_INPUT = Path("live_logs/trades_l1_auto_analysis.csv")
 SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 
-SOURCE_SHA256 = "f13c4366b15cc59ce7db9329d269a17aa9aa9d09a04e343e7f35de0f029a3bb9"
-SOURCE_LINES = 76
+SOURCE_SHA256 = "c7b95427b3b7e3ca52b840011cb30949d8ca17f64f48b9417a7c325e3a1a7fa1"
+SOURCE_LINES = 82
+RUNTIME_AST_SHA256 = "729083ca5488e5710533e1497950e4de493c6145ba7cfb4aabb3253ef7560a50"
 SUCCESS_STDOUT_SHA256 = "a8c1b354dc05d20484944afda1a9fe50641e82bb63acd478669987d58b9cfcc2"
 START_CAPITAL = 10000.0
 CONFIGS = [
@@ -113,10 +118,27 @@ def _is_main_guard(node: ast.AST) -> bool:
     )
 
 
+def _main_function() -> ast.FunctionDef:
+    functions = [
+        node
+        for node in _tree().body
+        if isinstance(node, ast.FunctionDef) and node.name == "main"
+    ]
+    if len(functions) != 1:
+        raise AssertionError(f"expected one main function, found {len(functions)}")
+    return functions[0]
+
+
+def _runtime_ast_sha256() -> str:
+    runtime_module = ast.Module(body=_main_function().body, type_ignores=[])
+    payload = ast.dump(runtime_module, include_attributes=False).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def _config_loop() -> ast.For:
     loops = [
         node
-        for node in _tree().body
+        for node in _main_function().body
         if isinstance(node, ast.For)
         and isinstance(node.target, ast.Name)
         and node.target.id == "cfg"
@@ -184,7 +206,7 @@ class Step19DynamicExitReplayCharacterizationTests(unittest.TestCase):
         self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES)
         assignments = {
             target.id: ast.literal_eval(node.value)
-            for node in _tree().body
+            for node in [*_tree().body, *_main_function().body]
             if isinstance(node, ast.Assign)
             and len(node.targets) == 1
             and isinstance((target := node.targets[0]), ast.Name)
@@ -199,13 +221,44 @@ class Step19DynamicExitReplayCharacterizationTests(unittest.TestCase):
         self.assertEqual(ast.unparse(loop.body[0]), "threshold = cfg['threshold']")
         self.assertEqual(ast.unparse(loop.body[1]), "consecutive = cfg['consecutive']")
 
-    def test_script_is_an_import_time_executor_with_stdout_only_output(self) -> None:
+    def test_entrypoint_is_contained_with_runtime_ast_identity(self) -> None:
         tree = _tree()
-        self.assertEqual(
-            [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))],
-            [],
-        )
-        self.assertEqual([node for node in tree.body if _is_main_guard(node)], [])
+        main_function = _main_function()
+        guards = [node for node in tree.body if _is_main_guard(node)]
+        self.assertEqual(len(guards), 1)
+        self.assertIsInstance(main_function.returns, ast.Constant)
+        self.assertIsNone(main_function.returns.value)
+        self.assertEqual(main_function.args.posonlyargs, [])
+        self.assertEqual(main_function.args.args, [])
+        self.assertEqual(main_function.args.kwonlyargs, [])
+        self.assertIsNone(main_function.args.vararg)
+        self.assertIsNone(main_function.args.kwarg)
+        self.assertEqual(len(guards[0].body), 1)
+        guard_call = guards[0].body[0]
+        self.assertIsInstance(guard_call, ast.Expr)
+        self.assertIsInstance(guard_call.value, ast.Call)
+        self.assertIsInstance(guard_call.value.func, ast.Name)
+        self.assertEqual(guard_call.value.func.id, "main")
+        self.assertEqual(guard_call.value.args, [])
+        self.assertEqual(guard_call.value.keywords, [])
+        self.assertEqual(_runtime_ast_sha256(), RUNTIME_AST_SHA256)
+
+        top_level_reads = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "read_csv"
+        ]
+        top_level_calls = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+        ]
+        self.assertEqual(top_level_reads, [])
+        self.assertEqual(top_level_calls, [])
+
         writer_calls = [
             node
             for node in ast.walk(tree)
@@ -222,7 +275,7 @@ class Step19DynamicExitReplayCharacterizationTests(unittest.TestCase):
         self.assertEqual(writer_calls, [])
 
     def test_fixed_read_conversion_and_header_order_are_bound(self) -> None:
-        body = _tree().body
+        body = _main_function().body
         reads = [
             ast.literal_eval(node.value.args[0])
             for node in body
@@ -335,6 +388,28 @@ class Step19DynamicExitReplayCharacterizationTests(unittest.TestCase):
         self.assertIn("{df['win'].mean():.4f}", source)
         self.assertIn("{pf:.4f}", source)
         self.assertIn("{df['dd_pct'].max():.4f}", source)
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_import_is_silent_and_has_no_filesystem_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step19_dynamic_exit_replay_import_") as temp_dir:
+            root = Path(temp_dir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    namespace = runpy.run_path(
+                        str(SCRIPT),
+                        run_name="_step19_dynamic_exit_replay_import",
+                    )
+            finally:
+                os.chdir(previous_cwd)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual(_directories(root), set())
+            self.assertTrue(callable(namespace.get("main")))
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
     def test_successful_fixture_stdout_and_nonmutation_are_bound(self) -> None:
