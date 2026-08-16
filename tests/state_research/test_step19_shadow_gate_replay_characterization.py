@@ -19,10 +19,9 @@ SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 TRADES_OUTPUT = Path("reports/step18/step19_shadow_gate_replay_trades.csv")
 KEPT_OUTPUT = Path("reports/step18/step19_shadow_gate_replay_kept_trades.csv")
 
-SOURCE_SHA256 = "0a91b7e836679b3611c9650d1a3c1385768911329e266fdaff54681e16cc09ad"
-SOURCE_LINES = 70
+SOURCE_SHA256 = "f725690becd42d18f63eab224bff47286c1023521d7b64dd260d7550206b2ebb"
+SOURCE_LINES = 86
 START_CAPITAL = 10000.0
-THRESHOLDS = [0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70]
 
 FULL_RUNTIME_AVAILABLE = importlib.util.find_spec("pandas") is not None
 
@@ -99,9 +98,14 @@ def _directories(root: Path) -> set[str]:
     }
 
 
-def _run(root: Path) -> subprocess.CompletedProcess[str]:
+def _read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _run(root: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
     completed = subprocess.run(
-        [sys.executable, str(SCRIPT)],
+        [sys.executable, str(SCRIPT), *arguments],
         cwd=root,
         check=False,
         capture_output=True,
@@ -115,7 +119,7 @@ def _run(root: Path) -> subprocess.CompletedProcess[str]:
 class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
     maxDiff = None
 
-    def test_source_identity_constants_and_unbound_threshold_are_bound(self) -> None:
+    def test_source_identity_and_required_single_threshold_binding_are_bound(self) -> None:
         raw = SCRIPT.read_bytes()
         self.assertEqual(hashlib.sha256(raw).hexdigest(), SOURCE_SHA256)
         self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES)
@@ -125,12 +129,11 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
             if isinstance(node, ast.Assign)
             and len(node.targets) == 1
             and isinstance((target := node.targets[0]), ast.Name)
-            and target.id in {"START_CAPITAL", "THRESHOLDS"}
+            and target.id == "START_CAPITAL"
         }
-        self.assertEqual(
-            constants,
-            {"START_CAPITAL": START_CAPITAL, "THRESHOLDS": THRESHOLDS},
-        )
+        self.assertEqual(constants, {"START_CAPITAL": START_CAPITAL})
+        names = [node.id for node in ast.walk(_tree()) if isinstance(node, ast.Name)]
+        self.assertNotIn("THRESHOLDS", names)
         threshold_loads = [
             node
             for node in ast.walk(_tree())
@@ -145,16 +148,36 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
             and node.id == "THRESHOLD"
             and isinstance(node.ctx, ast.Store)
         ]
-        thresholds_loads = [
-            node
-            for node in ast.walk(_tree())
-            if isinstance(node, ast.Name)
-            and node.id == "THRESHOLDS"
-            and isinstance(node.ctx, ast.Load)
-        ]
         self.assertEqual(len(threshold_loads), 2)
-        self.assertEqual(threshold_stores, [])
-        self.assertEqual(thresholds_loads, [])
+        self.assertEqual(len(threshold_stores), 1)
+
+        body = _tree().body
+        read_indexes = [
+            index
+            for index, node in enumerate(body)
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "read_csv"
+        ]
+        threshold_store_index = next(
+            index
+            for index, node in enumerate(body)
+            if isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name) and target.id == "THRESHOLD"
+                for target in node.targets
+            )
+        )
+        self.assertLess(threshold_store_index, min(read_indexes))
+        source = ast.unparse(_tree())
+        self.assertIn("parser.add_argument('--threshold', action='append', required=True, type=float)", source)
+        self.assertIn("parser.error('--threshold must be provided exactly once')", source)
+        self.assertIn("parser.error('--threshold must be finite')", source)
+        self.assertIn(
+            "parser.error('--threshold must be between 0.0 and 1.0 inclusive')",
+            source,
+        )
 
     def test_script_remains_an_import_time_executor(self) -> None:
         tree = _tree()
@@ -308,30 +331,180 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
         )
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
-    def test_matched_fixture_propagates_unbound_threshold_before_outputs(self) -> None:
-        with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_matched_") as temp_dir:
+    def test_missing_threshold_and_help_terminate_before_research_access(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_required_") as temp_dir:
+            root = Path(temp_dir)
+            result = _run(root)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("--threshold", result.stderr)
+            self.assertIn("required", result.stderr)
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual(_directories(root), set())
+
+            help_result = _run(root, "--help")
+            self.assertEqual(help_result.returncode, 0)
+            self.assertIn("usage:", help_result.stdout)
+            self.assertIn("--threshold", help_result.stdout)
+            self.assertEqual(help_result.stderr, "")
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual(_directories(root), set())
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_valueless_non_numeric_and_unknown_arguments_fail_closed(self) -> None:
+        cases = (
+            (("--threshold",), "expected one argument"),
+            (("--threshold", "not-a-number"), "invalid float value"),
+            (("--threshold", "0.40", "--unknown"), "unrecognized arguments: --unknown"),
+        )
+        for arguments, expected_error in cases:
+            with self.subTest(arguments=arguments):
+                with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_invalid_") as temp_dir:
+                    root = Path(temp_dir)
+                    result = _run(root, *arguments)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertEqual(result.stdout, "")
+                    self.assertIn(expected_error, result.stderr)
+                    self.assertEqual(_manifest(root), {})
+                    self.assertEqual(_directories(root), set())
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_non_finite_and_out_of_range_thresholds_fail_closed(self) -> None:
+        cases = (
+            (("--threshold", "nan"), "--threshold must be finite"),
+            (("--threshold", "inf"), "--threshold must be finite"),
+            (("--threshold", "+inf"), "--threshold must be finite"),
+            (("--threshold=-inf",), "--threshold must be finite"),
+            (("--threshold", "-0.01"), "--threshold must be between 0.0 and 1.0 inclusive"),
+            (("--threshold", "1.01"), "--threshold must be between 0.0 and 1.0 inclusive"),
+        )
+        for arguments, expected_error in cases:
+            with self.subTest(arguments=arguments):
+                with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_range_") as temp_dir:
+                    root = Path(temp_dir)
+                    _write_csv(root / TRADES_INPUT, TRADES_ROWS)
+                    _write_csv(root / SHADOW_INPUT, SHADOW_ROWS)
+                    before = _manifest(root)
+                    before_directories = _directories(root)
+                    result = _run(root, *arguments)
+                    self.assertEqual(result.returncode, 2)
+                    self.assertEqual(result.stdout, "")
+                    self.assertIn(expected_error, result.stderr)
+                    self.assertEqual(_manifest(root), before)
+                    self.assertEqual(_directories(root), before_directories)
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_duplicate_threshold_fails_instead_of_using_last_value(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_duplicate_") as temp_dir:
             root = Path(temp_dir)
             _write_csv(root / TRADES_INPUT, TRADES_ROWS)
             _write_csv(root / SHADOW_INPUT, SHADOW_ROWS)
             before = _manifest(root)
             before_directories = _directories(root)
-            result = _run(root)
-            after = _manifest(root)
-            after_directories = _directories(root)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(result.stdout, "")
-        self.assertIn("NameError", result.stderr)
-        self.assertIn("THRESHOLD", result.stderr)
-        self.assertEqual(after, before)
-        self.assertEqual(after_directories, before_directories)
-        self.assertNotIn(TRADES_OUTPUT.as_posix(), after)
-        self.assertNotIn(KEPT_OUTPUT.as_posix(), after)
+            result = _run(root, "--threshold", "0.40", "--threshold", "0.50")
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("--threshold must be provided exactly once", result.stderr)
+            self.assertEqual(_manifest(root), before)
+            self.assertEqual(_directories(root), before_directories)
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
-    def test_missing_inputs_fail_closed_in_read_order(self) -> None:
+    def test_interior_threshold_succeeds_for_both_argument_spellings(self) -> None:
+        expected_stdout = (
+            "\n"
+            "---- STEP19A SHADOW GATE REPLAY ----\n"
+            "threshold: 0.4\n"
+            "start_capital: 10000.0\n"
+            "original_trades: 2\n"
+            "kept_trades: 1\n"
+            "blocked_trades: 1\n"
+            "final_equity: 10010.0\n"
+            "total_pnl: 10.0\n"
+            "return_pct: 0.001\n"
+            "winrate: 1.0\n"
+            "profit_factor: inf\n"
+            "max_drawdown_abs: 0.0\n"
+            "max_drawdown_pct: 0.0\n"
+            "\n"
+            "written:\n"
+            f"{TRADES_OUTPUT.as_posix()}\n"
+            f"{KEPT_OUTPUT.as_posix()}\n"
+        )
+        artifacts: list[tuple[str, str]] = []
+        for arguments in (("--threshold", "0.40"), ("--threshold=0.40",)):
+            with self.subTest(arguments=arguments):
+                with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_success_") as temp_dir:
+                    root = Path(temp_dir)
+                    _write_csv(root / TRADES_INPUT, TRADES_ROWS)
+                    _write_csv(root / SHADOW_INPUT, SHADOW_ROWS)
+                    (root / TRADES_OUTPUT.parent).mkdir(parents=True)
+                    before = _manifest(root)
+                    result = _run(root, *arguments)
+                    after = _manifest(root)
+                    self.assertEqual(result.returncode, 0)
+                    self.assertEqual(result.stderr, "")
+                    self.assertEqual(result.stdout, expected_stdout)
+                    self.assertEqual(
+                        {path: after[path] for path in before},
+                        before,
+                    )
+                    self.assertIn(TRADES_OUTPUT.as_posix(), after)
+                    self.assertIn(KEPT_OUTPUT.as_posix(), after)
+
+                    replay_rows = _read_csv(root / TRADES_OUTPUT)
+                    self.assertEqual([row["trade_index"] for row in replay_rows], ["1", "2"])
+                    self.assertEqual([row["mean_shadow_risk"] for row in replay_rows], ["0.4", "0.6"])
+                    self.assertEqual([row["kept"] for row in replay_rows], ["True", "False"])
+
+                    kept_rows = _read_csv(root / KEPT_OUTPUT)
+                    self.assertEqual(len(kept_rows), 1)
+                    self.assertEqual(kept_rows[0]["trade_index"], "1")
+                    self.assertEqual(kept_rows[0]["equity"], "10010.0")
+                    artifacts.append(
+                        (
+                            hashlib.sha256((root / TRADES_OUTPUT).read_bytes()).hexdigest(),
+                            hashlib.sha256((root / KEPT_OUTPUT).read_bytes()).hexdigest(),
+                        )
+                    )
+        self.assertEqual(artifacts[0], artifacts[1])
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_inclusive_threshold_boundaries_succeed(self) -> None:
+        trades = (
+            {
+                "trade_index": "1",
+                "entry_timestamp_utc": "2026-01-01T00:01:00Z",
+                "exit_timestamp_utc": "2026-01-01T00:02:00Z",
+                "pnl": "1",
+            },
+        )
+        for value in ("0.0", "1.0"):
+            with self.subTest(value=value):
+                shadow = (
+                    {"timestamp_utc": "2026-01-01T00:01:00Z", "shadow_risk_score": value},
+                    {"timestamp_utc": "2026-01-01T00:02:00Z", "shadow_risk_score": value},
+                )
+                with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_boundary_") as temp_dir:
+                    root = Path(temp_dir)
+                    _write_csv(root / TRADES_INPUT, trades)
+                    _write_csv(root / SHADOW_INPUT, shadow)
+                    (root / TRADES_OUTPUT.parent).mkdir(parents=True)
+                    before = _manifest(root)
+                    result = _run(root, "--threshold", value)
+                    after = _manifest(root)
+                    self.assertEqual(result.returncode, 0)
+                    self.assertEqual(result.stderr, "")
+                    self.assertIn(f"threshold: {value}\n", result.stdout)
+                    self.assertIn("kept_trades: 1\n", result.stdout)
+                    self.assertEqual(_read_csv(root / TRADES_OUTPUT)[0]["kept"], "True")
+                    self.assertEqual(_read_csv(root / KEPT_OUTPUT)[0]["trade_index"], "1")
+                    self.assertEqual({path: after[path] for path in before}, before)
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_missing_inputs_with_valid_threshold_fail_in_read_order(self) -> None:
         with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_missing_first_") as temp_dir:
             root = Path(temp_dir)
-            result = _run(root)
+            result = _run(root, "--threshold", "0.40")
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(result.stdout, "")
             self.assertIn("FileNotFoundError", result.stderr)
@@ -342,7 +515,7 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
             root = Path(temp_dir)
             _write_csv(root / TRADES_INPUT, TRADES_ROWS)
             before = _manifest(root)
-            result = _run(root)
+            result = _run(root, "--threshold", "0.40")
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(result.stdout, "")
             self.assertIn("FileNotFoundError", result.stderr)
@@ -350,7 +523,7 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
             self.assertEqual(_manifest(root), before)
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
-    def test_no_matched_window_fails_before_unbound_threshold(self) -> None:
+    def test_no_matched_window_still_fails_at_trade_index_sort(self) -> None:
         unmatched_trades = (
             {
                 "trade_index": "1",
@@ -364,7 +537,7 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
             _write_csv(root / TRADES_INPUT, unmatched_trades)
             _write_csv(root / SHADOW_INPUT, SHADOW_ROWS)
             before = _manifest(root)
-            result = _run(root)
+            result = _run(root, "--threshold", "0.40")
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(result.stdout, "")
             self.assertIn("KeyError", result.stderr)

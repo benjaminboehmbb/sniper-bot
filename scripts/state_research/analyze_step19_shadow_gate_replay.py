@@ -1,7 +1,23 @@
+import argparse
+import math
+
 import pandas as pd
 
 START_CAPITAL = 10000.0
-THRESHOLDS = [0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70]
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--threshold", action="append", required=True, type=float)
+args = parser.parse_args()
+
+threshold_values = args.threshold
+if len(threshold_values) != 1:
+    parser.error("--threshold must be provided exactly once")
+if not math.isfinite(threshold_values[0]):
+    parser.error("--threshold must be finite")
+if not 0.0 <= threshold_values[0] <= 1.0:
+    parser.error("--threshold must be between 0.0 and 1.0 inclusive")
+
+THRESHOLD = threshold_values[0]
 
 trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
 shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
