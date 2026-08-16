@@ -5,82 +5,88 @@ import pandas as pd
 
 START_CAPITAL = 10000.0
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--threshold", action="append", required=True, type=float)
-args = parser.parse_args()
 
-threshold_values = args.threshold
-if len(threshold_values) != 1:
-    parser.error("--threshold must be provided exactly once")
-if not math.isfinite(threshold_values[0]):
-    parser.error("--threshold must be finite")
-if not 0.0 <= threshold_values[0] <= 1.0:
-    parser.error("--threshold must be between 0.0 and 1.0 inclusive")
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--threshold", action="append", required=True, type=float)
+    args = parser.parse_args()
 
-THRESHOLD = threshold_values[0]
+    threshold_values = args.threshold
+    if len(threshold_values) != 1:
+        parser.error("--threshold must be provided exactly once")
+    if not math.isfinite(threshold_values[0]):
+        parser.error("--threshold must be finite")
+    if not 0.0 <= threshold_values[0] <= 1.0:
+        parser.error("--threshold must be between 0.0 and 1.0 inclusive")
 
-trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
-shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
+    THRESHOLD = threshold_values[0]
 
-trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
-trades["exit_timestamp_utc"] = pd.to_datetime(trades["exit_timestamp_utc"], utc=True)
-shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
+    trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
+    shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-rows = []
+    trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
+    trades["exit_timestamp_utc"] = pd.to_datetime(trades["exit_timestamp_utc"], utc=True)
+    shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
 
-for _, trade in trades.iterrows():
-    s = shadow[
-        (shadow["timestamp_utc"] >= trade["entry_timestamp_utc"]) &
-        (shadow["timestamp_utc"] <= trade["exit_timestamp_utc"])
-    ]
+    rows = []
 
-    if len(s) == 0:
-        continue
+    for _, trade in trades.iterrows():
+        s = shadow[
+            (shadow["timestamp_utc"] >= trade["entry_timestamp_utc"]) &
+            (shadow["timestamp_utc"] <= trade["exit_timestamp_utc"])
+        ]
 
-    rows.append({
-        "trade_index": int(trade["trade_index"]),
-        "pnl": float(trade["pnl"]),
-        "win": int(float(trade["pnl"]) > 0),
-        "mean_shadow_risk": float(s["shadow_risk_score"].mean()),
-    })
+        if len(s) == 0:
+            continue
 
-df = pd.DataFrame(rows).sort_values("trade_index")
+        rows.append({
+            "trade_index": int(trade["trade_index"]),
+            "pnl": float(trade["pnl"]),
+            "win": int(float(trade["pnl"]) > 0),
+            "mean_shadow_risk": float(s["shadow_risk_score"].mean()),
+        })
 
-df["kept"] = df["mean_shadow_risk"] <= THRESHOLD
+    df = pd.DataFrame(rows).sort_values("trade_index")
 
-kept = df[df["kept"]].copy()
+    df["kept"] = df["mean_shadow_risk"] <= THRESHOLD
 
-kept["equity"] = START_CAPITAL + kept["pnl"].cumsum()
-kept["equity_peak"] = kept["equity"].cummax()
-kept["drawdown_abs"] = kept["equity_peak"] - kept["equity"]
-kept["drawdown_pct"] = kept["drawdown_abs"] / kept["equity_peak"]
+    kept = df[df["kept"]].copy()
 
-wins = kept[kept["pnl"] > 0]
-losses = kept[kept["pnl"] <= 0]
+    kept["equity"] = START_CAPITAL + kept["pnl"].cumsum()
+    kept["equity_peak"] = kept["equity"].cummax()
+    kept["drawdown_abs"] = kept["equity_peak"] - kept["equity"]
+    kept["drawdown_pct"] = kept["drawdown_abs"] / kept["equity_peak"]
 
-gross_profit = wins["pnl"].sum()
-gross_loss = abs(losses["pnl"].sum())
-pf = gross_profit / gross_loss if gross_loss > 0 else float("inf")
+    wins = kept[kept["pnl"] > 0]
+    losses = kept[kept["pnl"] <= 0]
 
-print()
-print("---- STEP19A SHADOW GATE REPLAY ----")
-print("threshold:", THRESHOLD)
-print("start_capital:", START_CAPITAL)
-print("original_trades:", len(df))
-print("kept_trades:", len(kept))
-print("blocked_trades:", len(df) - len(kept))
-print("final_equity:", round(kept["equity"].iloc[-1], 2))
-print("total_pnl:", round(kept["pnl"].sum(), 2))
-print("return_pct:", round(kept["pnl"].sum() / START_CAPITAL, 4))
-print("winrate:", round(kept["win"].mean(), 4))
-print("profit_factor:", round(pf, 4))
-print("max_drawdown_abs:", round(kept["drawdown_abs"].max(), 2))
-print("max_drawdown_pct:", round(kept["drawdown_pct"].max(), 4))
-print()
+    gross_profit = wins["pnl"].sum()
+    gross_loss = abs(losses["pnl"].sum())
+    pf = gross_profit / gross_loss if gross_loss > 0 else float("inf")
 
-df.to_csv("reports/step18/step19_shadow_gate_replay_trades.csv", index=False)
-kept.to_csv("reports/step18/step19_shadow_gate_replay_kept_trades.csv", index=False)
+    print()
+    print("---- STEP19A SHADOW GATE REPLAY ----")
+    print("threshold:", THRESHOLD)
+    print("start_capital:", START_CAPITAL)
+    print("original_trades:", len(df))
+    print("kept_trades:", len(kept))
+    print("blocked_trades:", len(df) - len(kept))
+    print("final_equity:", round(kept["equity"].iloc[-1], 2))
+    print("total_pnl:", round(kept["pnl"].sum(), 2))
+    print("return_pct:", round(kept["pnl"].sum() / START_CAPITAL, 4))
+    print("winrate:", round(kept["win"].mean(), 4))
+    print("profit_factor:", round(pf, 4))
+    print("max_drawdown_abs:", round(kept["drawdown_abs"].max(), 2))
+    print("max_drawdown_pct:", round(kept["drawdown_pct"].max(), 4))
+    print()
 
-print("written:")
-print("reports/step18/step19_shadow_gate_replay_trades.csv")
-print("reports/step18/step19_shadow_gate_replay_kept_trades.csv")
+    df.to_csv("reports/step18/step19_shadow_gate_replay_trades.csv", index=False)
+    kept.to_csv("reports/step18/step19_shadow_gate_replay_kept_trades.csv", index=False)
+
+    print("written:")
+    print("reports/step18/step19_shadow_gate_replay_trades.csv")
+    print("reports/step18/step19_shadow_gate_replay_kept_trades.csv")
+
+
+if __name__ == "__main__":
+    main()

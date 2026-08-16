@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -19,8 +23,9 @@ SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 TRADES_OUTPUT = Path("reports/step18/step19_shadow_gate_replay_trades.csv")
 KEPT_OUTPUT = Path("reports/step18/step19_shadow_gate_replay_kept_trades.csv")
 
-SOURCE_SHA256 = "f725690becd42d18f63eab224bff47286c1023521d7b64dd260d7550206b2ebb"
-SOURCE_LINES = 86
+SOURCE_SHA256 = "4e89b5111ad1d45cca17e2967ba654fb72f7f3690c5338d01611519cea93354f"
+SOURCE_LINES = 92
+RUNTIME_AST_SHA256 = "349371b3524c855ecb7865847bf86b99a052df3790e766887d989f3196250508"
 START_CAPITAL = 10000.0
 
 FULL_RUNTIME_AVAILABLE = importlib.util.find_spec("pandas") is not None
@@ -72,6 +77,23 @@ def _is_main_guard(node: ast.AST) -> bool:
         and isinstance(test.comparators[0], ast.Constant)
         and test.comparators[0].value == "__main__"
     )
+
+
+def _main_function() -> ast.FunctionDef:
+    functions = [
+        node
+        for node in _tree().body
+        if isinstance(node, ast.FunctionDef) and node.name == "main"
+    ]
+    if len(functions) != 1:
+        raise AssertionError(f"expected one main function, found {len(functions)}")
+    return functions[0]
+
+
+def _runtime_ast_sha256() -> str:
+    runtime_module = ast.Module(body=_main_function().body, type_ignores=[])
+    payload = ast.dump(runtime_module, include_attributes=False).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _write_csv(path: Path, rows: tuple[dict[str, str], ...]) -> None:
@@ -151,7 +173,7 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
         self.assertEqual(len(threshold_loads), 2)
         self.assertEqual(len(threshold_stores), 1)
 
-        body = _tree().body
+        body = _main_function().body
         read_indexes = [
             index
             for index, node in enumerate(body)
@@ -179,14 +201,29 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
             source,
         )
 
-    def test_script_remains_an_import_time_executor(self) -> None:
+    def test_entrypoint_is_contained_with_runtime_ast_identity(self) -> None:
         tree = _tree()
-        self.assertEqual(
-            [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))],
-            [],
-        )
-        self.assertEqual([node for node in tree.body if _is_main_guard(node)], [])
-        reads = [
+        main_function = _main_function()
+        guards = [node for node in tree.body if _is_main_guard(node)]
+        self.assertEqual(len(guards), 1)
+        self.assertIsInstance(main_function.returns, ast.Constant)
+        self.assertIsNone(main_function.returns.value)
+        self.assertEqual(main_function.args.posonlyargs, [])
+        self.assertEqual(main_function.args.args, [])
+        self.assertEqual(main_function.args.kwonlyargs, [])
+        self.assertIsNone(main_function.args.vararg)
+        self.assertIsNone(main_function.args.kwarg)
+        self.assertEqual(len(guards[0].body), 1)
+        guard_call = guards[0].body[0]
+        self.assertIsInstance(guard_call, ast.Expr)
+        self.assertIsInstance(guard_call.value, ast.Call)
+        self.assertIsInstance(guard_call.value.func, ast.Name)
+        self.assertEqual(guard_call.value.func.id, "main")
+        self.assertEqual(guard_call.value.args, [])
+        self.assertEqual(guard_call.value.keywords, [])
+        self.assertEqual(_runtime_ast_sha256(), RUNTIME_AST_SHA256)
+
+        top_level_reads = [
             node
             for node in tree.body
             if isinstance(node, ast.Assign)
@@ -194,10 +231,16 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
             and isinstance(node.value.func, ast.Attribute)
             and node.value.func.attr == "read_csv"
         ]
-        self.assertEqual(len(reads), 2)
+        top_level_calls = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+        ]
+        self.assertEqual(top_level_reads, [])
+        self.assertEqual(top_level_calls, [])
 
     def test_fixed_input_read_and_timestamp_conversion_order_is_bound(self) -> None:
-        body = _tree().body
+        body = _main_function().body
         reads = [
             ast.literal_eval(node.value.args[0])
             for node in body
@@ -272,7 +315,7 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
 
         writes = [
             node
-            for node in tree.body
+            for node in _main_function().body
             if isinstance(node, ast.Expr)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -300,7 +343,7 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
         self.assertEqual(mkdir_calls, [])
         print_labels = [
             ast.literal_eval(node.value.args[0])
-            for node in tree.body
+            for node in _main_function().body
             if isinstance(node, ast.Expr)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Name)
@@ -329,6 +372,28 @@ class Step19ShadowGateReplayCharacterizationTests(unittest.TestCase):
                 KEPT_OUTPUT.as_posix(),
             ],
         )
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_import_is_silent_and_has_no_filesystem_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step19_shadow_gate_replay_import_") as temp_dir:
+            root = Path(temp_dir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    namespace = runpy.run_path(
+                        str(SCRIPT),
+                        run_name="_step19_shadow_gate_replay_import",
+                    )
+            finally:
+                os.chdir(previous_cwd)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual(_directories(root), set())
+            self.assertTrue(callable(namespace.get("main")))
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
     def test_missing_threshold_and_help_terminate_before_research_access(self) -> None:
