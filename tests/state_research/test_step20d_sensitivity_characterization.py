@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -18,8 +22,9 @@ TRADES_INPUT = Path("live_logs/trades_l1_auto_analysis.csv")
 LIFECYCLE_INPUT = Path("live_logs/trade_lifecycle_snapshots.csv")
 SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 
-SOURCE_SHA256 = "49f37fe4d47e3205e4f6b1eb57cc67330fe2a81258f18d832aa3b849268e7636"
-SOURCE_LINES = 97
+SOURCE_SHA256 = "cb7436bb731e8cf868473d9224a7ce1246b25986600bf45a4086de33699500f8"
+SOURCE_LINES = 103
+RUNTIME_AST_SHA256 = "e251282b73fa308f9bfe80fb71d4422e66850a39da60db43a201f1338810a59a"
 START_CAPITAL = 10000.0
 CONFIGS = [
     ("D1", 0.50, 0.25, 0.10),
@@ -101,10 +106,27 @@ def _is_main_guard(node: ast.AST) -> bool:
     )
 
 
-def _get_multiplier_function() -> ast.FunctionDef:
+def _main_function() -> ast.FunctionDef:
     functions = [
         node
         for node in _tree().body
+        if isinstance(node, ast.FunctionDef) and node.name == "main"
+    ]
+    if len(functions) != 1:
+        raise AssertionError(f"expected one main function, found {len(functions)}")
+    return functions[0]
+
+
+def _runtime_ast_sha256() -> str:
+    runtime_module = ast.Module(body=_main_function().body, type_ignores=[])
+    payload = ast.dump(runtime_module, include_attributes=False).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _get_multiplier_function() -> ast.FunctionDef:
+    functions = [
+        node
+        for node in _main_function().body
         if isinstance(node, ast.FunctionDef) and node.name == "get_multiplier"
     ]
     if len(functions) != 1:
@@ -115,7 +137,7 @@ def _get_multiplier_function() -> ast.FunctionDef:
 def _config_loop() -> ast.For:
     loops = [
         node
-        for node in _tree().body
+        for node in _main_function().body
         if isinstance(node, ast.For)
         and isinstance(node.target, ast.Tuple)
         and [ast.unparse(item) for item in node.target.elts] == ["name", "m030", "m050", "m070"]
@@ -185,7 +207,7 @@ def _run(root: Path) -> subprocess.CompletedProcess[str]:
 class Step20DSensitivityCharacterizationTests(unittest.TestCase):
     maxDiff = None
 
-    def test_source_identity_constants_and_import_time_executor_are_bound(self) -> None:
+    def test_source_identity_constants_and_encapsulated_executor_are_bound(self) -> None:
         raw = SCRIPT.read_bytes()
         self.assertEqual(hashlib.sha256(raw).hexdigest(), SOURCE_SHA256)
         self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES)
@@ -199,9 +221,30 @@ class Step20DSensitivityCharacterizationTests(unittest.TestCase):
             and target.id in {"START_CAPITAL", "configs"}
         }
         self.assertEqual(assignments, {"START_CAPITAL": START_CAPITAL, "configs": CONFIGS})
-        self.assertEqual([node.name for node in tree.body if isinstance(node, ast.FunctionDef)], ["get_multiplier"])
-        self.assertEqual([node for node in tree.body if _is_main_guard(node)], [])
-        reads = [
+        self.assertEqual([node.name for node in tree.body if isinstance(node, ast.FunctionDef)], ["main"])
+        main_function = _main_function()
+        self.assertEqual([node.name for node in main_function.body if isinstance(node, ast.FunctionDef)], ["get_multiplier"])
+        self.assertIsInstance(main_function.returns, ast.Constant)
+        self.assertIsNone(main_function.returns.value)
+        self.assertEqual(main_function.args.posonlyargs, [])
+        self.assertEqual(main_function.args.args, [])
+        self.assertEqual(main_function.args.kwonlyargs, [])
+        self.assertIsNone(main_function.args.vararg)
+        self.assertIsNone(main_function.args.kwarg)
+
+        guards = [node for node in tree.body if _is_main_guard(node)]
+        self.assertEqual(len(guards), 1)
+        self.assertEqual(len(guards[0].body), 1)
+        guard_call = guards[0].body[0]
+        self.assertIsInstance(guard_call, ast.Expr)
+        self.assertIsInstance(guard_call.value, ast.Call)
+        self.assertIsInstance(guard_call.value.func, ast.Name)
+        self.assertEqual(guard_call.value.func.id, "main")
+        self.assertEqual(guard_call.value.args, [])
+        self.assertEqual(guard_call.value.keywords, [])
+        self.assertEqual(_runtime_ast_sha256(), RUNTIME_AST_SHA256)
+
+        top_level_reads = [
             node
             for node in tree.body
             if isinstance(node, ast.Assign)
@@ -209,14 +252,18 @@ class Step20DSensitivityCharacterizationTests(unittest.TestCase):
             and isinstance(node.value.func, ast.Attribute)
             and node.value.func.attr == "read_csv"
         ]
-        self.assertEqual(len(reads), 3)
-        first_function_index = next(index for index, node in enumerate(tree.body) if isinstance(node, ast.FunctionDef))
-        self.assertTrue(all(tree.body.index(node) < first_function_index for node in reads))
+        top_level_calls = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+        ]
+        self.assertEqual(top_level_reads, [])
+        self.assertEqual(top_level_calls, [])
 
     def test_fixed_read_and_timestamp_conversion_order_are_bound(self) -> None:
         reads = [
             ast.literal_eval(node.value.args[0])
-            for node in _tree().body
+            for node in _main_function().body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -228,7 +275,7 @@ class Step20DSensitivityCharacterizationTests(unittest.TestCase):
         )
         conversions = [
             ast.literal_eval(node.value.args[0].slice)
-            for node in _tree().body
+            for node in _main_function().body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -247,7 +294,7 @@ class Step20DSensitivityCharacterizationTests(unittest.TestCase):
         )
         utc_keywords = [
             node.value.keywords
-            for node in _tree().body
+            for node in _main_function().body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -326,7 +373,7 @@ class Step20DSensitivityCharacterizationTests(unittest.TestCase):
     def test_stdout_header_precision_distribution_order_and_no_writer_are_bound(self) -> None:
         print_calls = [
             node.value
-            for node in ast.walk(_tree())
+            for node in ast.walk(_main_function())
             if isinstance(node, ast.Expr)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Name)
@@ -353,6 +400,29 @@ class Step20DSensitivityCharacterizationTests(unittest.TestCase):
             and node.func.attr in {"to_csv", "to_json", "write_text", "write_bytes"}
         ]
         self.assertEqual(writers, [])
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_import_is_silent_and_has_no_filesystem_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step20d_sensitivity_import_") as temp_dir:
+            root = Path(temp_dir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    namespace = runpy.run_path(
+                        str(SCRIPT),
+                        run_name="_step20d_sensitivity_import",
+                    )
+            finally:
+                os.chdir(previous_cwd)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual(_directories(root), set())
+            self.assertTrue(callable(namespace.get("main")))
+            self.assertNotIn("get_multiplier", namespace)
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
     def test_successful_fixture_stdout_and_input_nonmutation_are_bound(self) -> None:
