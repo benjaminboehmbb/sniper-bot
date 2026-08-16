@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import csv
 import hashlib
 import importlib.util
+import io
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -18,8 +22,9 @@ TRADES_INPUT = Path("live_logs/trades_l1_auto_analysis.csv")
 SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
 OUTPUT = Path("reports/step18/step20_position_sizing_replay.csv")
 
-SOURCE_SHA256 = "b185c681497db4c83ea929b5fc8701d3e0d5fd37f097257c18dfafea9655e185"
-SOURCE_LINES = 94
+SOURCE_SHA256 = "487138d9e7f51ac398160b88c482e6a5230a92d4d3e03ff185b8bdb6d4e55a08"
+SOURCE_LINES = 100
+RUNTIME_AST_SHA256 = "59e60750a2498d7676e78409e5bc8901396698baca0232790c805c9101517baf"
 SUCCESS_STDOUT_SHA256 = "fa6029394588f7cd1384cea648b661a1c60b191ff0f55576f4fcfbd0c11dbe01"
 START_CAPITAL = 10000.0
 
@@ -86,10 +91,27 @@ def _is_main_guard(node: ast.AST) -> bool:
     )
 
 
-def _stats_function() -> ast.FunctionDef:
+def _main_function() -> ast.FunctionDef:
     functions = [
         node
         for node in _tree().body
+        if isinstance(node, ast.FunctionDef) and node.name == "main"
+    ]
+    if len(functions) != 1:
+        raise AssertionError(f"expected one main function, found {len(functions)}")
+    return functions[0]
+
+
+def _runtime_ast_sha256() -> str:
+    runtime_module = ast.Module(body=_main_function().body, type_ignores=[])
+    payload = ast.dump(runtime_module, include_attributes=False).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _stats_function() -> ast.FunctionDef:
+    functions = [
+        node
+        for node in _main_function().body
         if isinstance(node, ast.FunctionDef) and node.name == "stats"
     ]
     if len(functions) != 1:
@@ -100,7 +122,7 @@ def _stats_function() -> ast.FunctionDef:
 def _trade_loop() -> ast.For:
     loops = [
         node
-        for node in _tree().body
+        for node in _main_function().body
         if isinstance(node, ast.For)
         and isinstance(node.target, ast.Tuple)
         and isinstance(node.iter, ast.Call)
@@ -163,26 +185,55 @@ class Step20PositionSizingReplayCharacterizationTests(unittest.TestCase):
         self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES)
         assignments = {
             target.id: ast.literal_eval(node.value)
-            for node in _tree().body
+            for node in [*_tree().body, *_main_function().body]
             if isinstance(node, ast.Assign)
             and len(node.targets) == 1
             and isinstance((target := node.targets[0]), ast.Name)
             and target.id == "START_CAPITAL"
         }
         self.assertEqual(assignments, {"START_CAPITAL": START_CAPITAL})
-        functions = [
+        main_function = _main_function()
+        guards = [node for node in _tree().body if _is_main_guard(node)]
+        self.assertEqual(len(guards), 1)
+        self.assertIsInstance(main_function.returns, ast.Constant)
+        self.assertIsNone(main_function.returns.value)
+        self.assertEqual(main_function.args.posonlyargs, [])
+        self.assertEqual(main_function.args.args, [])
+        self.assertEqual(main_function.args.kwonlyargs, [])
+        self.assertIsNone(main_function.args.vararg)
+        self.assertIsNone(main_function.args.kwarg)
+        self.assertEqual(len(guards[0].body), 1)
+        guard_call = guards[0].body[0]
+        self.assertIsInstance(guard_call, ast.Expr)
+        self.assertIsInstance(guard_call.value, ast.Call)
+        self.assertIsInstance(guard_call.value.func, ast.Name)
+        self.assertEqual(guard_call.value.func.id, "main")
+        self.assertEqual(guard_call.value.args, [])
+        self.assertEqual(guard_call.value.keywords, [])
+        self.assertEqual(_runtime_ast_sha256(), RUNTIME_AST_SHA256)
+
+        top_level_reads = [
             node
             for node in _tree().body
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "read_csv"
         ]
-        self.assertEqual([node.name for node in functions], ["stats"])
-        self.assertEqual([node for node in _tree().body if _is_main_guard(node)], [])
+        top_level_calls = [
+            node
+            for node in _tree().body
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+        ]
+        self.assertEqual(top_level_reads, [])
+        self.assertEqual(top_level_calls, [])
+
         stats_function = _stats_function()
         self.assertEqual([argument.arg for argument in stats_function.args.args], ["pnl_col"])
         self.assertIsNone(stats_function.returns)
 
     def test_fixed_read_and_timestamp_conversion_order_are_bound(self) -> None:
-        body = _tree().body
+        body = _main_function().body
         reads = [
             ast.literal_eval(node.value.args[0])
             for node in body
@@ -282,7 +333,7 @@ class Step20PositionSizingReplayCharacterizationTests(unittest.TestCase):
         self.assertTrue(all(isinstance(value, ast.Call) and ast.unparse(value.func) == "float" for value in returned.values))
         calls = [
             ast.literal_eval(node.value.args[0])
-            for node in _tree().body
+            for node in _main_function().body
             if isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Name)
@@ -292,9 +343,10 @@ class Step20PositionSizingReplayCharacterizationTests(unittest.TestCase):
 
     def test_stdout_labels_writer_path_order_and_no_mkdir_are_bound(self) -> None:
         tree = _tree()
+        body = _main_function().body
         print_labels = [
             ast.literal_eval(node.value.args[0])
-            for node in tree.body
+            for node in body
             if isinstance(node, ast.Expr)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Name)
@@ -315,7 +367,7 @@ class Step20PositionSizingReplayCharacterizationTests(unittest.TestCase):
         )
         out_assignment = next(
             node
-            for node in tree.body
+            for node in body
             if isinstance(node, ast.Assign)
             and len(node.targets) == 1
             and isinstance(node.targets[0], ast.Name)
@@ -324,7 +376,7 @@ class Step20PositionSizingReplayCharacterizationTests(unittest.TestCase):
         self.assertEqual(ast.literal_eval(out_assignment.value), OUTPUT.as_posix())
         writes = [
             node
-            for node in tree.body
+            for node in body
             if isinstance(node, ast.Expr)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
@@ -343,6 +395,28 @@ class Step20PositionSizingReplayCharacterizationTests(unittest.TestCase):
             and node.func.attr == "mkdir"
         ]
         self.assertEqual(mkdir_calls, [])
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_import_is_silent_and_has_no_filesystem_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step20_position_sizing_import_") as temp_dir:
+            root = Path(temp_dir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(root)
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    namespace = runpy.run_path(
+                        str(SCRIPT),
+                        run_name="_step20_position_sizing_import",
+                    )
+            finally:
+                os.chdir(previous_cwd)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(_manifest(root), {})
+            self.assertEqual(_directories(root), set())
+            self.assertTrue(callable(namespace.get("main")))
 
     @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
     def test_successful_fixture_stdout_csv_and_input_nonmutation_are_bound(self) -> None:
