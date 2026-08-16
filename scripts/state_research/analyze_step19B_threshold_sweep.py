@@ -10,105 +10,111 @@ configs = [
     (0.7, 3),
 ]
 
-trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
-life = pd.read_csv("live_logs/trade_lifecycle_snapshots.csv")
-shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
-trades["exit_timestamp_utc"] = pd.to_datetime(trades["exit_timestamp_utc"], utc=True)
-life["timestamp_utc"] = pd.to_datetime(life["timestamp_utc"], utc=True)
-life["entry_timestamp_utc"] = pd.to_datetime(life["entry_timestamp_utc"], utc=True)
-shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
+def main() -> None:
+    trades = pd.read_csv("live_logs/trades_l1_auto_analysis.csv")
+    life = pd.read_csv("live_logs/trade_lifecycle_snapshots.csv")
+    shadow = pd.read_csv("live_logs/passive_shadow_risk_snapshots.csv")
 
-print("threshold,consecutive,dynamic_exits,total_pnl,pf,max_dd_pct")
+    trades["entry_timestamp_utc"] = pd.to_datetime(trades["entry_timestamp_utc"], utc=True)
+    trades["exit_timestamp_utc"] = pd.to_datetime(trades["exit_timestamp_utc"], utc=True)
+    life["timestamp_utc"] = pd.to_datetime(life["timestamp_utc"], utc=True)
+    life["entry_timestamp_utc"] = pd.to_datetime(life["entry_timestamp_utc"], utc=True)
+    shadow["timestamp_utc"] = pd.to_datetime(shadow["timestamp_utc"], utc=True)
 
-for THRESHOLD, CONSECUTIVE in configs:
+    print("threshold,consecutive,dynamic_exits,total_pnl,pf,max_dd_pct")
 
-    rows = []
+    for THRESHOLD, CONSECUTIVE in configs:
 
-    for _, trade in trades.iterrows():
+        rows = []
 
-        entry_ts = trade["entry_timestamp_utc"]
-        exit_ts = trade["exit_timestamp_utc"]
-        side = str(trade["side"]).lower()
+        for _, trade in trades.iterrows():
 
-        life_trade = life[
-            (life["entry_timestamp_utc"] == entry_ts)
-            & (life["side"].astype(str).str.lower() == side)
-        ].copy()
+            entry_ts = trade["entry_timestamp_utc"]
+            exit_ts = trade["exit_timestamp_utc"]
+            side = str(trade["side"]).lower()
 
-        shadow_trade = shadow[
-            (shadow["timestamp_utc"] >= entry_ts)
-            & (shadow["timestamp_utc"] <= exit_ts)
-        ][["timestamp_utc", "shadow_risk_score"]].copy()
+            life_trade = life[
+                (life["entry_timestamp_utc"] == entry_ts)
+                & (life["side"].astype(str).str.lower() == side)
+            ].copy()
 
-        replay_pnl = float(trade["pnl"])
-        triggered = 0
+            shadow_trade = shadow[
+                (shadow["timestamp_utc"] >= entry_ts)
+                & (shadow["timestamp_utc"] <= exit_ts)
+            ][["timestamp_utc", "shadow_risk_score"]].copy()
 
-        if len(life_trade) > 0 and len(shadow_trade) > 0:
+            replay_pnl = float(trade["pnl"])
+            triggered = 0
 
-            merged = pd.merge_asof(
-                life_trade.sort_values("timestamp_utc"),
-                shadow_trade.sort_values("timestamp_utc"),
-                on="timestamp_utc",
-                direction="nearest",
-                tolerance=pd.Timedelta("2min"),
+            if len(life_trade) > 0 and len(shadow_trade) > 0:
+
+                merged = pd.merge_asof(
+                    life_trade.sort_values("timestamp_utc"),
+                    shadow_trade.sort_values("timestamp_utc"),
+                    on="timestamp_utc",
+                    direction="nearest",
+                    tolerance=pd.Timedelta("2min"),
+                )
+
+                merged["shadow_risk_score"] = merged["shadow_risk_score"].fillna(0.0)
+
+                merged["high"] = merged["shadow_risk_score"] > THRESHOLD
+
+                merged["streak"] = (
+                    merged["high"]
+                    .astype(int)
+                    .groupby((merged["high"] != merged["high"].shift()).cumsum())
+                    .cumsum()
+                )
+
+                trigger = merged[merged["streak"] >= CONSECUTIVE]
+
+                if len(trigger) > 0:
+
+                    row = trigger.iloc[0]
+
+                    entry_price = float(row["entry_price"])
+                    exit_price = float(row["current_price"])
+                    size = float(row["position_size"])
+
+                    if side == "long":
+                        replay_pnl = (exit_price - entry_price) * size
+                    else:
+                        replay_pnl = (entry_price - exit_price) * size
+
+                    triggered = 1
+
+            rows.append(
+                {
+                    "pnl": replay_pnl,
+                    "triggered": triggered,
+                }
             )
 
-            merged["shadow_risk_score"] = merged["shadow_risk_score"].fillna(0.0)
+        df = pd.DataFrame(rows)
 
-            merged["high"] = merged["shadow_risk_score"] > THRESHOLD
+        df["equity"] = START_CAPITAL + df["pnl"].cumsum()
+        df["peak"] = df["equity"].cummax()
+        df["dd_pct"] = (df["peak"] - df["equity"]) / df["peak"]
 
-            merged["streak"] = (
-                merged["high"]
-                .astype(int)
-                .groupby((merged["high"] != merged["high"].shift()).cumsum())
-                .cumsum()
-            )
+        wins = df[df["pnl"] > 0]
+        losses = df[df["pnl"] < 0]
 
-            trigger = merged[merged["streak"] >= CONSECUTIVE]
+        gp = wins["pnl"].sum()
+        gl = abs(losses["pnl"].sum())
 
-            if len(trigger) > 0:
+        pf = gp / gl if gl > 0 else float("inf")
 
-                row = trigger.iloc[0]
-
-                entry_price = float(row["entry_price"])
-                exit_price = float(row["current_price"])
-                size = float(row["position_size"])
-
-                if side == "long":
-                    replay_pnl = (exit_price - entry_price) * size
-                else:
-                    replay_pnl = (entry_price - exit_price) * size
-
-                triggered = 1
-
-        rows.append(
-            {
-                "pnl": replay_pnl,
-                "triggered": triggered,
-            }
+        print(
+            f"{THRESHOLD},"
+            f"{CONSECUTIVE},"
+            f"{df['triggered'].sum()},"
+            f"{df['pnl'].sum():.2f},"
+            f"{pf:.4f},"
+            f"{df['dd_pct'].max():.4f}"
         )
 
-    df = pd.DataFrame(rows)
 
-    df["equity"] = START_CAPITAL + df["pnl"].cumsum()
-    df["peak"] = df["equity"].cummax()
-    df["dd_pct"] = (df["peak"] - df["equity"]) / df["peak"]
-
-    wins = df[df["pnl"] > 0]
-    losses = df[df["pnl"] < 0]
-
-    gp = wins["pnl"].sum()
-    gl = abs(losses["pnl"].sum())
-
-    pf = gp / gl if gl > 0 else float("inf")
-
-    print(
-        f"{THRESHOLD},"
-        f"{CONSECUTIVE},"
-        f"{df['triggered'].sum()},"
-        f"{df['pnl'].sum():.2f},"
-        f"{pf:.4f},"
-        f"{df['dd_pct'].max():.4f}"
-    )
+if __name__ == "__main__":
+    main()
