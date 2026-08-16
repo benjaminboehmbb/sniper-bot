@@ -1,0 +1,426 @@
+from __future__ import annotations
+
+import ast
+import csv
+import hashlib
+import importlib.util
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = REPO_ROOT / "scripts" / "state_research" / "analyze_step19B_threshold_sweep.py"
+
+TRADES_INPUT = Path("live_logs/trades_l1_auto_analysis.csv")
+LIFECYCLE_INPUT = Path("live_logs/trade_lifecycle_snapshots.csv")
+SHADOW_INPUT = Path("live_logs/passive_shadow_risk_snapshots.csv")
+
+SOURCE_SHA256 = "98236fc02a9b65f85c7411e3d42d2caefe41bf06e0d4958542c498005db3e6fe"
+SOURCE_LINES = 114
+START_CAPITAL = 10000.0
+CONFIGS = [
+    (0.5, 3),
+    (0.5, 5),
+    (0.6, 3),
+    (0.6, 5),
+    (0.7, 3),
+]
+HEADER = "threshold,consecutive,dynamic_exits,total_pnl,pf,max_dd_pct"
+
+FULL_RUNTIME_AVAILABLE = importlib.util.find_spec("pandas") is not None
+
+TRADES_ROWS = (
+    {
+        "entry_timestamp_utc": "2026-01-01T00:00:00Z",
+        "exit_timestamp_utc": "2026-01-01T00:02:00Z",
+        "side": "LONG",
+        "pnl": "100",
+    },
+    {
+        "entry_timestamp_utc": "2026-01-01T00:10:00Z",
+        "exit_timestamp_utc": "2026-01-01T00:14:00Z",
+        "side": "SHORT",
+        "pnl": "-40",
+    },
+    {
+        "entry_timestamp_utc": "2026-01-01T00:20:00Z",
+        "exit_timestamp_utc": "2026-01-01T00:22:00Z",
+        "side": "LONG",
+        "pnl": "-20",
+    },
+    {
+        "entry_timestamp_utc": "2026-01-01T00:30:00Z",
+        "exit_timestamp_utc": "2026-01-01T00:32:00Z",
+        "side": "SHORT",
+        "pnl": "30",
+    },
+)
+
+LIFECYCLE_ROWS = (
+    {"timestamp_utc": "2026-01-01T00:00:00Z", "entry_timestamp_utc": "2026-01-01T00:00:00Z", "side": "long", "entry_price": "100", "current_price": "99", "position_size": "2"},
+    {"timestamp_utc": "2026-01-01T00:01:00Z", "entry_timestamp_utc": "2026-01-01T00:00:00Z", "side": "LONG", "entry_price": "100", "current_price": "98", "position_size": "2"},
+    {"timestamp_utc": "2026-01-01T00:02:00Z", "entry_timestamp_utc": "2026-01-01T00:00:00Z", "side": "Long", "entry_price": "100", "current_price": "97", "position_size": "2"},
+    {"timestamp_utc": "2026-01-01T00:10:00Z", "entry_timestamp_utc": "2026-01-01T00:10:00Z", "side": "short", "entry_price": "100", "current_price": "101", "position_size": "3"},
+    {"timestamp_utc": "2026-01-01T00:11:00Z", "entry_timestamp_utc": "2026-01-01T00:10:00Z", "side": "SHORT", "entry_price": "100", "current_price": "102", "position_size": "3"},
+    {"timestamp_utc": "2026-01-01T00:12:00Z", "entry_timestamp_utc": "2026-01-01T00:10:00Z", "side": "Short", "entry_price": "100", "current_price": "103", "position_size": "3"},
+    {"timestamp_utc": "2026-01-01T00:13:00Z", "entry_timestamp_utc": "2026-01-01T00:10:00Z", "side": "short", "entry_price": "100", "current_price": "104", "position_size": "3"},
+    {"timestamp_utc": "2026-01-01T00:14:00Z", "entry_timestamp_utc": "2026-01-01T00:10:00Z", "side": "SHORT", "entry_price": "100", "current_price": "105", "position_size": "3"},
+    {"timestamp_utc": "2026-01-01T00:30:00Z", "entry_timestamp_utc": "2026-01-01T00:30:00Z", "side": "short", "entry_price": "100", "current_price": "99", "position_size": "1"},
+)
+
+SHADOW_ROWS = (
+    {"timestamp_utc": "2026-01-01T00:00:00Z", "shadow_risk_score": "0.51"},
+    {"timestamp_utc": "2026-01-01T00:01:00Z", "shadow_risk_score": "0.51"},
+    {"timestamp_utc": "2026-01-01T00:02:00Z", "shadow_risk_score": "0.51"},
+    {"timestamp_utc": "2026-01-01T00:10:00Z", "shadow_risk_score": "0.61"},
+    {"timestamp_utc": "2026-01-01T00:11:00Z", "shadow_risk_score": "0.61"},
+    {"timestamp_utc": "2026-01-01T00:12:00Z", "shadow_risk_score": "0.61"},
+    {"timestamp_utc": "2026-01-01T00:13:00Z", "shadow_risk_score": "0.61"},
+    {"timestamp_utc": "2026-01-01T00:14:00Z", "shadow_risk_score": "0.61"},
+    {"timestamp_utc": "2026-01-01T00:20:00Z", "shadow_risk_score": "0.80"},
+)
+
+
+def _tree() -> ast.Module:
+    return ast.parse(SCRIPT.read_text(encoding="utf-8"), filename=str(SCRIPT))
+
+
+def _is_main_guard(node: ast.AST) -> bool:
+    if not isinstance(node, ast.If):
+        return False
+    test = node.test
+    return (
+        isinstance(test, ast.Compare)
+        and isinstance(test.left, ast.Name)
+        and test.left.id == "__name__"
+        and len(test.ops) == 1
+        and isinstance(test.ops[0], ast.Eq)
+        and len(test.comparators) == 1
+        and isinstance(test.comparators[0], ast.Constant)
+        and test.comparators[0].value == "__main__"
+    )
+
+
+def _config_loop() -> ast.For:
+    loops = [
+        node
+        for node in _tree().body
+        if isinstance(node, ast.For)
+        and isinstance(node.target, ast.Tuple)
+        and [ast.unparse(item) for item in node.target.elts] == ["THRESHOLD", "CONSECUTIVE"]
+    ]
+    if len(loops) != 1:
+        raise AssertionError(f"expected one config loop, found {len(loops)}")
+    return loops[0]
+
+
+def _trade_loop() -> ast.For:
+    loops = [
+        node
+        for node in _config_loop().body
+        if isinstance(node, ast.For)
+        and isinstance(node.iter, ast.Call)
+        and isinstance(node.iter.func, ast.Attribute)
+        and node.iter.func.attr == "iterrows"
+    ]
+    if len(loops) != 1:
+        raise AssertionError(f"expected one trade loop, found {len(loops)}")
+    return loops[0]
+
+
+def _write_csv(path: Path, rows: tuple[dict[str, str], ...]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=tuple(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _write_header(path: Path, fieldnames: tuple[str, ...]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        csv.DictWriter(handle, fieldnames=fieldnames).writeheader()
+
+
+def _manifest(root: Path) -> dict[str, str]:
+    return {
+        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
+def _directories(root: Path) -> set[str]:
+    return {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_dir()
+    }
+
+
+def _run(root: Path) -> subprocess.CompletedProcess[str]:
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT)],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    completed.stdout = completed.stdout.replace("\r\n", "\n")
+    completed.stderr = completed.stderr.replace("\r\n", "\n")
+    return completed
+
+
+class Step19BThresholdSweepCharacterizationTests(unittest.TestCase):
+    maxDiff = None
+
+    def test_source_identity_constants_and_import_time_executor_are_bound(self) -> None:
+        raw = SCRIPT.read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), SOURCE_SHA256)
+        self.assertEqual(len(raw.decode("utf-8").splitlines()), SOURCE_LINES)
+        assignments = {
+            target.id: ast.literal_eval(node.value)
+            for node in _tree().body
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance((target := node.targets[0]), ast.Name)
+            and target.id in {"START_CAPITAL", "configs"}
+        }
+        self.assertEqual(assignments, {"START_CAPITAL": START_CAPITAL, "configs": CONFIGS})
+        self.assertEqual([node for node in _tree().body if isinstance(node, ast.FunctionDef)], [])
+        self.assertEqual([node for node in _tree().body if _is_main_guard(node)], [])
+        reads = [
+            node
+            for node in _tree().body
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "read_csv"
+        ]
+        self.assertEqual(len(reads), 3)
+
+    def test_fixed_read_and_timestamp_conversion_order_are_bound(self) -> None:
+        reads = [
+            ast.literal_eval(node.value.args[0])
+            for node in _tree().body
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "read_csv"
+        ]
+        self.assertEqual(
+            reads,
+            [TRADES_INPUT.as_posix(), LIFECYCLE_INPUT.as_posix(), SHADOW_INPUT.as_posix()],
+        )
+        conversions = [
+            ast.literal_eval(node.value.args[0].slice)
+            for node in _tree().body
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "to_datetime"
+            and isinstance(node.value.args[0], ast.Subscript)
+        ]
+        self.assertEqual(
+            conversions,
+            [
+                "entry_timestamp_utc",
+                "exit_timestamp_utc",
+                "timestamp_utc",
+                "entry_timestamp_utc",
+                "timestamp_utc",
+            ],
+        )
+        utc_keywords = [
+            node.value.keywords
+            for node in _tree().body
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "to_datetime"
+        ]
+        self.assertTrue(all(len(keywords) == 1 and keywords[0].arg == "utc" and ast.literal_eval(keywords[0].value) is True for keywords in utc_keywords))
+
+    def test_trade_match_inclusive_shadow_window_and_default_path_are_bound(self) -> None:
+        source = ast.unparse(_trade_loop())
+        self.assertIn("life['entry_timestamp_utc'] == entry_ts", source)
+        self.assertIn("life['side'].astype(str).str.lower() == side", source)
+        self.assertIn("shadow['timestamp_utc'] >= entry_ts", source)
+        self.assertIn("shadow['timestamp_utc'] <= exit_ts", source)
+        self.assertIn("replay_pnl = float(trade['pnl'])", source)
+        self.assertIn("triggered = 0", source)
+        self.assertIn("if len(life_trade) > 0 and len(shadow_trade) > 0", source)
+        merge_calls = [
+            node
+            for node in ast.walk(_trade_loop())
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "merge_asof"
+        ]
+        self.assertEqual(len(merge_calls), 1)
+        keywords = {keyword.arg: ast.unparse(keyword.value) for keyword in merge_calls[0].keywords}
+        self.assertEqual(
+            keywords,
+            {
+                "on": "'timestamp_utc'",
+                "direction": "'nearest'",
+                "tolerance": "pd.Timedelta('2min')",
+            },
+        )
+        self.assertIn("merged['shadow_risk_score'] = merged['shadow_risk_score'].fillna(0.0)", source)
+
+    def test_strict_high_run_length_and_trigger_selection_are_bound(self) -> None:
+        source = ast.unparse(_trade_loop())
+        self.assertIn("merged['high'] = merged['shadow_risk_score'] > THRESHOLD", source)
+        self.assertIn("merged['high'].astype(int).groupby((merged['high'] != merged['high'].shift()).cumsum()).cumsum()", source)
+        self.assertIn("trigger = merged[merged['streak'] >= CONSECUTIVE]", source)
+        self.assertNotIn("trigger = merged[merged['high']", source)
+        self.assertIn("if len(trigger) > 0", source)
+        self.assertIn("row = trigger.iloc[0]", source)
+
+    def test_first_trigger_price_side_formula_and_row_schema_are_bound(self) -> None:
+        source = ast.unparse(_trade_loop())
+        self.assertIn("entry_price = float(row['entry_price'])", source)
+        self.assertIn("exit_price = float(row['current_price'])", source)
+        self.assertIn("size = float(row['position_size'])", source)
+        self.assertIn("if side == 'long':", source)
+        self.assertIn("replay_pnl = (exit_price - entry_price) * size", source)
+        self.assertIn("else:", source)
+        self.assertIn("replay_pnl = (entry_price - exit_price) * size", source)
+        self.assertIn("triggered = 1", source)
+        append_call = next(
+            node
+            for node in ast.walk(_trade_loop())
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "append"
+        )
+        row = append_call.args[0]
+        self.assertIsInstance(row, ast.Dict)
+        self.assertEqual([ast.literal_eval(key) for key in row.keys], ["pnl", "triggered"])
+        self.assertEqual([ast.unparse(value) for value in row.values], ["replay_pnl", "triggered"])
+
+    def test_metrics_stdout_precision_order_and_no_writer_are_bound(self) -> None:
+        loop = _config_loop()
+        source = ast.unparse(loop)
+        self.assertIn("df['equity'] = START_CAPITAL + df['pnl'].cumsum()", source)
+        self.assertIn("df['peak'] = df['equity'].cummax()", source)
+        self.assertIn("df['dd_pct'] = (df['peak'] - df['equity']) / df['peak']", source)
+        self.assertIn("wins = df[df['pnl'] > 0]", source)
+        self.assertIn("losses = df[df['pnl'] < 0]", source)
+        self.assertIn("pf = gp / gl if gl > 0 else float('inf')", source)
+        print_calls = [
+            node.value
+            for node in ast.walk(_tree())
+            if isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Name)
+            and node.value.func.id == "print"
+        ]
+        self.assertEqual(len(print_calls), 2)
+        self.assertEqual(ast.literal_eval(print_calls[0].args[0]), HEADER)
+        formatted = ast.unparse(print_calls[1])
+        self.assertIn("df['triggered'].sum()", formatted)
+        self.assertIn("df['pnl'].sum():.2f", formatted)
+        self.assertIn("pf:.4f", formatted)
+        self.assertIn("df['dd_pct'].max():.4f", formatted)
+        writers = [
+            node
+            for node in ast.walk(_tree())
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"mkdir", "open", "to_csv", "to_json", "write_text", "write_bytes"}
+        ]
+        self.assertEqual(writers, [])
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_successful_fixture_stdout_and_input_nonmutation_are_bound(self) -> None:
+        expected_stdout = (
+            f"{HEADER}\n"
+            "0.5,3,2,-5.00,0.8571,0.0029\n"
+            "0.5,5,1,95.00,3.7143,0.0035\n"
+            "0.6,3,1,101.00,4.4828,0.0029\n"
+            "0.6,5,1,95.00,3.7143,0.0035\n"
+            "0.7,3,0,70.00,2.1667,0.0059\n"
+        )
+        with tempfile.TemporaryDirectory(prefix="step19b_threshold_sweep_success_") as temp_dir:
+            root = Path(temp_dir)
+            _write_csv(root / TRADES_INPUT, TRADES_ROWS)
+            _write_csv(root / LIFECYCLE_INPUT, LIFECYCLE_ROWS)
+            _write_csv(root / SHADOW_INPUT, SHADOW_ROWS)
+            before = _manifest(root)
+            before_directories = _directories(root)
+            result = _run(root)
+            after = _manifest(root)
+            after_directories = _directories(root)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertEqual(result.stdout, expected_stdout)
+        self.assertEqual(after, before)
+        self.assertEqual(after_directories, before_directories)
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_missing_inputs_fail_closed_in_fixed_read_order(self) -> None:
+        stages = (
+            ((), TRADES_INPUT),
+            (((TRADES_INPUT, TRADES_ROWS),), LIFECYCLE_INPUT),
+            (((TRADES_INPUT, TRADES_ROWS), (LIFECYCLE_INPUT, LIFECYCLE_ROWS)), SHADOW_INPUT),
+        )
+        for provided, missing in stages:
+            with self.subTest(missing=missing.as_posix()):
+                with tempfile.TemporaryDirectory(prefix="step19b_threshold_sweep_missing_") as temp_dir:
+                    root = Path(temp_dir)
+                    for path, rows in provided:
+                        _write_csv(root / path, rows)
+                    before = _manifest(root)
+                    before_directories = _directories(root)
+                    result = _run(root)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertEqual(result.stdout, "")
+                    self.assertIn("FileNotFoundError", result.stderr)
+                    self.assertIn(missing.as_posix(), result.stderr.replace("\\", "/"))
+                    self.assertEqual(_manifest(root), before)
+                    self.assertEqual(_directories(root), before_directories)
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_empty_trades_fail_after_header_without_filesystem_mutation(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="step19b_threshold_sweep_empty_") as temp_dir:
+            root = Path(temp_dir)
+            _write_header(root / TRADES_INPUT, tuple(TRADES_ROWS[0]))
+            _write_csv(root / LIFECYCLE_INPUT, LIFECYCLE_ROWS)
+            _write_csv(root / SHADOW_INPUT, SHADOW_ROWS)
+            before = _manifest(root)
+            before_directories = _directories(root)
+            result = _run(root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, f"{HEADER}\n")
+            self.assertIn("KeyError", result.stderr)
+            self.assertIn("pnl", result.stderr)
+            self.assertEqual(_manifest(root), before)
+            self.assertEqual(_directories(root), before_directories)
+
+    @unittest.skipUnless(FULL_RUNTIME_AVAILABLE, "pandas fixture runtime required")
+    def test_malformed_first_timestamp_fails_before_header_and_without_mutation(self) -> None:
+        malformed_trades = tuple(dict(row) for row in TRADES_ROWS)
+        malformed_trades[0]["entry_timestamp_utc"] = "not-a-timestamp"
+        with tempfile.TemporaryDirectory(prefix="step19b_threshold_sweep_bad_time_") as temp_dir:
+            root = Path(temp_dir)
+            _write_csv(root / TRADES_INPUT, malformed_trades)
+            _write_csv(root / LIFECYCLE_INPUT, LIFECYCLE_ROWS)
+            _write_csv(root / SHADOW_INPUT, SHADOW_ROWS)
+            before = _manifest(root)
+            before_directories = _directories(root)
+            result = _run(root)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("DateParseError", result.stderr)
+            self.assertIn("not-a-timestamp", result.stderr)
+            self.assertEqual(_manifest(root), before)
+            self.assertEqual(_directories(root), before_directories)
+
+
+if __name__ == "__main__":
+    unittest.main()
