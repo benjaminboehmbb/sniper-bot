@@ -264,31 +264,10 @@ def _apply_startup_recovery_to_state(cfg: RuntimeConfig, state) -> dict:
 
 
 
-def load_runtime_config(
-    repo_root: str,
-    *,
-    market_csv_path: str | None = None,
-    seeds_5m_csv: str | None = None,
-) -> RuntimeConfig:
+def load_runtime_config(repo_root: str) -> RuntimeConfig:
     log_path = os.environ.get(
         "L1_LOG_PATH",
         os.path.join(repo_root, "live_logs", "l1_paper.log"),
-    )
-    resolved_market_csv_path = (
-        market_csv_path
-        if market_csv_path is not None
-        else os.environ.get(
-            "L1_MARKET_CSV_PATH",
-            "data/l1_paper_short_gate_test.csv",
-        )
-    )
-    resolved_seeds_5m_csv = (
-        seeds_5m_csv
-        if seeds_5m_csv is not None
-        else os.environ.get(
-            "SEEDS_5M_CSV",
-            "seeds/5m/btcusdt_5m_timing_core_v2.csv",
-        )
     )
 
     cfg = RuntimeConfig(
@@ -304,8 +283,14 @@ def load_runtime_config(
         test_force_buy_every=_env_int("L1_TEST_FORCE_BUY_EVERY", 10),
         test_force_sell_every=_env_int("L1_TEST_FORCE_SELL_EVERY", 15),
         test_force_warmup_ticks=_env_int("L1_TEST_FORCE_WARMUP_TICKS", 0),
-        market_csv_path=str(resolved_market_csv_path),
-        seeds_5m_csv=str(resolved_seeds_5m_csv),
+        market_csv_path=os.environ.get(
+            "L1_MARKET_CSV_PATH",
+            "data/l1_paper_short_gate_test.csv",
+        ),
+        seeds_5m_csv=os.environ.get(
+            "SEEDS_5M_CSV",
+            "seeds/5m/btcusdt_5m_timing_core_v2.csv",
+        ),
         thresh_5m=_env_float("THRESH_5M", 0.60),
         timing_v2_shadow=_env_bool("L1_TIMING_V2_SHADOW", False),
         timing_v2_history_len=_env_int("L1_TIMING_V2_HISTORY_LEN", 3),
@@ -883,16 +868,10 @@ def run_l1_loop_step1234567(
     max_run_seconds: float | None = None,
     iu4_shadow_runtime_gate: IU4ShadowRuntimeGateV1 | None = None,
     iu4_shadow_observation_gate: IU4ShadowObservationGateV1 | None = None,
-    market_csv_path: str | None = None,
-    seeds_5m_csv: str | None = None,
 ) -> int:
     system_state_id = f"L1P-{uuid.uuid4().hex[:11]}"
 
-    cfg = load_runtime_config(
-        repo_root,
-        market_csv_path=market_csv_path,
-        seeds_5m_csv=seeds_5m_csv,
-    )
+    cfg = load_runtime_config(repo_root)
     log = L1Logger(cfg.log_path)
     pee_shadow_settings = load_runtime_shadow_settings(os.environ)
     iu4_startup_fields = (

@@ -42,7 +42,7 @@ def main() -> int:
     parser.add_argument("--max-ticks", type=int, default=1)
     parser.add_argument("--max-run-seconds", type=float, default=0.0)
     parser.add_argument("--market-csv-path", default=os.environ.get("L1_MARKET_CSV_PATH", "data/l1_paper_short_gate_test.csv"))
-    parser.add_argument("--seeds-5m-csv", default=os.environ.get("SEEDS_5M_CSV", "seeds/5m/btcusdt_5m_timing_core_v2.csv"))
+    parser.add_argument("--seeds-5m-csv", default=os.environ.get("SEEDS_5M_CSV", "seeds/5m/btcusdt_5m_long_timing_core_v1.csv"))
     parser.add_argument("--audit-log-path", default=os.environ.get("L1_AUDIT_LOG_PATH", "live_logs/execution_audit.jsonl"))
     parser.add_argument("--s2-position-path", default=os.environ.get("L1_S2_POSITION_PATH", "live_state/s2_position.jsonl"))
     parser.add_argument("--trades-path", default=os.environ.get("L1_TRADE_LOG_PATH", "live_logs/trades_l1.jsonl"))
@@ -188,8 +188,6 @@ def main() -> int:
             max_run_seconds=max_run_seconds,
             iu4_shadow_runtime_gate=iu4_gate,
             iu4_shadow_observation_gate=iu4_observation_gate,
-            market_csv_path=args.market_csv_path,
-            seeds_5m_csv=args.seeds_5m_csv,
         )
     finally:
         if iu4_observation_gate.observer is not None:
