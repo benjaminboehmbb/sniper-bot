@@ -220,6 +220,14 @@ class LossClusterStateV2:
                 LossClusterReasonCode.SCHEMA_INVALID,
                 "loss-cluster version marker must equal 2",
             )
+        pnls = record.get("recent_closed_trade_pnls")
+        if not isinstance(pnls, list) or any(
+            not isinstance(value, str) for value in pnls
+        ):
+            raise LossClusterStateError(
+                LossClusterReasonCode.STATE_INVALID,
+                "persisted loss-cluster PnL values must be canonical decimal strings",
+            )
         state = cls(
             schema_version=record.get("schema_version"),
             revision=record.get("revision"),
@@ -231,6 +239,11 @@ class LossClusterStateV2:
             raise LossClusterStateError(
                 LossClusterReasonCode.CHECKSUM_MISMATCH,
                 "loss-cluster state fingerprint does not match its payload",
+            )
+        if dict(record) != state.to_record():
+            raise LossClusterStateError(
+                LossClusterReasonCode.STATE_INVALID,
+                "loss-cluster record is not in canonical serialized form",
             )
         return state
 
@@ -269,6 +282,106 @@ class LossClusterStateV2:
             pause_entries_remaining=record.get("pause_entries_remaining"),
             updated_utc=record.get("updated_utc"),
         )
+
+
+def _pure_transition_binding(
+    *,
+    policy_id: object,
+    policy_fingerprint: object,
+    updated_utc: object,
+) -> tuple[str, str, str]:
+    if not isinstance(policy_id, str) or not policy_id.strip():
+        raise LossClusterStateError(
+            LossClusterReasonCode.STATE_INVALID,
+            "policy_id must be a non-empty string",
+        )
+    fingerprint = _sha256_text(policy_fingerprint)
+    timestamp = _canonical_utc_seconds(updated_utc, "updated_utc")
+    return policy_id.strip(), fingerprint, timestamp
+
+
+def apply_loss_cluster_close(
+    state: LossClusterStateV2,
+    *,
+    net_pnl_quote: object,
+    updated_utc: object,
+    policy_id: object,
+    policy_fingerprint: object,
+    lookback: int = LOSS_CLUSTER_LOOKBACK,
+    loss_threshold: int = 5,
+    pause_entries: int = 3,
+) -> LossClusterStateV2:
+    """Purely derive the authoritative Loss Cluster state after one CLOSE."""
+
+    if not isinstance(state, LossClusterStateV2):
+        raise LossClusterStateError(
+            LossClusterReasonCode.STATE_INVALID,
+            "CLOSE transition requires LossClusterStateV2",
+        )
+    _pure_transition_binding(
+        policy_id=policy_id,
+        policy_fingerprint=policy_fingerprint,
+        updated_utc=updated_utc,
+    )
+    if isinstance(net_pnl_quote, (bool, float)):
+        raise LossClusterStateError(
+            LossClusterReasonCode.STATE_INVALID,
+            "new PEE net PnL must not cross a binary Float boundary",
+        )
+    pnl = _decimal(net_pnl_quote, "net_pnl_quote")
+    lookback_value = _integer(lookback, "lookback", minimum=1)
+    threshold_value = _integer(loss_threshold, "loss_threshold", minimum=1)
+    pause_value = _integer(pause_entries, "pause_entries", minimum=1)
+    if threshold_value > lookback_value:
+        raise LossClusterStateError(
+            LossClusterReasonCode.STATE_INVALID,
+            "loss_threshold cannot exceed lookback",
+        )
+    recent = (state.recent_closed_trade_pnls + (pnl,))[-lookback_value:]
+    pause = state.pause_entries_remaining
+    if sum(1 for value in recent if value < 0) >= threshold_value:
+        pause = max(pause, pause_value)
+        recent = ()
+    return LossClusterStateV2(
+        schema_version=LOSS_CLUSTER_SCHEMA_VERSION,
+        revision=state.revision + 1,
+        recent_closed_trade_pnls=recent,
+        pause_entries_remaining=pause,
+        updated_utc=updated_utc,
+    )
+
+
+def apply_loss_cluster_entry_veto(
+    state: LossClusterStateV2,
+    *,
+    updated_utc: object,
+    policy_id: object,
+    policy_fingerprint: object,
+) -> LossClusterStateV2:
+    """Purely consume exactly one active Loss Cluster entry pause token."""
+
+    if not isinstance(state, LossClusterStateV2):
+        raise LossClusterStateError(
+            LossClusterReasonCode.STATE_INVALID,
+            "ENTRY_VETO transition requires LossClusterStateV2",
+        )
+    _pure_transition_binding(
+        policy_id=policy_id,
+        policy_fingerprint=policy_fingerprint,
+        updated_utc=updated_utc,
+    )
+    if state.pause_entries_remaining <= 0:
+        raise LossClusterStateError(
+            LossClusterReasonCode.STATE_INVALID,
+            "ENTRY_VETO requires an active pause counter",
+        )
+    return LossClusterStateV2(
+        schema_version=LOSS_CLUSTER_SCHEMA_VERSION,
+        revision=state.revision + 1,
+        recent_closed_trade_pnls=state.recent_closed_trade_pnls,
+        pause_entries_remaining=state.pause_entries_remaining - 1,
+        updated_utc=updated_utc,
+    )
 
 
 @dataclass(frozen=True)
@@ -403,4 +516,6 @@ __all__ = [
     "LossClusterStateStore",
     "LossClusterStateV2",
     "SimulatedLossClusterInterruption",
+    "apply_loss_cluster_close",
+    "apply_loss_cluster_entry_veto",
 ]

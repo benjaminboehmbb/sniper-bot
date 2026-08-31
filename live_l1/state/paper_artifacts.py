@@ -178,6 +178,21 @@ def _utc_timestamp_seconds(value: object, field_name: str) -> str:
     )
 
 
+def _optional_utc_timestamp_seconds(value: object, field_name: str) -> str:
+    text = _text(value, field_name, allow_empty=True)
+    return "" if not text else _utc_timestamp_seconds(text, field_name)
+
+
+def _sha256_text(value: object, field_name: str) -> str:
+    text = _text(value, field_name).lower()
+    if len(text) != 64 or any(character not in "0123456789abcdef" for character in text):
+        raise PaperArtifactError(
+            ArtifactReasonCode.ARTIFACT_INVALID,
+            f"{field_name} must be a lowercase SHA-256 hex digest",
+        )
+    return text
+
+
 def _ddiv(left: Decimal, right: Decimal) -> Decimal:
     return DECIMAL_CONTEXT.divide(left, right)
 
@@ -237,6 +252,428 @@ class LegacyArtifact:
     entry_allowed: bool = False
     exit_allowed: bool = True
     reason_code: str = ArtifactReasonCode.LEGACY_ECONOMICS_INCOMPLETE
+
+
+@dataclass(frozen=True)
+class EntryEconomicsQuoteArtifactV1:
+    """Canonical, complete serialization of one committed entry quote."""
+
+    schema_version: int
+    side: str
+    reference_entry_price: Decimal
+    reference_stop_price: Decimal
+    modeled_entry_fill_price: Decimal
+    modeled_stop_fill_price: Decimal
+    realized_equity_quote: Decimal
+    risk_budget_quote: Decimal
+    modeled_stop_loss_per_unit_quote: Decimal
+    risk_quantity: Decimal
+    notional_cap_quote: Decimal
+    notional_cap_quantity: Decimal
+    raw_quantity: Decimal
+    quantity_step: Decimal
+    quantity: Decimal
+    entry_notional_quote: Decimal
+    entry_fee_quote: Decimal
+    expected_stop_notional_quote: Decimal
+    expected_stop_fee_quote: Decimal
+    modeled_stop_loss_quote: Decimal
+    economics_profile_id: str
+    economics_model_version: str
+    config_fingerprint: str
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.schema_version, bool)
+            or not isinstance(self.schema_version, int)
+            or self.schema_version != 1
+        ):
+            raise PaperArtifactError(
+                ArtifactReasonCode.SCHEMA_UNSUPPORTED,
+                "EntryEconomicsQuoteArtifactV1 requires schema_version 1",
+            )
+        side = _text(self.side, "side").upper()
+        if side not in ("LONG", "SHORT"):
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry quote side must be LONG or SHORT",
+            )
+        object.__setattr__(self, "side", side)
+        for name in (
+            "economics_profile_id",
+            "economics_model_version",
+        ):
+            object.__setattr__(self, name, _text(getattr(self, name), name))
+        object.__setattr__(
+            self,
+            "config_fingerprint",
+            _sha256_text(self.config_fingerprint, "config_fingerprint"),
+        )
+        positive = (
+            "reference_entry_price",
+            "reference_stop_price",
+            "modeled_entry_fill_price",
+            "modeled_stop_fill_price",
+            "realized_equity_quote",
+            "risk_budget_quote",
+            "modeled_stop_loss_per_unit_quote",
+            "risk_quantity",
+            "notional_cap_quote",
+            "notional_cap_quantity",
+            "raw_quantity",
+            "quantity_step",
+            "quantity",
+            "entry_notional_quote",
+            "expected_stop_notional_quote",
+            "modeled_stop_loss_quote",
+        )
+        non_negative = ("entry_fee_quote", "expected_stop_fee_quote")
+        for name in positive:
+            object.__setattr__(self, name, _positive_decimal(getattr(self, name), name))
+        for name in non_negative:
+            object.__setattr__(
+                self,
+                name,
+                _non_negative_decimal(getattr(self, name), name),
+            )
+        valid_stop = (
+            side == "LONG" and self.reference_stop_price < self.reference_entry_price
+        ) or (
+            side == "SHORT" and self.reference_stop_price > self.reference_entry_price
+        )
+        if not valid_stop:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry quote stop direction is invalid",
+            )
+        if self.entry_notional_quote != _dmul(
+            self.quantity,
+            self.modeled_entry_fill_price,
+        ):
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry quote notional identity is invalid",
+            )
+        if self.modeled_stop_loss_quote != _dmul(
+            self.quantity,
+            self.modeled_stop_loss_per_unit_quote,
+        ):
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry quote stop-loss identity is invalid",
+            )
+
+    @classmethod
+    def from_quote(cls, quote: EntryEconomicsQuote) -> "EntryEconomicsQuoteArtifactV1":
+        if not isinstance(quote, EntryEconomicsQuote):
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "from_quote requires EntryEconomicsQuote",
+            )
+        return cls(
+            schema_version=1,
+            **{name: getattr(quote, name) for name in EntryEconomicsQuote.__dataclass_fields__},
+        )
+
+    def to_quote(self) -> EntryEconomicsQuote:
+        return EntryEconomicsQuote(
+            **{
+                name: getattr(self, name)
+                for name in EntryEconomicsQuote.__dataclass_fields__
+            }
+        )
+
+    def canonical_payload(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "schema_version": self.schema_version,
+            "artifact_type": "entry_economics_quote",
+        }
+        for name in EntryEconomicsQuote.__dataclass_fields__:
+            value = getattr(self, name)
+            result[name] = canonical_decimal(value) if isinstance(value, Decimal) else value
+        return result
+
+    @property
+    def quote_fingerprint(self) -> str:
+        return canonical_json_sha256(self.canonical_payload())
+
+    def to_record(self) -> dict[str, Any]:
+        result = self.canonical_payload()
+        result["quote_fingerprint"] = self.quote_fingerprint
+        return result
+
+    @classmethod
+    def from_record(cls, record: Mapping[str, Any]) -> "EntryEconomicsQuoteArtifactV1":
+        expected = {
+            "schema_version",
+            "artifact_type",
+            *EntryEconomicsQuote.__dataclass_fields__,
+            "quote_fingerprint",
+        }
+        if set(record) != expected or record.get("artifact_type") != "entry_economics_quote":
+            raise PaperArtifactError(
+                ArtifactReasonCode.SCHEMA_MALFORMED,
+                "entry quote fields are incomplete or unknown",
+            )
+        artifact = cls(
+            schema_version=record.get("schema_version"),
+            **{
+                name: record.get(name)
+                for name in EntryEconomicsQuote.__dataclass_fields__
+            },
+        )
+        if _sha256_text(record.get("quote_fingerprint"), "quote_fingerprint") != artifact.quote_fingerprint:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry quote fingerprint mismatch",
+            )
+        if dict(record) != artifact.to_record():
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry quote record is not in canonical serialized form",
+            )
+        return artifact
+
+
+@dataclass(frozen=True)
+class PaperRiskStateS4V2:
+    """Complete V2 safety state with terminal runtime capabilities."""
+
+    schema_version: int
+    system_state_id: str
+    kill_level: str
+    cooldown_until_utc: str
+    trades_today: int
+    loss_today: Decimal
+    anomaly_counter: int
+    trades_6h: int
+    last_trade_timestamp_utc: str
+    entry_allowed: bool
+    exit_evaluation_allowed: bool
+    runtime_directive: str
+    reason_codes: tuple[str, ...]
+    position_fingerprint: str
+    account_fingerprint: str
+    throttle_fingerprint: str
+    loss_cluster_fingerprint: str
+    progress_cursor_fingerprint: str
+    runtime_control_profile_id: str
+    runtime_control_fingerprint: str
+    loss_cluster_policy_id: str
+    loss_cluster_policy_fingerprint: str
+    economics_profile_id: str
+    economics_model_version: str
+    config_fingerprint: str
+    throttle_policy_profile_id: str
+    throttle_policy_model_version: str
+    throttle_policy_fingerprint: str
+    authority_generation_id: str
+    transaction_sequence: int
+    journal_head: str
+    last_transaction_event_id: str
+    last_transaction_timestamp_utc: str
+    last_transaction_tick_id: int
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.schema_version, bool)
+            or not isinstance(self.schema_version, int)
+            or self.schema_version != 2
+        ):
+            raise PaperArtifactError(
+                ArtifactReasonCode.SCHEMA_UNSUPPORTED,
+                "PaperRiskStateS4V2 requires schema_version 2",
+            )
+        for name in (
+            "system_state_id",
+            "runtime_control_profile_id",
+            "loss_cluster_policy_id",
+            "economics_profile_id",
+            "economics_model_version",
+            "throttle_policy_profile_id",
+            "throttle_policy_model_version",
+            "authority_generation_id",
+        ):
+            object.__setattr__(self, name, _text(getattr(self, name), name))
+        for name in (
+            "position_fingerprint",
+            "account_fingerprint",
+            "throttle_fingerprint",
+            "loss_cluster_fingerprint",
+            "progress_cursor_fingerprint",
+            "runtime_control_fingerprint",
+            "loss_cluster_policy_fingerprint",
+            "config_fingerprint",
+            "throttle_policy_fingerprint",
+        ):
+            object.__setattr__(self, name, _sha256_text(getattr(self, name), name))
+        object.__setattr__(self, "loss_today", _non_negative_decimal(self.loss_today, "loss_today"))
+        for name in (
+            "trades_today",
+            "anomaly_counter",
+            "trades_6h",
+            "transaction_sequence",
+            "last_transaction_tick_id",
+        ):
+            object.__setattr__(self, name, _integer(getattr(self, name), name))
+        object.__setattr__(
+            self,
+            "cooldown_until_utc",
+            _optional_utc_timestamp_seconds(self.cooldown_until_utc, "cooldown_until_utc"),
+        )
+        object.__setattr__(
+            self,
+            "last_trade_timestamp_utc",
+            _optional_utc_timestamp_seconds(
+                self.last_trade_timestamp_utc,
+                "last_trade_timestamp_utc",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "last_transaction_timestamp_utc",
+            _optional_utc_timestamp_seconds(
+                self.last_transaction_timestamp_utc,
+                "last_transaction_timestamp_utc",
+            ),
+        )
+        for name in ("entry_allowed", "exit_evaluation_allowed"):
+            if not isinstance(getattr(self, name), bool):
+                raise PaperArtifactError(
+                    ArtifactReasonCode.ARTIFACT_INVALID,
+                    f"{name} must be boolean",
+                )
+        level = _text(self.kill_level, "kill_level").upper()
+        capabilities = {
+            "NONE": (True, "CONTINUE"),
+            "SOFT": (True, "CONTINUE"),
+            "HARD": (False, "STOP_LOOP"),
+            "EMERGENCY": (False, "EXIT_PROCESS"),
+        }
+        if level not in capabilities:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "kill_level is unsupported",
+            )
+        object.__setattr__(self, "kill_level", level)
+        directive = _text(self.runtime_directive, "runtime_directive").upper()
+        expected_exit, expected_directive = capabilities[level]
+        if self.exit_evaluation_allowed is not expected_exit or directive != expected_directive:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "S4V2 terminal capability matrix mismatch",
+            )
+        if level != "NONE" and self.entry_allowed:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "non-NONE S4V2 cannot allow entries",
+            )
+        object.__setattr__(self, "runtime_directive", directive)
+        if not isinstance(self.reason_codes, (tuple, list)):
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "reason_codes must be a tuple or list",
+            )
+        reasons = tuple(_text(reason, "reason_code") for reason in self.reason_codes)
+        if len(reasons) != len(set(reasons)):
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "reason_codes must be unique and ordered",
+            )
+        if self.entry_allowed and reasons:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry-allowed S4V2 cannot contain blocker reasons",
+            )
+        if not self.entry_allowed and not reasons:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "entry-blocked S4V2 requires a reason",
+            )
+        object.__setattr__(self, "reason_codes", reasons)
+        event_id = _text(
+            self.last_transaction_event_id,
+            "last_transaction_event_id",
+            allow_empty=True,
+        )
+        object.__setattr__(self, "last_transaction_event_id", event_id)
+        if self.transaction_sequence == 0:
+            if (
+                self.journal_head != "EMPTY"
+                or event_id
+                or self.last_transaction_timestamp_utc
+                or self.last_transaction_tick_id != 0
+            ):
+                raise PaperArtifactError(
+                    ArtifactReasonCode.ARTIFACT_INVALID,
+                    "initial S4V2 transaction head is not empty",
+                )
+        else:
+            object.__setattr__(self, "journal_head", _sha256_text(self.journal_head, "journal_head"))
+            if not event_id or not self.last_transaction_timestamp_utc:
+                raise PaperArtifactError(
+                    ArtifactReasonCode.ARTIFACT_INVALID,
+                    "non-initial S4V2 requires complete transaction head",
+                )
+
+    def canonical_payload(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for name in self.__dataclass_fields__:
+            value = getattr(self, name)
+            if isinstance(value, Decimal):
+                value = canonical_decimal(value)
+            elif isinstance(value, tuple):
+                value = list(value)
+            result[name] = value
+        return result
+
+    def business_payload(self) -> dict[str, Any]:
+        result = self.canonical_payload()
+        result.pop("authority_generation_id")
+        result.pop("transaction_sequence")
+        result.pop("journal_head")
+        result.pop("last_transaction_event_id")
+        result.pop("last_transaction_timestamp_utc")
+        result.pop("last_transaction_tick_id")
+        return result
+
+    @property
+    def state_fingerprint(self) -> str:
+        return canonical_json_sha256(self.canonical_payload())
+
+    def to_record(self) -> dict[str, Any]:
+        result = self.canonical_payload()
+        result["state_fingerprint"] = self.state_fingerprint
+        return result
+
+    @classmethod
+    def from_record(cls, record: Mapping[str, Any]) -> "PaperRiskStateS4V2":
+        expected = {*cls.__dataclass_fields__, "state_fingerprint"}
+        if set(record) != expected:
+            raise PaperArtifactError(
+                ArtifactReasonCode.SCHEMA_MALFORMED,
+                "S4V2 fields are incomplete or unknown",
+            )
+        values = {name: record.get(name) for name in cls.__dataclass_fields__}
+        reasons = values.get("reason_codes")
+        if not isinstance(reasons, list):
+            raise PaperArtifactError(
+                ArtifactReasonCode.SCHEMA_MALFORMED,
+                "S4V2 reason_codes must be a list",
+            )
+        values["reason_codes"] = tuple(reasons)
+        state = cls(**values)
+        if _sha256_text(record.get("state_fingerprint"), "state_fingerprint") != state.state_fingerprint:
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "S4V2 state fingerprint mismatch",
+            )
+        if dict(record) != state.to_record():
+            raise PaperArtifactError(
+                ArtifactReasonCode.ARTIFACT_INVALID,
+                "S4V2 record is not in canonical serialized form",
+            )
+        return state
 
 
 @dataclass(frozen=True)
@@ -1119,9 +1556,11 @@ __all__ = [
     "ARTIFACT_SETTLEMENT",
     "ARTIFACT_TRADE",
     "ArtifactReasonCode",
+    "EntryEconomicsQuoteArtifactV1",
     "LegacyArtifact",
     "PaperAccountState",
     "PaperArtifactError",
+    "PaperRiskStateS4V2",
     "PositionArtifactV2",
     "PositionStateS2FlatV2",
     "PositionStateS2V2",
