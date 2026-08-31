@@ -1,0 +1,87 @@
+{
+  "schema": "BTC_L1_CANONICAL_DATASET_IDENTITY_V1",
+  "record_date": "2026-08-31",
+  "status": "CANONICAL",
+  "dataset": {
+    "logical_id": "BTC_L1_CANONICAL_V1",
+    "symbol": "BTCUSDT",
+    "timeframe": "1m",
+    "logical_path": "data/l1_full_run.csv",
+    "observed_absolute_path": "/mnt/c/Users/workstation/Desktop/sniper-bot/data/l1_full_run.csv",
+    "sha256": "530983b84c461d46a49058428b1549fa87fd320cb2f04a070eeb081275aafe1f",
+    "size_bytes": 463326873,
+    "total_lines": 4374558,
+    "data_rows": 4374557,
+    "column_count": 22,
+    "first_timestamp_utc": "2017-08-17T04:00:00+00:00",
+    "last_timestamp_utc": "2025-12-31T23:59:00+00:00",
+    "gap_count": 33,
+    "missing_minutes": 30163,
+    "structural_integrity": "PASS",
+    "gap_accounting": "PASS"
+  },
+  "raw_reference": {
+    "role": "INDEPENDENT_BINANCE_RAW_REFERENCE_NOT_CANONICAL_REPLACEMENT",
+    "root": "data/btcusdt_1m_2026-07-22/raw/monthly",
+    "audited_range": "2017-08..2025-12",
+    "archive_count": 101,
+    "archive_set_sha256": "99caff2dad446aed5e13739fac807d93740c4b18c7c7baae839cf94f2b95b42f",
+    "archive_integrity": "PASS",
+    "raw_rows": 4396159,
+    "minute_aligned_raw_rows": 4374557,
+    "non_minute_aligned_raw_rows": 21602,
+    "shifted_segment_count": 2,
+    "raw_source_gap_count": 35,
+    "raw_order_and_structure": "PASS",
+    "aligned_pipeline_loss_signal": false
+  },
+  "shifted_segments": [
+    {
+      "offset_seconds": 20.799,
+      "start_utc": "2017-12-04T06:00:20.799000+00:00",
+      "end_utc": "2017-12-18T10:00:20.799000+00:00",
+      "rows": 20401
+    },
+    {
+      "offset_seconds": 14.789,
+      "start_utc": "2018-02-09T09:59:14.789000+00:00",
+      "end_utc": "2018-02-10T05:59:14.789000+00:00",
+      "rows": 1201
+    }
+  ],
+  "gap_classification_summary": {
+    "source_gap": 31,
+    "mixed_shifted_source_gap": 2,
+    "aligned_raw_omitted": 0
+  },
+  "historical_feature_provenance": {
+    "exact_original_signal_regime_build_chain": "UNRESOLVED",
+    "existing_csv_source_of_truth_for_controlled_historical_operation": true,
+    "silent_regeneration_allowed": false,
+    "silent_replacement_allowed": false
+  },
+  "governance": {
+    "freeze_dataset": true,
+    "append_future_data": false,
+    "future_rebuild_requires_new_version": true,
+    "future_data_must_remain_separate": true,
+    "repeat_forensics_without_reaudit_trigger": false
+  },
+  "reaudit_triggers": [
+    "dataset_sha256_changed",
+    "dataset_size_rows_schema_or_time_range_changed",
+    "suspected_storage_corruption",
+    "new_canonical_dataset_version_proposed",
+    "historical_signal_regime_regeneration_proposed",
+    "contradictory_new_evidence",
+    "dataset_transfer_hash_failure",
+    "formal_scientific_review_requires_reaudit"
+  ],
+  "workstation_audit_context": {
+    "checkout": "/mnt/c/Users/workstation/Desktop/sniper-bot",
+    "branch": "main",
+    "local_head": "a5cdc25893cb2d6778e6223dfe46f740b429d747",
+    "observed_remote_main": "d1e865f29f507fcf7eb405c3be7da4a8946b9861",
+    "preexisting_modified_tracked_file": "scripts/download_btcusdt_1m_binance_bulk.py"
+  }
+}
