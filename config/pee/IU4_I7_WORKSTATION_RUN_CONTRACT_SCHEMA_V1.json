@@ -1,0 +1,166 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_type": {"const": "IU4_I7_WORKSTATION_RUN_CONTRACT", "type": "string"},
+    "schema_version": {"const": 3, "type": "integer"},
+    "schema_id": {"const": "IU4_I7_WORKSTATION_RUN_CONTRACT_SCHEMA_V3", "type": "string"},
+    "run_id": {"pattern": "IU4-I7-[A-Z0-9][A-Z0-9-]{2,95}", "type": "string"},
+    "canonical_repository": {"const": "/home/benja/projects/sniper-bot", "type": "string"},
+    "host": {
+      "additionalProperties": false,
+      "properties": {
+        "host_id": {"minLength": 1, "type": "string"},
+        "human_authority_id": {"minLength": 1, "type": "string"},
+        "disposable_host": {"const": true, "type": "boolean"},
+        "kernel_release": {"minLength": 1, "type": "string"},
+        "kernel_build_id": {"minLength": 1, "type": "string"},
+        "architecture": {"minLength": 1, "type": "string"},
+        "boot_id": {"minLength": 1, "type": "string"},
+        "clock_boottime_resolution_ns": {"minimum": 1, "type": "integer"},
+        "active_lsm": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+        "bpffs_mount": {"minLength": 1, "type": "string"},
+        "cgroup_v2_mount": {"minLength": 1, "type": "string"},
+        "pid_namespace": {"minLength": 1, "type": "string"},
+        "mount_namespace": {"minLength": 1, "type": "string"},
+        "user_namespace": {"minLength": 1, "type": "string"},
+        "network_namespace": {"minLength": 1, "type": "string"},
+        "yama_initial_scope": {"minimum": 0, "type": "integer"}
+      },
+      "required": ["host_id", "human_authority_id", "disposable_host", "kernel_release", "kernel_build_id", "architecture", "boot_id", "clock_boottime_resolution_ns", "active_lsm", "bpffs_mount", "cgroup_v2_mount", "pid_namespace", "mount_namespace", "user_namespace", "network_namespace", "yama_initial_scope"],
+      "type": "object"
+    },
+    "guest": {
+      "additionalProperties": false,
+      "properties": {
+        "vm_id": {"minLength": 1, "type": "string"},
+        "human_authority_id": {"minLength": 1, "type": "string"},
+        "qemu_version": {"minLength": 1, "type": "string"},
+        "qmp_socket": {"minLength": 1, "type": "string"},
+        "guest_repo_readonly_path": {"minLength": 1, "type": "string"},
+        "ssh_host": {"enum": ["127.0.0.1", "::1"], "type": "string"},
+        "ssh_port": {"minimum": 1, "type": "integer"},
+        "ssh_user": {"minLength": 1, "type": "string"},
+        "restore_authority_id": {"minLength": 1, "type": "string"},
+        "discard_authority_id": {"minLength": 1, "type": "string"},
+        "reboot_authority_id": {"minLength": 1, "type": "string"},
+        "suspend_authority_id": {"minLength": 1, "type": "string"}
+      },
+      "required": ["vm_id", "human_authority_id", "qemu_version", "qmp_socket", "guest_repo_readonly_path", "ssh_host", "ssh_port", "ssh_user", "restore_authority_id", "discard_authority_id", "reboot_authority_id", "suspend_authority_id"],
+      "type": "object"
+    },
+    "privileges": {
+      "additionalProperties": false,
+      "properties": {
+        "human_authority_id": {"minLength": 1, "type": "string"},
+        "expected_uid": {"minimum": 0, "type": "integer"},
+        "expected_gid": {"minimum": 0, "type": "integer"},
+        "allowed_commands": {"items": {"minLength": 1, "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+        "yama_restore_command": {"minLength": 1, "type": "string"},
+        "bpf_authority_id": {"minLength": 1, "type": "string"},
+        "lsm_authority_id": {"minLength": 1, "type": "string"},
+        "cgroup_authority_id": {"minLength": 1, "type": "string"},
+        "namespace_authority_id": {"minLength": 1, "type": "string"}
+      },
+      "required": ["human_authority_id", "expected_uid", "expected_gid", "allowed_commands", "yama_restore_command", "bpf_authority_id", "lsm_authority_id", "cgroup_authority_id", "namespace_authority_id"],
+      "type": "object"
+    },
+    "capability": {
+      "additionalProperties": false,
+      "properties": {
+        "scenario_ids": {"items": {"pattern": "[A-Z0-9][A-Z0-9_-]{2,95}", "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+        "trials_per_scenario": {"const": 10000, "type": "integer"},
+        "expected_trial_count": {"minimum": 10000, "type": "integer"},
+        "startup_scenario_ids": {"items": {"pattern": "[A-Z0-9][A-Z0-9_-]{2,95}", "type": "string"}, "minItems": 1, "type": "array", "uniqueItems": true},
+        "startup_probes_per_scenario": {"const": 32, "type": "integer"},
+        "expected_startup_probe_count": {"minimum": 32, "type": "integer"},
+        "per_scenario_timeout_seconds": {"minimum": 1, "type": "integer"},
+        "global_timeout_seconds": {"minimum": 1, "type": "integer"}
+      },
+      "required": ["scenario_ids", "trials_per_scenario", "expected_trial_count", "startup_scenario_ids", "startup_probes_per_scenario", "expected_startup_probe_count", "per_scenario_timeout_seconds", "global_timeout_seconds"],
+      "type": "object"
+    },
+    "observer": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_id": {"const": "IU4_I7_OBSERVER_SNAPSHOT_V2", "type": "string"},
+        "run_id_derivation": {"const": "SHA256_CANONICAL_CONTRACT_NONCE_ROOT_SENTINEL_IDENTITY_V2", "type": "string"},
+        "runroot_create_new": {"const": true, "type": "boolean"},
+        "runroot_max_age_ns": {"const": 3600000000000, "type": "integer"},
+        "human_authority_id": {"minLength": 1, "type": "string"},
+        "independent_from_harness": {"const": true, "type": "boolean"},
+        "required_resource_kinds": {"const": ["processes", "fds", "sockets", "namespaces", "cgroups", "bpf", "qemu", "qmp", "ssh", "guest", "tmp"], "type": "array"}
+      },
+      "required": ["contract_id", "run_id_derivation", "runroot_create_new", "runroot_max_age_ns", "human_authority_id", "independent_from_harness", "required_resource_kinds"],
+      "type": "object"
+    },
+    "cleanup": {
+      "additionalProperties": false,
+      "properties": {
+        "run_owner_id": {"minLength": 1, "type": "string"},
+        "evidence_before_cleanup": {"const": true, "type": "boolean"},
+        "run_owned_only": {"const": true, "type": "boolean"},
+        "zero_residue_required": {"const": true, "type": "boolean"},
+        "preexisting_state_identical": {"const": true, "type": "boolean"},
+        "no_retry_same_session": {"const": true, "type": "boolean"},
+        "host_discard_on_restore_failure": {"const": true, "type": "boolean"},
+        "vm_discard_on_restore_failure": {"const": true, "type": "boolean"}
+      },
+      "required": ["run_owner_id", "evidence_before_cleanup", "run_owned_only", "zero_residue_required", "preexisting_state_identical", "no_retry_same_session", "host_discard_on_restore_failure", "vm_discard_on_restore_failure"],
+      "type": "object"
+    },
+    "file_inputs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "input_id": {"enum": ["SPECIFICATION", "FREEZE_MANIFEST", "FREEZE_TAR", "GATE_MANIFEST", "CAPABILITY_RUNNER", "CAPABILITY_MANIFEST", "CAPABILITY_ARTIFACT_SCHEMA", "OBSERVER_RUNNER", "OBSERVER_SNAPSHOT_SCHEMA", "SSH_PRIVATE_KEY", "SSH_KNOWN_HOSTS", "QEMU_BINARY", "COMPILER", "LINKER", "SUDO_BINARY", "BTF", "VMLINUX"], "type": "string"},
+          "path": {"minLength": 1, "type": "string"},
+          "confinement_root": {"minLength": 1, "type": "string"},
+          "root_mode": {"minimum": 0, "type": "integer"},
+          "root_uid": {"minimum": 0, "type": "integer"},
+          "root_gid": {"minimum": 0, "type": "integer"},
+          "root_device": {"minimum": 0, "type": "integer"},
+          "root_inode": {"minimum": 1, "type": "integer"},
+          "parent_chain": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "logical_path": {"minLength": 1, "type": "string"},
+                "path_component": {"minLength": 1, "type": "string"},
+                "device": {"minimum": 0, "type": "integer"},
+                "inode": {"minimum": 1, "type": "integer"},
+                "uid": {"minimum": 0, "type": "integer"},
+                "gid": {"minimum": 0, "type": "integer"},
+                "mode": {"minimum": 0, "type": "integer"},
+                "expected_type": {"const": "DIRECTORY", "type": "string"}
+              },
+              "required": ["logical_path", "path_component", "device", "inode", "uid", "gid", "mode", "expected_type"],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "sha256": {"pattern": "[0-9a-f]{64}", "type": "string"},
+          "size": {"minimum": 0, "type": "integer"},
+          "mode": {"minimum": 0, "type": "integer"},
+          "uid": {"minimum": 0, "type": "integer"},
+          "gid": {"minimum": 0, "type": "integer"},
+          "device": {"minimum": 0, "type": "integer"},
+          "inode": {"minimum": 1, "type": "integer"},
+          "permission_policy": {"enum": ["READ_ONLY", "PRIVATE_KEY", "READ_ONLY_EXECUTABLE"], "type": "string"}
+        },
+        "required": ["input_id", "path", "confinement_root", "root_mode", "root_uid", "root_gid", "root_device", "root_inode", "parent_chain", "sha256", "size", "mode", "uid", "gid", "device", "inode", "permission_policy"],
+        "type": "object"
+      },
+      "minItems": 17,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "stop_conditions": {
+      "const": ["IDENTITY_MISMATCH", "IMPORT_OR_EFFECT_CLOSURE_MISMATCH", "COUNT_MISMATCH", "FAILURE_ERROR_OR_SKIP", "TIMEOUT", "OBSERVER_FAILURE", "RUN_OWNED_RESIDUE", "PREEXISTING_STATE_CHANGED", "YAMA_RESTORE_FAILURE", "QMP_SSH_OR_GUEST_FAILURE", "BPF_LSM_CGROUP_OR_NAMESPACE_MISMATCH", "UNAUTHORIZED_NETWORK_OR_CREDENTIAL_ACCESS"],
+      "type": "array"
+    }
+  },
+  "required": ["artifact_type", "schema_version", "schema_id", "run_id", "canonical_repository", "host", "guest", "privileges", "capability", "observer", "cleanup", "file_inputs", "stop_conditions"],
+  "schema_id": "IU4_I7_WORKSTATION_RUN_CONTRACT_SCHEMA_V3",
+  "type": "object"
+}
