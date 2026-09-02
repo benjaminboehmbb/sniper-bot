@@ -1,0 +1,164 @@
+{
+  "authoritative_future_reference": {
+    "final_equity": 23491.220000000092,
+    "max_drawdown_pct": 15.564575534160271,
+    "profit_factor": 1.635603884512414,
+    "return_pct": 134.91220000000092,
+    "total_pnl": 13491.220000000092,
+    "trades": 563,
+    "winrate_pct": 69.80461811722914
+  },
+  "canonical_dataset": {
+    "data_rows": 4374557,
+    "first_timestamp_utc": "2017-08-17 04:00:00+00:00",
+    "last_timestamp_utc": "2025-12-31 23:59:00+00:00",
+    "logical_id": "BTC_L1_CANONICAL_V1",
+    "path": "data/l1_full_run.csv",
+    "sha256": "530983b84c461d46a49058428b1549fa87fd320cb2f04a070eeb081275aafe1f"
+  },
+  "closure_policy": {
+    "do_not_reopen_without_trigger": true,
+    "do_not_use_p66_140_22_pct_as_full_2017_2025_return": true,
+    "do_not_use_p66_556_as_full_2017_2025_baseline": true,
+    "reopen_triggers": [
+      "canonical dataset SHA256 changes",
+      "canonical row count or date range changes",
+      "current full-history normalized trade sequence hash changes",
+      "contradictory primary execution evidence is discovered",
+      "formal scientific review explicitly requires reopening"
+    ]
+  },
+  "conclusion": "The apparent 556-vs-563 trade divergence is fully explained by the historical P66 run stopping at 4,300,000 ticks. The current canonical run processes all 4,374,557 rows. All 556 historical trades are an unchanged prefix/subset of the current 563-trade result. There is no strategy drift.",
+  "current_full_history": {
+    "closed_trades": 563,
+    "full_a_full_b_parity": true,
+    "metrics": {
+      "avg_duration_sec": 1650.5861456483126,
+      "avg_pnl": 23.96309058614581,
+      "final_equity": 23491.220000000092,
+      "gross_loss": 21225.829999999936,
+      "gross_profit": 34717.050000000025,
+      "losses": 170,
+      "max_drawdown_abs": 2307.249999999971,
+      "max_drawdown_pct": 15.564575534160271,
+      "profit_factor": 1.635603884512414,
+      "return_pct": 134.91220000000092,
+      "start_capital": 10000.0,
+      "total_pnl": 13491.220000000092,
+      "trades": 563,
+      "winrate_pct": 69.80461811722914,
+      "wins": 393
+    },
+    "normalized_trade_sequence_sha256": "46706ec9f6446eb5ceecf7782199a8a7fab8a7f91c318ce560f5daa83b98646c",
+    "runtime_ticks": 4374557
+  },
+  "date": "2026-09-02",
+  "historical_p66": {
+    "actual_boundary_timestamp_utc": "2025-11-10 05:22:00+00:00",
+    "closed_trades": 556,
+    "documentation_issue": "P66 documentation describes the run as full-history through 2025-12-31, while P67 records the actual runtime length as 4,300,000 ticks.",
+    "metrics": {
+      "avg_duration_sec": 1642.0143884892086,
+      "avg_pnl": 25.219442446043267,
+      "final_equity": 24022.010000000057,
+      "gross_loss": 20443.209999999955,
+      "gross_profit": 34465.22000000001,
+      "losses": 167,
+      "max_drawdown_abs": 2307.249999999971,
+      "max_drawdown_pct": 15.564575534160271,
+      "profit_factor": 1.685900599759044,
+      "return_pct": 140.22010000000057,
+      "start_capital": 10000.0,
+      "total_pnl": 14022.010000000057,
+      "trades": 556,
+      "winrate_pct": 69.96402877697841,
+      "wins": 389
+    },
+    "normalized_trade_sequence_sha256": "afd9a22de398c1673d5400da75b132cb36b12f85178f95d2534677d62c2d5226",
+    "runtime_ticks": 4300000
+  },
+  "resolution_id": "BTC_L1_FULL_HISTORY_P66_BOUNDARY_RESOLUTION_V1",
+  "schema_version": 1,
+  "scope": {
+    "candidate_selection": false,
+    "holdout_claim": false,
+    "oos_claim": false,
+    "performance_used_for_selection": false
+  },
+  "status": "CLOSED",
+  "trade_sequence_resolution": {
+    "additional_ticks_after_p66": 74557,
+    "additional_trade_pnl": -530.7899999999645,
+    "current_only_entries": 7,
+    "current_only_trades": [
+      {
+        "entry_price": 99765.95,
+        "entry_timestamp_utc": "2025-11-13 23:53:00+00:00",
+        "exit_price": 99486.85,
+        "exit_reason": "CLOSE_LONG",
+        "exit_timestamp_utc": "2025-11-14 00:25:00+00:00",
+        "pnl": -279.09999999999127,
+        "side": "long"
+      },
+      {
+        "entry_price": 94874.19,
+        "entry_timestamp_utc": "2025-11-14 21:07:00+00:00",
+        "exit_price": 95320.12,
+        "exit_reason": "SHORT_TIME_STOP",
+        "exit_timestamp_utc": "2025-11-14 22:07:00+00:00",
+        "pnl": -445.929999999993,
+        "side": "short"
+      },
+      {
+        "entry_price": 87508.14,
+        "entry_timestamp_utc": "2025-12-25 11:04:00+00:00",
+        "exit_price": 87565.73,
+        "exit_reason": "SHORT_TIME_STOP",
+        "exit_timestamp_utc": "2025-12-25 12:04:00+00:00",
+        "pnl": -57.58999999999651,
+        "side": "short"
+      },
+      {
+        "entry_price": 88867.63,
+        "entry_timestamp_utc": "2025-12-26 09:50:00+00:00",
+        "exit_price": 88750.68,
+        "exit_reason": "CLOSE_SHORT",
+        "exit_timestamp_utc": "2025-12-26 10:18:00+00:00",
+        "pnl": 116.95000000001164,
+        "side": "short"
+      },
+      {
+        "entry_price": 87332.61,
+        "entry_timestamp_utc": "2025-12-26 17:30:00+00:00",
+        "exit_price": 87220.53,
+        "exit_reason": "CLOSE_SHORT",
+        "exit_timestamp_utc": "2025-12-26 18:28:00+00:00",
+        "pnl": 112.08000000000175,
+        "side": "short"
+      },
+      {
+        "entry_price": 87514.26,
+        "entry_timestamp_utc": "2025-12-27 16:11:00+00:00",
+        "exit_price": 87527.95,
+        "exit_reason": "CLOSE_LONG",
+        "exit_timestamp_utc": "2025-12-27 16:30:00+00:00",
+        "pnl": 13.690000000002328,
+        "side": "long"
+      },
+      {
+        "entry_price": 87775.6,
+        "entry_timestamp_utc": "2025-12-28 09:37:00+00:00",
+        "exit_price": 87784.71,
+        "exit_reason": "CLOSE_LONG",
+        "exit_timestamp_utc": "2025-12-28 09:52:00+00:00",
+        "pnl": 9.110000000000582,
+        "side": "long"
+      }
+    ],
+    "first_current_only_trade_dataset_row": 4305431,
+    "first_current_only_trade_entry_timestamp_utc": "2025-11-13 23:53:00+00:00",
+    "historical_only_entries": 0,
+    "shared_entries": 556,
+    "shared_entries_with_changed_outcome": 0
+  }
+}
