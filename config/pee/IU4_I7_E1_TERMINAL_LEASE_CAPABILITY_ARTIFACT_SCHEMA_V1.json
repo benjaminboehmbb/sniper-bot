@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "IU4_I7_E1_TERMINAL_LEASE_CAPABILITY_ARTIFACT_SCHEMA_V1",
+  "title": "IU4 I7 E1 Terminal Lease Capability Result V1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_type": {"const": "IU4_I7_E1_TERMINAL_LEASE_CAPABILITY_RESULT", "type": "string"},
+    "schema_version": {"const": 1, "type": "integer"},
+    "run_id": {"pattern": "IU4-I7-[A-Z0-9][A-Z0-9-]{2,95}", "type": "string"},
+    "contract_sha256": {"$ref": "#/$defs/sha256"},
+    "runner_sha256": {"$ref": "#/$defs/sha256"},
+    "manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "artifact_schema_sha256": {"$ref": "#/$defs/sha256"},
+    "specification_sha256": {"const": "ab8f80720a1d8fe49b9085bce63658bcaecf7f0a3ea70fb555559223090824e0", "type": "string"},
+    "profile_fingerprint": {"$ref": "#/$defs/sha256"},
+    "platform_fingerprint": {"$ref": "#/$defs/sha256"},
+    "scenario_results": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 24,
+      "items": {"$ref": "#/$defs/capability_scenario_result"}
+    },
+    "startup_scenario_results": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {"$ref": "#/$defs/startup_scenario_result"}
+    },
+    "raw_artifact_manifest": {"$ref": "#/$defs/raw_artifact_manifest"},
+    "observer_attestation": {"$ref": "#/$defs/observer_attestation"},
+    "cleanup_attestation": {"$ref": "#/$defs/cleanup_attestation"},
+    "semantic_root": {"$ref": "#/$defs/sha256"},
+    "run_attestation_root": {"$ref": "#/$defs/sha256"},
+    "final_status": {"enum": ["PASS", "FAIL"], "type": "string"}
+  },
+  "required": [
+    "artifact_type",
+    "schema_version",
+    "run_id",
+    "contract_sha256",
+    "runner_sha256",
+    "manifest_sha256",
+    "artifact_schema_sha256",
+    "specification_sha256",
+    "profile_fingerprint",
+    "platform_fingerprint",
+    "scenario_results",
+    "startup_scenario_results",
+    "raw_artifact_manifest",
+    "observer_attestation",
+    "cleanup_attestation",
+    "semantic_root",
+    "run_attestation_root",
+    "final_status"
+  ],
+  "$defs": {
+    "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "nonempty": {"minLength": 1, "type": "string"},
+    "dimension_bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+      "TID": {"type": "string"},
+      "approval_receiver": {"type": "string"},
+      "attempt": {"type": "string"},
+      "boundary": {"type": "string"},
+      "channel": {"type": "string"},
+      "cmsg": {"type": "string"},
+      "contention": {"type": "string"},
+      "control_socket": {"type": "string"},
+      "controlbuffer": {"type": "string"},
+      "deviation": {"type": "string"},
+      "endpoint": {"type": "string"},
+      "failure": {"type": "string"},
+      "fault": {"type": "string"},
+      "fd_count": {"type": "integer"},
+      "message": {"type": "string"},
+      "method": {"type": "string"},
+      "mutation": {"type": "string"},
+      "operation": {"type": "string"},
+      "path": {"type": "string"},
+      "phase": {"type": "string"},
+      "pidfd": {"type": "string"},
+      "pidfd_forcing": {"type": "string"},
+      "platform": {"type": "string"},
+      "race": {"type": "string"},
+      "receive_fault": {"type": "string"},
+      "receiver": {"type": "string"},
+      "request": {"type": "string"},
+      "resume": {"type": "string"},
+      "returned_error": {"type": "string"},
+      "sender_end": {"type": "string"},
+      "signal": {"type": "string"},
+      "signal_phase": {"type": "string"},
+      "state": {"type": "string"},
+      "stop": {"type": "string"},
+      "syscall": {"type": "string"},
+      "tgid": {"type": "string"},
+      "transition": {"type": "string"},
+      "trip": {"type": "string"},
+      "tsync_fault": {"type": "string"},
+      "variant": {"type": "string"},
+      "winner": {"type": "string"}
+      }
+    },
+    "kernel_timestamps": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clock": {"const": "CLOCK_BOOTTIME", "type": "string"},
+        "injection_ns": {"minimum": 0, "type": "integer"},
+        "kernel_accept_ns": {"minimum": 0, "type": "integer"},
+        "trip_cas_ns": {"minimum": 0, "type": "integer"},
+        "fatal_action_ns": {"minimum": 0, "type": "integer"},
+        "terminal_ns": {"minimum": 0, "type": "integer"}
+      },
+      "required": ["clock", "injection_ns", "kernel_accept_ns", "trip_cas_ns", "fatal_action_ns", "terminal_ns"]
+    },
+    "outcome_vector": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "syscall": {"$ref": "#/$defs/nonempty"},
+        "cas": {"$ref": "#/$defs/nonempty"},
+        "signal": {"$ref": "#/$defs/nonempty"},
+        "queue": {"$ref": "#/$defs/nonempty"},
+        "references": {"$ref": "#/$defs/nonempty"},
+        "phase": {"$ref": "#/$defs/nonempty"},
+        "open": {"$ref": "#/$defs/nonempty"},
+        "residue": {"$ref": "#/$defs/nonempty"}
+      },
+      "required": ["syscall", "cas", "signal", "queue", "references", "phase", "open", "residue"]
+    },
+    "trial_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trial_index": {"minimum": 0, "maximum": 9999, "type": "integer"},
+        "trip_offset_us": {"minimum": 0, "maximum": 9999, "type": "integer"},
+        "injected_fault": {"$ref": "#/$defs/nonempty"},
+        "boundary": {"$ref": "#/$defs/nonempty"},
+        "expected": {"$ref": "#/$defs/outcome_vector"},
+        "actual": {"$ref": "#/$defs/outcome_vector"},
+        "kernel_timestamps": {"$ref": "#/$defs/kernel_timestamps"},
+        "observer_reference": {"$ref": "#/$defs/sha256"},
+        "sentinel_reference": {"$ref": "#/$defs/sha256"},
+        "environment_fingerprint": {"$ref": "#/$defs/sha256"},
+        "raw_record_sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"enum": ["PASS", "FAIL"], "type": "string"},
+        "retry_count": {"const": 0, "type": "integer"}
+      },
+      "required": ["trial_index", "trip_offset_us", "injected_fault", "boundary", "expected", "actual", "kernel_timestamps", "observer_reference", "sentinel_reference", "environment_fingerprint", "raw_record_sha256", "status", "retry_count"]
+    },
+    "startup_probe_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase_index": {"minimum": 0, "maximum": 31, "type": "integer"},
+        "phase_offset_us": {"minimum": 0, "maximum": 9687, "type": "integer"},
+        "injected_fault": {"$ref": "#/$defs/nonempty"},
+        "boundary": {"$ref": "#/$defs/nonempty"},
+        "expected": {"$ref": "#/$defs/outcome_vector"},
+        "actual": {"$ref": "#/$defs/outcome_vector"},
+        "kernel_timestamps": {"$ref": "#/$defs/kernel_timestamps"},
+        "observer_reference": {"$ref": "#/$defs/sha256"},
+        "sentinel_reference": {"$ref": "#/$defs/sha256"},
+        "environment_fingerprint": {"$ref": "#/$defs/sha256"},
+        "raw_record_sha256": {"$ref": "#/$defs/sha256"},
+        "status": {"enum": ["PASS", "FAIL"], "type": "string"},
+        "retry_count": {"const": 0, "type": "integer"}
+      },
+      "required": ["phase_index", "phase_offset_us", "injected_fault", "boundary", "expected", "actual", "kernel_timestamps", "observer_reference", "sentinel_reference", "environment_fingerprint", "raw_record_sha256", "status", "retry_count"]
+    },
+    "capability_variant_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "variant_id": {"$ref": "#/$defs/nonempty"},
+        "dimension_bindings": {"$ref": "#/$defs/dimension_bindings"},
+        "expected_trial_count": {"const": 10000, "type": "integer"},
+        "trials": {"type": "array", "minItems": 10000, "maxItems": 10000, "items": {"$ref": "#/$defs/trial_record"}},
+        "status": {"enum": ["PASS", "FAIL"], "type": "string"},
+        "variant_root": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["variant_id", "dimension_bindings", "expected_trial_count", "trials", "status", "variant_root"]
+    },
+    "startup_variant_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "variant_id": {"$ref": "#/$defs/nonempty"},
+        "dimension_bindings": {"$ref": "#/$defs/dimension_bindings"},
+        "expected_probe_count": {"const": 32, "type": "integer"},
+        "probes": {"type": "array", "minItems": 32, "maxItems": 32, "items": {"$ref": "#/$defs/startup_probe_record"}},
+        "status": {"enum": ["PASS", "FAIL"], "type": "string"},
+        "variant_root": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["variant_id", "dimension_bindings", "expected_probe_count", "probes", "status", "variant_root"]
+    },
+    "capability_scenario_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": {"pattern": "^CAP_[A-Z0-9_]+$", "type": "string"},
+        "variant_count": {"minimum": 1, "type": "integer"},
+        "variants": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/capability_variant_result"}},
+        "status": {"enum": ["PASS", "FAIL"], "type": "string"},
+        "scenario_root": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["scenario_id", "variant_count", "variants", "status", "scenario_root"]
+    },
+    "startup_scenario_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scenario_id": {"pattern": "^STARTUP_[A-Z0-9_]+$", "type": "string"},
+        "variant_count": {"minimum": 1, "type": "integer"},
+        "variants": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/startup_variant_result"}},
+        "status": {"enum": ["PASS", "FAIL"], "type": "string"},
+        "scenario_root": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["scenario_id", "variant_count", "variants", "status", "scenario_root"]
+    },
+    "raw_artifact_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "logical_path": {"$ref": "#/$defs/nonempty"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size": {"minimum": 0, "type": "integer"},
+        "mode": {"minimum": 0, "type": "integer"},
+        "uid": {"minimum": 0, "type": "integer"},
+        "gid": {"minimum": 0, "type": "integer"}
+      },
+      "required": ["logical_path", "sha256", "size", "mode", "uid", "gid"]
+    },
+    "raw_artifact_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "canonical_serialization": {"const": "UTF8_LF_SORTED_KEYS_NO_BOM", "type": "string"},
+        "entries": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/raw_artifact_entry"}},
+        "manifest_root": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["canonical_serialization", "entries", "manifest_root"]
+    },
+    "observer_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "observer_id": {"$ref": "#/$defs/nonempty"},
+        "observer_sha256": {"$ref": "#/$defs/sha256"},
+        "independent_process": {"const": true, "type": "boolean"},
+        "independent_owner": {"const": true, "type": "boolean"},
+        "complete_kernel_timestamps": {"const": true, "type": "boolean"},
+        "snapshot_root": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["observer_id", "observer_sha256", "independent_process", "independent_owner", "complete_kernel_timestamps", "snapshot_root"]
+    },
+    "cleanup_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "run_owned_only": {"const": true, "type": "boolean"},
+        "zero_residue": {"const": true, "type": "boolean"},
+        "preexisting_bytes_identical": {"const": true, "type": "boolean"},
+        "preexisting_metadata_identical": {"const": true, "type": "boolean"},
+        "same_session_retry_count": {"const": 0, "type": "integer"},
+        "cleanup_root": {"$ref": "#/$defs/sha256"}
+      },
+      "required": ["run_owned_only", "zero_residue", "preexisting_bytes_identical", "preexisting_metadata_identical", "same_session_retry_count", "cleanup_root"]
+    }
+  }
+}
