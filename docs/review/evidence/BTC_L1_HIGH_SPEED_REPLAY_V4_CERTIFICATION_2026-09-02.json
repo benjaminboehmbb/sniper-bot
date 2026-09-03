@@ -1,0 +1,126 @@
+{
+  "certification_date": "2026-09-02",
+  "decision_path_source_sha256": {
+    "live_l1/core/execution.py": "a76f600d27feef969665bcd695ce11bc4e3abae0f25e045f7416fc78cd2513e3",
+    "live_l1/core/intent.py": "e052a11a04d1ae9b7d831e9d52175ee7fa8e212745ef43b22b94844a82ee4ece",
+    "live_l1/core/intent_fusion.py": "2b04f91c2273b7a9db941396d36e93b719edf3536e5e4e2a331ba5d169327114",
+    "live_l1/core/loop.py": "54e9e7bc0977a9c94f2e85a3279157678249a8569cff63f7d4f29131443fd058",
+    "live_l1/core/timing_5m.py": "59fd03511b9eb39d21f85a8bdca9ed57763924ab761ccf14866388f0fbfcdbf5",
+    "live_l1/io/market.py": "014bbf7328c4bd354fb8a254979ef463670e49557c5ed89e5628a3b35dc8cd0e",
+    "live_l1/logs/logger.py": "cbfb29708bc81bbf7f2d524abe10a21382213973f897038bc8c315bad1323cfd",
+    "live_l1/state/persist.py": "cc4c5f7e98905ffe2631330a1f03005a0897fdb43ad46a0b92191cc1cac2c274",
+    "live_l1/state/state_store.py": "50a85cf6bd382850d39e69cd785a5dc2ded0a66a1d82856b4baa11877bdba177",
+    "live_l1/tools/safe_launch.py": "cb90bd49b36de56e8ad95e9b24febb23baa0513b1ec51e7402f63a5efd6ec652"
+  },
+  "documentation": {
+    "base_main_commit": "d9380305e706c4bbd85e452ef4d12cb82b66dbcc"
+  },
+  "frozen_runner": {
+    "byte_identical_to_validated_runner": true,
+    "core_source_change": false,
+    "optimization_scope": [
+      "suppress physical per-tick operational log writes while preserving semantic event hashing",
+      "suppress per-tick S2/S4 disk persistence during uninterrupted replay",
+      "persist final S2/S4 once through canonical persistence implementation"
+    ],
+    "repo_path": "live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py",
+    "sha256": "af49126179eae0d7885d2ba07e0c342c1be9724a940457a8eb2f7a244b3a0292",
+    "timing_function_untouched": true,
+    "timing_optimization": "NONE"
+  },
+  "full_history_certification": {
+    "canonical_final_persist_calls": 1,
+    "canonical_persist_calls_suppressed": 4374557,
+    "exit_code": 0,
+    "fast_runtime_artifact_bytes": 6146901,
+    "final_s2_semantic_parity": true,
+    "final_s4_semantic_parity": true,
+    "golden_semantic_event_sha256": "ffa200c601dc6c2bdda0492909d6518573af6de0b621deb91ee3c9f46d7022e3",
+    "logger_calls_emitted": 3,
+    "logger_calls_suppressed": 30621899,
+    "loss_cluster_semantic_parity": true,
+    "normalized_trade_sha256": "46706ec9f6446eb5ceecf7782199a8a7fab8a7f91c318ce560f5daa83b98646c",
+    "ordered_trade_sequence_parity": true,
+    "reconciliation_pass": true,
+    "semantic_event_count": 30621902,
+    "semantic_event_sha256": "ffa200c601dc6c2bdda0492909d6518573af6de0b621deb91ee3c9f46d7022e3",
+    "semantic_event_stream_parity": true,
+    "stderr_empty": true,
+    "trade_count": 563
+  },
+  "generated_utc": "2026-09-02T05:34:02Z",
+  "golden_reference": {
+    "dataset_logical_id": "BTC_L1_CANONICAL_V1",
+    "dataset_path": "data/l1_full_run.csv",
+    "dataset_sha256": "530983b84c461d46a49058428b1549fa87fd320cb2f04a070eeb081275aafe1f",
+    "full_ticks": 4374557,
+    "git_commit": "a67b3da6661512d0e9177cc30badb3aa5fab5989",
+    "seed_path": "seeds/5m/btcusdt_5m_timing_core_v2.csv",
+    "seed_sha256": "6a07c0e6ca24cfd7b9e6bdea3562a7e505cf922e07a54c85dac6ff97473ef5e5"
+  },
+  "recertification_triggers": [
+    "frozen runner SHA256 changes",
+    "golden reference commit changes",
+    "canonical dataset SHA256 or identity changes",
+    "seed SHA256 changes",
+    "decision-relevant source changes",
+    "decision-relevant runtime configuration changes",
+    "timing behavior or timing implementation changes",
+    "contradictory primary execution evidence is discovered",
+    "formal scientific review explicitly requires recertification"
+  ],
+  "runtime_characterization": {
+    "finished_utc": "2026-09-02T05:20:21Z",
+    "internal_monotonic_seconds": 577.871213,
+    "started_utc": "2026-09-02T05:11:36Z",
+    "timing_measurement_note": "The two elapsed-time measurements differ. Both are retained as evidence. Performance is not a certification gate; exact deterministic parity is.",
+    "wall_seconds_from_utc_timestamps": 525
+  },
+  "schema": "BTC_L1_HIGH_SPEED_REPLAY_V4_CERTIFICATION_V1",
+  "scope": {
+    "candidate_selection_authorized": false,
+    "holdout_claim": false,
+    "oos_claim": false,
+    "paper_or_live_replacement_authorized": false,
+    "performance_selection": false,
+    "purpose": "historical deterministic engineering replay"
+  },
+  "semantic_final_state": {
+    "loss_cluster": {
+      "pause_entries_remaining": 0,
+      "recent_closed_trade_pnls": [
+        "-57.58999999999651",
+        "116.95000000001164",
+        "112.08000000000175",
+        "13.690000000002328",
+        "9.110000000000582"
+      ],
+      "revision": 1193,
+      "schema_version": 2,
+      "version": 2
+    },
+    "s2": {
+      "entry_price": null,
+      "entry_timestamp_utc": "",
+      "last_snapshot_id": "CSV-04374557",
+      "last_tick_id": 4374557,
+      "last_timestamp_utc": "2025-12-31 23:59:00+00:00",
+      "position": "FLAT",
+      "position_size": 0.0,
+      "schema_version": 1,
+      "side": "",
+      "size": 0.0,
+      "snapshot_id": "CSV-04374557",
+      "symbol": "BTCUSDT"
+    },
+    "s4": {
+      "cooldown_until_utc": null,
+      "kill_level": "SOFT",
+      "last_trade_timestamp_utc": "",
+      "schema_version": 1,
+      "trades_6h": 0,
+      "trades_today": 0
+    }
+  },
+  "status": "PASS"
+}
