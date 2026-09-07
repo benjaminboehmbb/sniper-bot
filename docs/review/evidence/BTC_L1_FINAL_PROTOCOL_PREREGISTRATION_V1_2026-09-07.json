@@ -1,0 +1,228 @@
+{
+  "schema_version": "1",
+  "protocol_id": "BTC_L1_FINAL_PROTOCOL_PREREGISTRATION_V1_2026-09-07",
+  "date": "2026-09-07",
+  "status": "PROPOSED_NOT_BINDING_UNTIL_INDEPENDENTLY_APPROVED_AND_COMMITTED",
+  "authorizations": {
+    "selects_candidate": false,
+    "freezes_candidate": false,
+    "sets_t0": false,
+    "authorizes_market_run": false,
+    "authorizes_paper_trading": false,
+    "authorizes_live_capital": false
+  },
+  "repository_binding": {
+    "head_at_creation": "3c5927127a03de13d8c80a720f5c8b97a2a36789"
+  },
+  "governance_binding": {
+    "ledger_path": "docs/review/BTC_L1_DATA_EXPOSURE_LEDGER_V1_2026-09-02.md",
+    "historical_final_oos_available": false,
+    "historical_final_oos_decision": "HISTORICAL_FINAL_OOS_AVAILABLE=NO",
+    "only_valid_final_oos_path": "PROSPECTIVE_POST_T0_HOLDOUT_ONLY"
+  },
+  "development_dataset": {
+    "logical_id": "BTC_L1_CANONICAL_V1",
+    "path": "data/l1_full_run.csv",
+    "sha256": "530983b84c461d46a49058428b1549fa87fd320cb2f04a070eeb081275aafe1f",
+    "period_start_utc": "2017-08-17T04:00:00Z",
+    "period_end_utc": "2025-12-31T23:59:00Z",
+    "rows": 4374557,
+    "evidence_role": [
+      "DEVELOPMENT_EXPOSURE",
+      "CHARACTERIZATION_EXPOSURE"
+    ],
+    "final_oos": false
+  },
+  "certified_replay": {
+    "runner_path": "live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py",
+    "runner_sha256": "af49126179eae0d7885d2ba07e0c342c1be9724a940457a8eb2f7a244b3a0292",
+    "expected_semantic_closed_trades": 563,
+    "expected_final_position": "FLAT"
+  },
+  "candidate_universe": {
+    "selection_type": "SINGLE_CANDIDATE_PASS_FAIL",
+    "eligible_candidate": "EXISTING_LEGACY_BTC_L1_BASELINE_PENDING_IDENTITY_SEAL",
+    "source_tree_commit": "3c5927127a03de13d8c80a720f5c8b97a2a36789",
+    "candidate_mutation_before_selection_permitted": false,
+    "failure_result": "NO_FINAL_CANDIDATE",
+    "ranking_permitted": false,
+    "runner_up_permitted": false,
+    "post_result_adjustment_permitted": false,
+    "excluded_families": [
+      "STEP19_THRESHOLD_AND_SHADOW_GATE_VARIANTS",
+      "STEP19_DYNAMIC_EXIT_VARIANTS",
+      "STEP20A_POSITION_SIZING_REPLAY",
+      "STEP20C_HISTORICAL_SCALING_REPLAY",
+      "STEP20D_RETROSPECTIVE_EXPOSURE_SCALING",
+      "STEP20E_TRUE_DYNAMIC_EXPOSURE_REPLAY"
+    ],
+    "excluded_statuses": [
+      "NOT_VALIDATED",
+      "NOT_LIVE_COMPATIBLE",
+      "NOT_LIVE_ACCURATE",
+      "PROOF_OF_CONCEPT_ONLY",
+      "DIAGNOSTIC_ONLY"
+    ]
+  },
+  "permitted_selection_evidence": [
+    "BTC_L1_CANONICAL_V1",
+    "CERTIFIED_V4_SEMANTIC_EVENT_STREAM",
+    "TRACKED_PRE_T0_DEVELOPMENT_AND_GOVERNANCE_RECORDS_AT_BOUND_REPOSITORY_STATE",
+    "FIXED_NOMINAL_AND_STRESS_ECONOMICS"
+  ],
+  "prohibited_selection_evidence": [
+    "PRE_T0_2026_MARKET_DATA",
+    "MARKET_DATA_AFTER_2025_12_31T23_59_00Z",
+    "POST_T0_DATA_OR_RESULTS",
+    "UNTRACKED_EXTERNAL_OR_IDENTITY_UNBOUND_RESULTS",
+    "NEW_SWEEPS_SEARCHES_RANKINGS_OR_DISCRETIONARY_VISUAL_SELECTION",
+    "PROSPECTIVE_HOLDOUT_FEEDBACK"
+  ],
+  "economics_profile": {
+    "path": "config/pee/PEE_V1_PAPER_CONSERVATIVE_CANDIDATE_001.json",
+    "profile_id": "PEE_V1_PAPER_CONSERVATIVE_CANDIDATE_001",
+    "fingerprint": "ac4cc746b57c2b802cf765c9c102f9921858c4d3cde2040f452b69ba1e6b14e1",
+    "mode": "SHADOW",
+    "starting_equity_quote": "10000",
+    "quote_currency": "USDT",
+    "risk_per_trade_rate": "0.0025",
+    "max_position_notional_rate": "0.10",
+    "entry_fee_rate": "0.001",
+    "exit_fee_rate": "0.001",
+    "entry_slippage_bps": "5",
+    "exit_slippage_bps": "8",
+    "max_daily_loss_rate": "0.01",
+    "max_daily_fee_rate": "0.0025",
+    "max_realized_drawdown_rate": "0.05",
+    "leverage_max": "1.0",
+    "max_open_positions": 1,
+    "reference_stop_rate_authorized": false
+  },
+  "stress_economics": {
+    "scenarios": 1,
+    "entry_fee_rate": "0.002",
+    "exit_fee_rate": "0.002",
+    "entry_slippage_bps": "20",
+    "exit_slippage_bps": "20",
+    "other_rules": "IDENTICAL_TO_NOMINAL"
+  },
+  "metric_definitions": {
+    "initial_equity_quote": "10000",
+    "net_pnl": "SUM_REALIZED_CLOSED_TRADE_PNL_AFTER_ADVERSE_SLIPPAGE_AND_BOTH_SIDE_FEES",
+    "final_equity": "INITIAL_EQUITY_PLUS_NET_PNL",
+    "gross_profit": "SUM_STRICTLY_POSITIVE_NET_TRADE_PNL",
+    "gross_loss": "ABS_SUM_STRICTLY_NEGATIVE_NET_TRADE_PNL",
+    "profit_factor": "GROSS_PROFIT_DIVIDED_BY_GROSS_LOSS_WITH_GROSS_LOSS_REQUIRED_GREATER_THAN_ZERO",
+    "win_rate": "STRICTLY_POSITIVE_NET_TRADES_DIVIDED_BY_CLOSED_ECONOMIC_TRADES",
+    "net_trade_return": "REALIZED_NET_TRADE_PNL_DIVIDED_BY_REALIZED_EQUITY_IMMEDIATELY_BEFORE_ENTRY",
+    "mean_net_trade_return": "ARITHMETIC_MEAN_OF_ORDERED_NET_TRADE_RETURN_SEQUENCE",
+    "mean_net_trade_return_lcb95": "10000_CIRCULAR_MOVING_BLOCK_BOOTSTRAP_MEANS_DEFAULT_RNG_SEED_20260907_L_CEIL_N_TO_ONE_THIRD_CEIL_N_DIV_L_UNIFORM_REPLACEMENT_STARTS_CIRCULAR_WRAP_TRUNCATE_N_NUMPY_PERCENTILE_5_METHOD_LINEAR",
+    "realized_drawdown_rate": "REALIZED_HIGH_WATER_MARK_MINUS_REALIZED_EQUITY_DIVIDED_BY_REALIZED_HIGH_WATER_MARK",
+    "max_realized_drawdown_rate": "MAXIMUM_ORDERED_REALIZED_DRAWDOWN_RATE",
+    "cagr": "FINAL_EQUITY_DIVIDED_BY_10000_TO_POWER_365_2425_DIVIDED_BY_ELAPSED_CALENDAR_DAYS_MINUS_ONE",
+    "calmar_ratio": "CAGR_DIVIDED_BY_MAX_REALIZED_DRAWDOWN_RATE"
+  },
+  "development_selection_gates": {
+    "conjunctive": true,
+    "identity_and_integrity": {
+      "all_bound_identities_match": true,
+      "candidate_manifest_complete": true,
+      "semantic_closed_trades_exact": 563,
+      "final_position": "FLAT",
+      "runtime_return_code": 0,
+      "all_reconciliation_checks_pass": true,
+      "prohibited_data_accessed": false
+    },
+    "nominal": {
+      "net_pnl_gt": 0,
+      "final_equity_gt": 10000,
+      "gross_loss_gt": 0,
+      "profit_factor_gt": 1.0,
+      "mean_net_trade_return_lcb95_gt": 0,
+      "max_realized_drawdown_rate_lte": 0.05,
+      "cagr_gt": 0,
+      "calmar_ratio_gt": 0,
+      "control_bypass_count": 0
+    },
+    "stress": {
+      "net_pnl_gt": 0,
+      "final_equity_gt": 10000,
+      "gross_loss_gt": 0,
+      "profit_factor_gt": 1.0,
+      "max_realized_drawdown_rate_lte": 0.1
+    },
+    "pass_decision": "FINAL_CANDIDATE_SELECTED",
+    "fail_decision": "NO_FINAL_CANDIDATE",
+    "edge_claim_authorized": false
+  },
+  "candidate_freeze_requirements": [
+    "IMMUTABLE_CANDIDATE_ID",
+    "STRATEGY_AND_ALL_PARAMETERS",
+    "TIMING_AND_SHORT_SEED_FILES_AND_HASHES",
+    "REPOSITORY_COMMIT_AND_CLEAN_TREE",
+    "PYTHON_AND_DEPENDENCY_IDENTITIES",
+    "REPLAY_AND_PROSPECTIVE_ENTRYPOINTS_AND_HASHES",
+    "PEE_PROFILE_ID_CONTENT_HASH_AND_FINGERPRINT",
+    "INPUT_SYMBOL_INTERVAL_TIMESTAMP_AND_BAR_CLOSE_RULE",
+    "OUTPUT_AUDIT_STATE_RECOVERY_AND_RECONCILIATION_PATHS",
+    "CONFIGURATION_ENVIRONMENT_ALLOWLIST_AND_EXPLICIT_DEFAULTS",
+    "DETERMINISTIC_FINGERPRINTS_AND_RECERTIFICATION_TRIGGERS"
+  ],
+  "t0_and_holdout": {
+    "t0_set_by_this_protocol": false,
+    "t0_rule": "FIRST_UTC_DAY_AFTER_SIGNED_SUCCESSFUL_CONTROL_ATTESTATION",
+    "holdout_interval": "[T0_INFINITY)",
+    "timestamp_field": "BAR_OPEN_TIMESTAMP_UTC",
+    "membership_rule": "BAR_OPEN_TIMESTAMP_GTE_T0",
+    "pre_t0_backfill_permitted": false
+  },
+  "prospective_terminal_rule": {
+    "evaluation_count": 1,
+    "minimum_complete_utc_days": 365,
+    "minimum_reconciled_closed_trades": 100,
+    "evaluation_time": "FIRST_FULLY_RECONCILED_FLAT_BOUNDARY_AT_OR_AFTER_LATER_OF_MINIMUM_DAYS_AND_MINIMUM_TRADES",
+    "status_before_minimum": "INSUFFICIENT_EVIDENCE",
+    "performance_feedback_before_terminal_evaluation_permitted": false,
+    "mandatory_gates": {
+      "net_pnl_gt": 0,
+      "final_equity_gt_starting_equity": true,
+      "gross_loss_gt": 0,
+      "profit_factor_gt": 1.0,
+      "mean_net_trade_return_lcb95_gt": 0,
+      "max_realized_drawdown_rate_lte": 0.05,
+      "cagr_gt": 0,
+      "calmar_ratio_gt": 0,
+      "exact_reconciliation": true,
+      "duplicate_missing_or_orphan_event_count": 0,
+      "unresolved_critical_incident_count": 0,
+      "identity_change_count": 0
+    },
+    "pass_decision": "PROSPECTIVE_EDGE_ACCEPTED",
+    "fail_decision": "PROSPECTIVE_EDGE_REJECTED",
+    "contamination_decision": "PROSPECTIVE_EVALUATION_INVALID",
+    "repeated_testing_after_rejection_permitted": false,
+    "live_capital_authorized": false,
+    "live_edge_certification_protocol_required_before_capital": true
+  },
+  "firewall_rules": {
+    "post_t0_to_frozen_runtime_and_append_only_evidence_only": true,
+    "development_tool_post_t0_read_access_permitted": false,
+    "holdout_feedback_for_candidate_change_permitted": false,
+    "performance_access_requires_ledger_entry": true,
+    "safety_monitoring_may_improve_candidate": false,
+    "material_change_requires_new_candidate_attestation_and_t0": true,
+    "exposed_data_reusable_as_pristine_holdout": false
+  },
+  "required_next_steps": [
+    "INDEPENDENT_REVIEW_AND_COMMIT_THIS_PROTOCOL",
+    "ONE_TIME_FINAL_CANDIDATE_SELECTION",
+    "APPEND_SELECTION_EXPOSURE_TO_LEDGER",
+    "CANDIDATE_FREEZE",
+    "PROSPECTIVE_INPUT_PATH_CERTIFICATION",
+    "FINAL_PAPER_CONFIGURATION_FREEZE",
+    "FIREWALL_AND_OFF_HOST_PROVENANCE",
+    "CONTROL_ATTESTATION",
+    "SET_T0",
+    "START_PROSPECTIVE_PAPER_TRADING"
+  ]
+}
