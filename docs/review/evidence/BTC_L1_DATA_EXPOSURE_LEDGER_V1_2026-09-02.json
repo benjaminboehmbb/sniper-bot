@@ -1,0 +1,221 @@
+{
+  "schema_version": "BTC_L1_DATA_EXPOSURE_LEDGER_V1",
+  "record_date": "2026-09-02",
+  "status": "ACTIVE_GOVERNANCE_RECORD",
+  "repository": {
+    "head_at_creation": "e6fd6975580aa617e51d3b22bc1b61fee340eea5",
+    "branch": "main"
+  },
+  "canonical_dataset": {
+    "logical_id": "BTC_L1_CANONICAL_V1",
+    "path": "data/l1_full_run.csv",
+    "sha256": "530983b84c461d46a49058428b1549fa87fd320cb2f04a070eeb081275aafe1f",
+    "bytes": 463326873,
+    "data_rows": 4374557,
+    "columns": 22,
+    "start_utc": "2017-08-17T04:00:00Z",
+    "end_utc": "2025-12-31T23:59:00Z"
+  },
+  "certified_replay": {
+    "runner": "live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py",
+    "runner_sha256": "af49126179eae0d7885d2ba07e0c342c1be9724a940457a8eb2f7a244b3a0292",
+    "semantic_event_sha256": "ffa200c601dc6c2bdda0492909d6518573af6de0b621deb91ee3c9f46d7022e3",
+    "normalized_trade_sha256": "46706ec9f6446eb5ceecf7782199a8a7fab8a7f91c318ce560f5daa83b98646c"
+  },
+  "classifications": [
+    "SELECTION_EXPOSURE",
+    "DEVELOPMENT_EXPOSURE",
+    "FALSIFICATION_EXPOSURE",
+    "CHARACTERIZATION_EXPOSURE",
+    "REPRODUCTION_ONLY",
+    "PROSPECTIVE_HOLDOUT"
+  ],
+  "governance_record_types": [
+    "GOVERNANCE_FINDING",
+    "PRE_T0_UNCONTROLLED_RAW_DATA_AVAILABILITY"
+  ],
+  "entries": [
+    {
+      "entry_id": "E001",
+      "date_start": "2026-03-17",
+      "date_end": "2026-03-17",
+      "record_type": "GOVERNANCE_FINDING",
+      "governance_status": "BTC_L1_SPLIT_NOT_EVIDENCED",
+      "selection_use": "NOT_EVIDENCED",
+      "evidence": [
+        "docs/POLICIES/backtest_integrity_policy.md",
+        "docs/POLICIES/ml_validation_policy.md",
+        "docs/POLICIES/gs_acceptance_checklist.md"
+      ],
+      "summary": "General IS/OOS policies existed, but no BTC-L1-specific split, sealed artifact, firewall, or preregistered Final-OOS assignment was found."
+    },
+    {
+      "entry_id": "E002",
+      "date_start": "2026-06-05",
+      "date_end": "2026-06-05",
+      "primary_classification": "DEVELOPMENT_EXPOSURE",
+      "secondary_classifications": ["CHARACTERIZATION_EXPOSURE"],
+      "selection_use": "SELECTION_RELEVANT_RESULTS_VISIBLE",
+      "evidence": [
+        "docs/research/STEP20_FINAL_SUMMARY.md",
+        "docs/research/STATE_RESEARCH_FINAL_STATUS.md"
+      ],
+      "p66_ticks": 4300000,
+      "p66_end_utc": "2025-11-10T05:22:00Z",
+      "canonical_ticks": 4374557,
+      "canonical_tail_after_p66_ticks": 74557,
+      "summary": "Full-history and overlapping subwindow performance results were visible while the candidate remained mutable; the later complete replay also exposed the 74,557-tick canonical tail beyond P66."
+    },
+    {
+      "entry_id": "E003",
+      "date_start": "2026-06-06",
+      "date_end": "2026-06-06",
+      "primary_classification": "SELECTION_EXPOSURE",
+      "secondary_classifications": ["DEVELOPMENT_EXPOSURE"],
+      "selection_use": "YES",
+      "evidence": [
+        "docs/review/P32_5M_TIMING_SEED_V2_CREATION_2026-06-06.md",
+        "docs/review/P42_TIMING_SEED_SELECTION_LOGIC_AUDIT_2026-06-06.md"
+      ],
+      "summary": "Timing seed v2 and short-seed selection behavior were created or audited after historical performance exposure."
+    },
+    {
+      "entry_id": "E004",
+      "date_start": "2026-06-06",
+      "date_end": "2026-06-09",
+      "primary_classification": "DEVELOPMENT_EXPOSURE",
+      "secondary_classifications": ["CHARACTERIZATION_EXPOSURE"],
+      "selection_use": "NOT_PROVEN_FOR_EACH_RUN",
+      "evidence": [
+        "docs/review/P51_SEGMENT_BASED_TRADING_BEHAVIOR_AUDIT_2026-06-06.md",
+        "docs/review/P59_EXTENDED_SEGMENT_VALIDATION_2026-06-06.md",
+        "docs/review/P60_EXTENDED_RUNTIME_TRADE_QUALITY_REVIEW_2026-06-06.md",
+        "docs/review/P61_EXTENDED_SEGMENT_ACCEPTANCE_REVIEW_2026-06-06.md",
+        "docs/review/P62_MEDIUM_RUNTIME_VALIDATION_25000_2026-06-06.md",
+        "docs/review/P63_LARGE_RUNTIME_VALIDATION_100000_2026-06-08.md",
+        "docs/review/P64_LARGE_RUNTIME_VALIDATION_500000_2026-06-08.md",
+        "docs/review/P65_LARGE_RUNTIME_VALIDATION_1000000_2026-06-08.md",
+        "docs/review/P66_FULL_RUNTIME_VALIDATION_4300000_2026-06-09.md"
+      ],
+      "summary": "Segment, 25k, 100k, 500k, 1M, and 4.3M runtime results were inspected while the candidate remained mutable."
+    },
+    {
+      "entry_id": "E005",
+      "date_start": "2026-06-22",
+      "date_end": "2026-06-22",
+      "primary_classification": "CHARACTERIZATION_EXPOSURE",
+      "selection_use": "NOT_EVIDENCED",
+      "external_evidence": {
+        "host": "workstation",
+        "source_repository": "/mnt/c/Users/workstation/Desktop/sniper-bot",
+        "source_repository_observed_head": "a5cdc25893cb2d6778e6223dfe46f740b429d747",
+        "path": "/mnt/c/Users/workstation/Desktop/sniper-bot/transfer/paper_run_4300000_trade_inspector_2026-06-22.zip",
+        "bytes": 341109258,
+        "sha256": "f6de9034e34e8076ddcd8987b43ba7745624d1528d3b7d72812425fcfb03f2cd",
+        "working_tree_status": "UNTRACKED_VIA_PARENT_TRANSFER_DIRECTORY"
+      },
+      "summary": "A local 4.3M paper and trade-inspector archive corroborates continued full-history result availability."
+    },
+    {
+      "entry_id": "E006",
+      "date_start": "2026-07-22",
+      "date_end": "2026-07-22",
+      "record_type": "PRE_T0_UNCONTROLLED_RAW_DATA_AVAILABILITY",
+      "governance_status": "NOT_PROSPECTIVE_HOLDOUT",
+      "selection_use": "NOT_EVIDENCED",
+      "performance_run_evidenced": false,
+      "raw_data_available_through_utc": "2026-07-20T23:59:59Z",
+      "external_evidence": {
+        "host": "workstation",
+        "source_repository": "/mnt/c/Users/workstation/Desktop/sniper-bot",
+        "source_repository_observed_head": "a5cdc25893cb2d6778e6223dfe46f740b429d747",
+        "log_path": "/mnt/c/Users/workstation/Desktop/sniper-bot/logs/btcusdt_1m_bulk_download_2026-07-22.log",
+        "log_bytes": 8282,
+        "log_sha256": "6d950a6796ba94cb83d99299abf56c2fad1e98d5383c17b981f49aec75e99abe",
+        "raw_root": "/mnt/c/Users/workstation/Desktop/sniper-bot/data/btcusdt_1m_2026-07-22/raw",
+        "raw_file_count": 127,
+        "raw_total_bytes": 230077908,
+        "log_and_raw_tracking_state": "NOT_ASSERTED_NOT_LISTED_BY_CAPTURED_SHORT_STATUS"
+      },
+      "summary": "Pre-T0 2026 raw data was downloaded and locally accessible without a prospective holdout firewall."
+    },
+    {
+      "entry_id": "E007",
+      "date_start": "2026-08-11",
+      "date_end": "2026-08-13",
+      "primary_classification": "DEVELOPMENT_EXPOSURE",
+      "secondary_classifications": ["CHARACTERIZATION_EXPOSURE"],
+      "selection_use": "NOT_PROVEN_FOR_EACH_RUN",
+      "evidence": [
+        "docs/review/PRE_IU4_WORKSTATION_FULL_HISTORY_REPLAY_EVIDENCE_2026-08-11.md",
+        "docs/review/PRE_IU4_APPROVED_THROTTLE_WORKSTATION_FULL_HISTORY_EVIDENCE_2026-08-12.md",
+        "docs/review/PRE_IU4_WORKSTATION_FULL_HISTORY_SHADOW_GATE_EVIDENCE_2026-08-13.md"
+      ],
+      "summary": "Full-history IU4, throttle, and shadow-gate evidence was observed during continuing execution and control research."
+    },
+    {
+      "entry_id": "E008",
+      "date_start": "2026-08-15",
+      "date_end": "2026-08-16",
+      "primary_classification": "DEVELOPMENT_EXPOSURE",
+      "secondary_classifications": ["CHARACTERIZATION_EXPOSURE"],
+      "selection_use": "NOT_PROVEN_SELECTION_RELEVANT_RESULTS_VISIBLE",
+      "evidence": [
+        "docs/review/X1_STATE_RESEARCH_S21_STEP19_THRESHOLD_SWEEP_CHARACTERIZATION_2026-08-15.md",
+        "docs/review/X1_STATE_RESEARCH_S25_STEP19_SHADOW_GATE_REPLAY_CHARACTERIZATION_2026-08-15.md",
+        "docs/review/X1_STATE_RESEARCH_S25A_STEP19_SHADOW_GATE_REPLAY_THRESHOLD_AUTHORITY_DECISION_2026-08-15.md",
+        "docs/review/X1_STATE_RESEARCH_S25B_STEP19_SHADOW_GATE_REPLAY_REPAIR_SPECIFICATION_2026-08-15.md",
+        "docs/review/X1_STATE_RESEARCH_S25C_STEP19_SHADOW_GATE_REPLAY_THRESHOLD_BINDING_REPAIR_2026-08-16.md",
+        "docs/review/X1_STATE_RESEARCH_S27_STEP19_DYNAMIC_EXIT_REPLAY_CHARACTERIZATION_2026-08-16.md",
+        "docs/review/X1_STATE_RESEARCH_S29_STEP20C_LIVE_REPLAY_CHARACTERIZATION_2026-08-16.md",
+        "docs/review/X1_STATE_RESEARCH_S31_STEP20_POSITION_SIZING_REPLAY_CHARACTERIZATION_2026-08-16.md",
+        "docs/review/X1_STATE_RESEARCH_S33_STEP20D_SENSITIVITY_CHARACTERIZATION_2026-08-16.md",
+        "docs/review/X1_STATE_RESEARCH_S35_STEP19B_THRESHOLD_SWEEP_CHARACTERIZATION_2026-08-16.md",
+        "docs/review/X1_STATE_RESEARCH_S37_STEP19B_REAL_EXIT_REPLAY_CHARACTERIZATION_2026-08-16.md",
+        "docs/review/X1_STATE_RESEARCH_S39_STEP20D_DYNAMIC_EXPOSURE_SCALING_CHARACTERIZATION_2026-08-16.md",
+        "docs/review/X1_STATE_RESEARCH_S41_STEP20E_TRUE_DYNAMIC_EXPOSURE_REPLAY_CHARACTERIZATION_2026-08-16.md"
+      ],
+      "summary": "Threshold, exit, position-sizing, PnL, Profit Factor, win-rate, and drawdown surfaces were exposed while implementations remained mutable. S25A-S25C established a diagnostic parameter contract, not a selected or validated trading threshold."
+    },
+    {
+      "entry_id": "E009",
+      "date_start": "2026-08-31",
+      "date_end": "2026-09-02",
+      "primary_classification": "DEVELOPMENT_EXPOSURE",
+      "secondary_classifications": ["CHARACTERIZATION_EXPOSURE"],
+      "declared_purpose": "REPRODUCTION_PARITY",
+      "selection_use": "NOT_EVIDENCED",
+      "evidence": [
+        "docs/review/BTC_L1_CANONICAL_DATASET_SOURCE_OF_TRUTH_V1_2026-08-31.md",
+        "docs/review/BTC_L1_FULL_HISTORY_P66_BOUNDARY_RESOLUTION_V1_2026-09-02.md",
+        "docs/review/BTC_L1_HIGH_SPEED_REPLAY_V4_CERTIFICATION_2026-09-02.md"
+      ],
+      "summary": "Canonical identity, P66 boundary resolution, and V4 semantic parity reproduced an already exposed historical period while final candidate selection and freeze remained open."
+    }
+  ],
+  "historical_final_oos": {
+    "available": false,
+    "decision": "HISTORICAL_FINAL_OOS_AVAILABLE=NO",
+    "reason": "Full-history and overlapping subwindow results were visible while seeds, thresholds, exits, sizing, and implementations remained mutable, and no prespecified BTC-L1 firewall was evidenced."
+  },
+  "prospective_holdout": {
+    "required": true,
+    "decision": "PROSPECTIVE_POST_T0_HOLDOUT_ONLY",
+    "t0_set": false,
+    "t0_rule": "First UTC day after successful Control Attestation of all mandatory controls."
+  },
+  "pre_t0_2026_data": {
+    "selection_use_permitted": false,
+    "tuning_use_permitted": false,
+    "ranking_use_permitted": false,
+    "retrospective_oos_claim_permitted": false,
+    "performance_run_evidenced": false
+  },
+  "audit_integrity": {
+    "no_market_run": true,
+    "no_fetch": true,
+    "no_checkout": true,
+    "no_commit": true,
+    "no_push": true
+  }
+}
