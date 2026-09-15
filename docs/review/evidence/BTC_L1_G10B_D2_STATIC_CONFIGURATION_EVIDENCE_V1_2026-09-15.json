@@ -1,0 +1,1515 @@
+{
+ "adoption_date_utc": "2026-09-15",
+ "adoption_record": {
+  "accepted_objects": [
+   "statischer Teilbefund nach Abschnitt 9 mit Quellenbindungen, Zaehleinheiten, Schluesseltabelle und Methodengrenzen",
+   "Abgrenzung des D2-Geltungsbereichs nach Abschnitt 10"
+  ],
+  "accepted_scope_elements": [
+   "Ableitung des Umfangs vom gebundenen Runner am gebundenen Quellcommit",
+   "Datei- und Hashliste als Ergebnis, nicht als Bestehenskriterium",
+   "Trennung der tatsaechlichen Werte als B4 und Sollzustaende",
+   "Nichtentlastung verbleibender Runtime-, Dependency- und Erzeugerlaufanforderungen"
+  ],
+  "authority": "EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION",
+  "candidate_manifest_authorized": false,
+  "commit_authorized": false,
+  "correction_note_ref": "Abschnitt 17 und governance_correction_record",
+  "count_repair_clarification": "Die Formulierung Zaehlwerte wurden repariert wird nicht als waehrend der Leseprufung erfolgte Dateiaenderung uebernommen. Der Review meldet unveraenderte Ausgangshashes und bestaetigte vorhandene Werte; die Zaehlkorrekturen wurden zuvor und ausserhalb dieser Dokumentpruefung eingearbeitet und sind in Abschnitt 8.2 aufgezeichnet.",
+  "count_repair_during_review_claim_rejected": true,
+  "d2_closed": false,
+  "date_utc": "2026-09-15",
+  "decision": "FORMALLY_ACCEPT_SCOPED_STATIC_D2_EVIDENCE_AND_D2_SCOPE_DEFINITION",
+  "deferred_unchanged": "V-19",
+  "document_status": "APPROVED_FOR_ADOPTION",
+  "evaluation_authorized": false,
+  "files_remain_untracked": true,
+  "governance_sections_changed": [
+   "Dokumentkopf: DOCUMENT_STATUS und Annahmedatum",
+   "Abschnitt 1.1: Statuszuordnung nach der Annahme",
+   "Abschnitt 9: Statuszuordnung des Teilbefunds",
+   "Abschnitt 10: Statuszuordnung des Geltungsbereichs und Einordnung der historischen Vorschlagsvermerke",
+   "Abschnitt 11: Statusnotiz zu Punkt 1 und den Punkten 2 bis 5",
+   "Abschnitt 13: Ergaenzung zu reviewed_-Feldern und doppelten Schluesseln",
+   "Abschnitt 15: zeitliche Einordnung",
+   "Abschnitt 16: formale Annahmeaufzeichnung"
+  ],
+  "implementation_authorized": false,
+  "manifest_binding_of_this_report": false,
+  "market_run_authorized": false,
+  "new_formal_verification_duty": false,
+  "new_manifest_field_introduced": false,
+  "not_closed": [
+   "vollstaendige Schliessung von D2",
+   "Manifestbindung dieses Berichts",
+   "explizite Vorgabewerte je Schluessel und Quellstelle nach Preregistration",
+   "Nachlesung der nicht gegengeprueften Teile nach Abschnitt 8.4",
+   "offene Zuordnungen nach Abschnitt 12 einschliesslich B4, B3, B10",
+   "D1",
+   "D3",
+   "B1 bis B14"
+  ],
+  "not_closed_corrected": [
+   "vollstaendige Schliessung von D2",
+   "Manifestbindung dieses Berichts einschliesslich der Entscheidung zur Abschlussklausel in Abschnitt 12 des Integrationsvertrags",
+   "offene Zuordnungen nach Abschnitt 12 einschliesslich B4, B3, B10",
+   "D1",
+   "D3",
+   "B1 bis B14"
+  ],
+  "not_closed_note": "Die Liste not_closed bleibt als Bestandteil der Annahmeaufzeichnung unveraendert. Massgeblich ist not_closed_corrected; die beiden in not_closed_superseded_entries genannten Eintraege sind ueberholt. Die formale Annahme selbst bleibt unveraendert erhalten.",
+  "not_closed_superseded_entries": [
+   "explizite Vorgabewerte je Schluessel und Quellstelle nach Preregistration",
+   "Nachlesung der nicht gegengeprueften Teile nach Abschnitt 8.4"
+  ],
+  "predecessor_documents_changed": false,
+  "push_authorized": false,
+  "qualification_authorized": false,
+  "recorded_at_utc": "2026-09-15T18:32:01Z",
+  "review_did_not_modify_files": true,
+  "review_findings": 0,
+  "review_recommendation": "APPROVE_FOR_FORMAL_ADOPTION",
+  "review_reported_unchanged_input_hashes": true,
+  "review_source": "INDEPENDENT_DOCUMENT_REVIEW_REPORTED_BY_USER",
+  "reviewed_json_bytes": 120814,
+  "reviewed_json_sha256": "d34acd465a1718fb83d889dba3e2c57151181bd7358542094557317810e4ea01",
+  "reviewed_markdown_bytes": 46812,
+  "reviewed_markdown_sha256": "89710d52f4bfabab9e3f624ea4b1340a2081e1e8f9d6f806d3b1f270b01babf4",
+  "scoped_evidence_recommendation": "ACCEPTABLE_AS_SCOPED_EVIDENCE",
+  "scoped_evidence_reviews_recorded": 2,
+  "selection_authorized": false,
+  "staging_authorized": false,
+  "staging_commit_push_synchronization_performed": false,
+  "synchronization_authorized": false,
+  "technical_content_changed": false,
+  "test_execution_authorized": false,
+  "unchanged_accepted_rules": [
+   "P01 bis P07",
+   "K01 bis K08",
+   "D4 bis D17",
+   "Berechnungsregeln",
+   "Selektions-Gates"
+  ]
+ },
+ "authorization": {
+  "candidate_manifest_authorized": false,
+  "commit_authorized": false,
+  "d2_closure": false,
+  "evaluation_authorized": false,
+  "formal_acceptance": true,
+  "formal_acceptance_scope": "ausschliesslich der statische Teilbefund nach Abschnitt 9 und die Abgrenzung des D2-Geltungsbereichs nach Abschnitt 10",
+  "implementation_authorized": false,
+  "manifest_binding_of_this_report": false,
+  "market_run_authorized": false,
+  "push_authorized": false,
+  "qualification_authorized": false,
+  "selection_authorized": false,
+  "staging_authorized": false,
+  "synchronization_authorized": false,
+  "test_execution_authorized": false
+ },
+ "bound_source_commit": "3c5927127a03de13d8c80a720f5c8b97a2a36789",
+ "carrier_bindings_list": [
+  "live_l1/core/paper_economics_shadow_runtime.py load_runtime_shadow_settings.environment",
+  "live_l1/core/paper_iu4_shadow_runtime_gate.py evaluate_iu4_shadow_runtime_gate.environment",
+  "live_l1/core/paper_iu4_shadow_observation_gate.py evaluate_iu4_shadow_observation_gate.environment",
+  "live_l1/core/paper_economics_shadow.py load_shadow_settings.environment",
+  "live_l1/core/paper_iu4_shadow_runtime_gate.py _text.environment"
+ ],
+ "carrier_handoff_sites": [
+  {
+   "callee": "load_shadow_settings",
+   "site": "live_l1/core/paper_economics_shadow_runtime.py:49"
+  },
+  {
+   "callee": "load_shadow_settings",
+   "site": "live_l1/core/paper_iu4_shadow_runtime_gate.py:272"
+  },
+  {
+   "callee": "load_shadow_settings",
+   "site": "live_l1/core/paper_iu4_shadow_observation_gate.py:853"
+  },
+  {
+   "callee": "_text",
+   "site": "live_l1/core/paper_iu4_shadow_runtime_gate.py:233"
+  },
+  {
+   "callee": "_text",
+   "site": "live_l1/core/paper_iu4_shadow_runtime_gate.py:248"
+  },
+  {
+   "callee": "_text",
+   "site": "live_l1/core/paper_iu4_shadow_runtime_gate.py:291"
+  },
+  {
+   "callee": "_text",
+   "site": "live_l1/core/paper_iu4_shadow_runtime_gate.py:298"
+  },
+  {
+   "callee": "_text",
+   "site": "live_l1/core/paper_iu4_shadow_runtime_gate.py:299"
+  },
+  {
+   "callee": "_text",
+   "site": "live_l1/core/paper_iu4_shadow_runtime_gate.py:300"
+  }
+ ],
+ "closure_step_completed_by_adoption": "Annahme des Geltungsbereichs nach Abschnitt 10 (Punkt 1 der Liste), erfuellt durch Abschnitt 16",
+ "closure_steps_completed": [
+  "Annahme des Geltungsbereichs nach Abschnitt 10 (Punkt 1), erfuellt durch Abschnitt 16",
+  "Aufzaehlung der expliziten Vorgabewerte je Schluessel und je Quellstelle (Punkt 3), dokumentationsseitig erfuellt durch Abschnitt 6",
+  "Gegenpruefung der Vorgabewerte und Erreichbarkeitsbedingungen (Punkt 4), erfuellt durch GP-2 ohne Findings"
+ ],
+ "contract_text": "# BTC-L1 G10-B D2 Static Configuration Evidence V1\n\n**DOCUMENT_STATUS=APPROVED_FOR_ADOPTION**\n\nDie formale Annahme ist in Abschnitt 16 aufgezeichnet. Alle Abschnitte vor Abschnitt 16 sind im Wortlaut des geprüften Entwurfsstands belassen; ihre Entwurfs-, Vorschlags- und Offen-Vermerke werden durch Abschnitt 16 zeitlich eingeordnet und nicht umgeschrieben.\n\nDatum der Ausarbeitung (UTC): 2026-09-15\n\nDatum der Annahme (UTC): 2026-09-15\n\nRepository-Stand der Ausarbeitung: `81df16686349c8e920981298cddb3e3ca0c9adea`, Branch `main`, Arbeitsverzeichnis sauber, keine untracked Dateien\n\nGebundener Quellcommit für alle Quellenaussagen: `3c5927127a03de13d8c80a720f5c8b97a2a36789`\n\nMaschinenlesbare Begleitdatei: `docs/review/evidence/BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15.json`\n\n---\n\n## 1. Status, Umfang und Abgrenzung\n\n### 1.1 Status\n\nDieses Dokument ist **DRAFT_NOT_BINDING**. Es enthält einen **begrenzten statischen Teilnachweis** zur offenen Definition **D2** des angenommenen Integrationsvertrags sowie einen **nicht angenommenen Vorschlag** für den Geltungsbereich von D2. Es ist **keine** formale Annahme, **keine** vollständige Schließung von D2, **keine** Qualifikation und **keine** Implementierungs-, Test-, Manifest-, Selektions-, Staging-, Commit-, Push- oder Ausführungsfreigabe.\n\nAutorisiert ist ausschließlich die Erstellung dieser beiden Entwurfsdateien. Aus dieser Erstellungsberechtigung folgt keine weitere Freigabe. Dieser Bericht ist **noch nicht als Manifestnachweis gebunden**.\n\n**Statuszuordnung nach der Annahme.** Die beiden vorstehenden Absätze beschreiben den geprüften Entwurfsstand und werden durch Abschnitt 16 zeitlich eingeordnet, nicht umgeschrieben. Der aktuelle Status ist **APPROVED_FOR_ADOPTION**: formal angenommen sind der dokumentierte statische Teilbefund nach Abschnitt 9 einschließlich seiner Quellenbindungen nach den Abschnitten 4 und 14, der korrigierten Zähleinheiten nach Abschnitt 5, der Schlüsseltabelle nach Abschnitt 6 und der ausdrücklich beschriebenen methodischen Grenzen nach Abschnitt 3.2, sowie die ausformulierte Abgrenzung des D2-Geltungsbereichs nach Abschnitt 10. **Nicht** angenommen und **nicht** geschlossen sind: die vollständige Schließung von D2; die Manifestbindung dieses Berichts; die Einführung eines noch nicht angenommenen Manifestfelds; die Schließung anderer offener Zuordnungen oder Bindungen. Aus der Annahme folgt **keine** Implementierungs-, Qualifikations-, Test- oder Ausführungsfreigabe.\n\n### 1.2 Unverändert gültige angenommene Regeln\n\nUnverändert und hier **nicht erneut zur Genehmigung gestellt**: die Festlegungen **P01 bis P07** des Parser-/Numeric-Contracts; **K01 bis K08** sowie sämtliche Serialisierungs-, Schema-, Gate-, Pfad-, Fresh-State- und Abschlussregeln des Output-/Runtime-Contracts; sämtliche Berechnungs-, Kosten-, Sizing-, Settlement-, Metrik- und Bootstrap-Regeln der Evaluator-Klarstellung; die Abschnitte 2 bis 8 des Field-/Helper-Contracts; die Selektions-Gates der Preregistration; die Entscheidungen **D4 bis D17** des Integrationsvertrags einschließlich der Bindungsstufen BIND-0 bis BIND-4, der Variablengruppen A und B nach dessen Abschnitt 9 sowie der Runtime-Datei- und Importbindung nach dessen Abschnitt 10. **V-19 bleibt zurückgestellt.** **B1 bis B14 bleiben offen.** **D1 und D3 bleiben offen** und werden durch dieses Dokument nicht bearbeitet.\n\nDieses Dokument ändert keine Vertragsregel, keine Berechnungsregel und kein Gate.\n\n---\n\n## 2. Präziser Geltungsbereich des Teilnachweises\n\nGegenstand ist die **Repository-Konfiguration am gebundenen Quellcommit** `3c5927127a03de13d8c80a720f5c8b97a2a36789`: die Vollständigkeit der Menge derjenigen Konfigurationsschlüssel, die im gebundenen Repository-Code gelesen werden, einschließlich statisch auflösbarer indirekter Weitergaben des Umgebungsobjekts.\n\n**Ableitung des Umfangs.** Der geprüfte Umfang leitet sich aus dem Einstiegspunkt ab, nicht aus einer vorgegebenen Dateiliste: Ausgangspunkt ist der gebundene Runner `live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py` am gebundenen Quellcommit. Von dort wurde der **statisch ermittelte transitive Importgraph des Repository-Codes** gebildet — absolute, relative, mehrzeilige, aliasierte und Importe auf Funktions- und Klassenebene —, einschließlich der **Paketinitialisierungsdateien** und einschließlich aller statisch auflösbaren **Weitergaben des Umgebungsobjekts** über die tatsächliche Argument-Parameter-Zuordnung.\n\n**Die Dateimenge ist ein Ergebnis, kein vorgegebenes Bestehenskriterium.** Die namentliche Datei- und Hashliste in Abschnitt 4 **dokumentiert das Ergebnis** dieser Ableitung; sie bestimmt nicht, welche Quellen geprüft werden müssen. Die ermittelte Anzahl von 45 Quelldateien ist ein Ergebnis und kein Sollwert; eine abweichende Anzahl wäre kein Fehler, sondern ein abweichendes Ergebnis.\n\n**Nicht Gegenstand dieses Dokuments:** die tatsächlichen Werte und Zustände der Schlüssel (siehe Abschnitt 12); Einflüsse von Interpreter, Standardbibliothek und Drittanbieter-Abhängigkeiten (siehe Abschnitt 12); jede Aussage darüber, welche Module und Dateien ein späterer Prozess tatsächlich auflöst und lädt (dies ist D1 und bleibt offen).\n\n---\n\n## 3. Tatsächlich verwendete Analysemethode und ihre Grenzen\n\n### 3.1 Methode\n\nAlle historischen Quellen wurden ausschließlich über `git show` und `git cat-file blob` am gebundenen Quellcommit gelesen. Das Parsen erfolgte mit dem Standardbibliotheksmodul `ast` **ausschließlich im Speicher**. Es fand **kein** Import, **keine** Ausführung, **keine** Übersetzung des gelesenen Codes in Codeobjekte und **kein** Aufruf von Funktionen des gelesenen Codes statt. Es wurde keine Hilfs-, Temporär- oder Bytecode-Datei erzeugt.\n\n**Importgraph.** Voller AST-Durchlauf über alle Verschachtelungsebenen jeder `.py`-Datei unter `live_l1` (78 Dateien am gebundenen Commit). Erfasst wurden `ast.Import` und `ast.ImportFrom` einschließlich mehrzeiliger Klammerform und `as`-Alias; relative Importe wurden über `level` und Paketkontext aufgelöst, wobei `__init__.py` als Paket selbst behandelt wurde. Ergebnisoffene Fixpunkt-Iteration: Kanten wurden ausschließlich **aus bereits erreichbaren** Modulen verfolgt; ein Import in einem nicht erreichbaren Modul macht sein Ziel nicht erreichbar. Zusätzlich erfasst: `__import__`, `importlib`, `import_module`, `find_spec`, `module_from_spec`, `exec_module`, `reload`, `load_module`, `find_module`, `pkgutil.iter_modules`, `walk_packages`, `exec`, `eval`, `compile` sowie Zugriffe auf `sys.modules`, `sys.meta_path`, `sys.path_hooks`, `sys.path_importer_cache` und `sys.path`.\n\n**Umgebungszugriffe.** Erkennung der Ursprünge über `os.environ` und `os.environb` als Attribut auf jeden im jeweiligen Modul auf `os` gebundenen Namen, über `os.getenv` sowie über `from os import environ | environb | getenv` einschließlich `as`-Alias. Jede gefundene syntaktische Referenz wurde in eine **geschlossene Rollenmenge** klassifiziert: Methodenaufruf, Subscript (lesend und schreibend unterschieden), Mitgliedschaftstest, Iteration, Attributreferenz, Argumentübergabe, Zuweisung an einen Namen, Zuweisung an ein Objektattribut, Ablage in einem Container-Literal, Rückgabe, Parameter-Vorgabewert, Aufruf des Objekts selbst. Unklassifizierte Rollen wären als offen ausgewiesen worden.\n\n**Weitergabeverfolgung.** Für jede Argumentübergabe wurde das Ziel aufgelöst — modulintern über die Funktionstabelle, modulübergreifend über die Importtabelle — und die **tatsächliche Argument-Parameter-Zuordnung** gebildet: nach Position über `posonlyargs` und `args`, nach Schlüsselwort über den Schlüsselwortnamen, mit gesonderter Behandlung von `*args` und `**kwargs`. Die Zuordnung erfolgte **namensunabhängig**. Der empfangende Parameter wurde zum Träger; alle seine Referenzen wurden erneut klassifiziert und weiterverfolgt, bis zum Fixpunkt.\n\n**Schlüsselauflösung.** Stringliterale, modulweite Stringkonstanten, Schlüssel modulweiter Dict-Literale sowie indirekte Zugriffe über Hilfsfunktionen mit `key`- bzw. `name`-Parameter, aufgelöst über deren Aufrufstellen.\n\n### 3.2 Grenzen der Methode\n\n1. Die Analyse ist statisch. Sie deckt den Modulgraphen des festgelegten Quellbestands, nicht die Ausführung.\n2. **Statische Erreichbarkeit unter Sollbedingungen ist kein Nachweis tatsächlicher historischer Ausführung.** Alle Erreichbarkeitsaussagen dieses Dokuments stehen unter den Sollwerten der Gruppen A und B und unter dem Vorbehalt, dass kein früherer Abbruch eintrat; sie sagen nichts darüber, welcher Codepfad im zertifizierten Erzeugerlauf tatsächlich durchlaufen wurde.\n3. Die Erkennung der Ursprünge ist namensbasiert. Sie setzt voraus, dass das Umgebungsobjekt an seinem Ursprung als `os.environ`, `os.environb`, `os.getenv` oder über einen `from os import`-Alias benannt wird.\n4. Ein fehlender Werkzeugtreffer ist ein Negativbefund der Suche und **kein Abwesenheitsbeweis**.\n5. Re-Exporte und `__all__`-Ketten wurden nicht verfolgt; sie erweitern den Namensraum, nicht die Modulmenge.\n6. Laden über C-Ebene, über einen ausgetauschten Lader oder über Mechanismen jenseits der in 3.1 genannten Formen ist von dieser Methode grundsätzlich nicht erfasst.\n7. `sys.path`-Änderungen verändern, welche Datei einen Modulnamen trägt. Sie lassen die Modulmenge **des hier analysierten Graphen** unverändert; eine Aussage über tatsächlich aufgelöste und geladene Module eines späteren Prozesses folgt daraus **nicht**. Diese Frage ist D1 und bleibt offen.\n8. Der Befund ist ein Auswertungsergebnis. Die angenommenen Verträge verlangen für D2 eine **statische Bestätigung** (Integrationsvertrag Abschnitt 9: „in der Qualifikation statisch zu bestätigen\"); eine formale Verifikation wird von keinem angenommenen Vertrag verlangt und wird hier weder behauptet noch als neue Verpflichtung eingeführt.\n\n---\n\n## 4. Ergebnisliste: 45 Quelldateien mit Pfad, Bytes und SHA256\n\nErgebnis der Ableitung nach Abschnitt 2, am gebundenen Quellcommit `3c5927127a03de13d8c80a720f5c8b97a2a36789`. Pfade sind repository-relativ. Bytes und SHA256 beziehen sich auf den Blob-Inhalt am gebundenen Commit.\n\n| Pfad | Bytes | SHA256 |\n| --- | --- | --- |\n| `live_l1/__init__.py` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |\n| `live_l1/core/__init__.py` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |\n| `live_l1/core/clock.py` | 2739 | `48b6a38936c1d624a41f25b1117ab64833d38fb44814fb6ff765712f9b074627` |\n| `live_l1/core/execution.py` | 31600 | `a76f600d27feef969665bcd695ce11bc4e3abae0f25e045f7416fc78cd2513e3` |\n| `live_l1/core/feature_snapshot.py` | 3090 | `a6b5438212506d44427da96aa29ed95afcfb43313ef982fcc8f0c349f15d8097` |\n| `live_l1/core/intent.py` | 8358 | `e052a11a04d1ae9b7d831e9d52175ee7fa8e212745ef43b22b94844a82ee4ece` |\n| `live_l1/core/intent_fusion.py` | 7079 | `2b04f91c2273b7a9db941396d36e93b719edf3536e5e4e2a331ba5d169327114` |\n| `live_l1/core/loop.py` | 50554 | `54e9e7bc0977a9c94f2e85a3279157678249a8569cff63f7d4f29131443fd058` |\n| `live_l1/core/paper_economics.py` | 24974 | `a302013134d1265ac85ad10b57a67ead9e2343043f7eb499fd965a44312525ae` |\n| `live_l1/core/paper_economics_shadow.py` | 16049 | `11efbde48db3026fb232c4f2a9e9b0aec347176c59293112d9fe68ddc8d4572c` |\n| `live_l1/core/paper_economics_shadow_runtime.py` | 6101 | `8dbdf1ec0190e96bdb75697d1ffb25bd87784194150f674bb7e3317df6073a45` |\n| `live_l1/core/paper_entry_throttle.py` | 26549 | `ad5447d88a2c35c9a71a5495c61c8f08fa844daf60e79d4a872234e88037df75` |\n| `live_l1/core/paper_entry_throttle_profile.py` | 6559 | `9c07c23dd559aaddad640f269dd6394590c16cfbb7df439112a5c0dc0d0d5d87` |\n| `live_l1/core/paper_iu4_adapter.py` | 24824 | `d65525f31746d1edf30bf1ffc7f84a845f97b3f4120904c9910b741bc8c76a7b` |\n| `live_l1/core/paper_iu4_shadow_observation_gate.py` | 36377 | `ed4e75fad664c68b91950e9c09e873823ebe3eb0b0062f85806daa09ce661350` |\n| `live_l1/core/paper_iu4_shadow_runtime_gate.py` | 15298 | `f81045347e82b981bd721bf1c4bbe0133feb8a36146f6440358983cac2ad6d4e` |\n| `live_l1/core/paper_iu4_startup_gate.py` | 37668 | `c4a1854f3b200525568a40205b39e9ce2e14c342bb860569ba7fcfe5e9c063cd` |\n| `live_l1/core/regime_detector.py` | 1425 | `278a7991bab6a7ecba030fb41d5d9122d9cb9417164da6d1bd91ac350c28ff54` |\n| `live_l1/core/timing_5m.py` | 6761 | `59fd03511b9eb39d21f85a8bdca9ed57763924ab761ccf14866388f0fbfcdbf5` |\n| `live_l1/guards/__init__.py` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |\n| `live_l1/guards/guards.py` | 2872 | `e849ae12c790c41a01f649b26591881fcd105fa617af079becd3081557a1131f` |\n| `live_l1/io/__init__.py` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |\n| `live_l1/io/market.py` | 6118 | `014bbf7328c4bd354fb8a254979ef463670e49557c5ed89e5628a3b35dc8cd0e` |\n| `live_l1/io/valid.py` | 3957 | `0f8c5af733269c76a93b112eff757c08f918676239196294c0bc7b02f2080d4b` |\n| `live_l1/logs/__init__.py` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |\n| `live_l1/logs/logger.py` | 2628 | `cbfb29708bc81bbf7f2d524abe10a21382213973f897038bc8c315bad1323cfd` |\n| `live_l1/meta_state/__init__.py` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |\n| `live_l1/meta_state/meta_state_runtime.py` | 406 | `da17467a9830464f70a508af8774be3acb1f644ca8423b97ff93300c9a0528b0` |\n| `live_l1/meta_state/meta_state_shadow.py` | 1196 | `c2133dea056d29bc8d639943a8a754e6f39b0c91e131dba0923e69faa60379fa` |\n| `live_l1/operational_profiles.py` | 1733 | `397080acebf83c2af4ecb4608183551665724fcb19e983442dcc15543b9d3704` |\n| `live_l1/state/__init__.py` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |\n| `live_l1/state/iu4_lifecycle_ledger.py` | 18211 | `d72134195f66b1d39c09a2ca6b9919d8a9acf17c4490ab52d9abc2aebcd71337` |\n| `live_l1/state/loss_cluster.py` | 18475 | `4ce7d59f64a67de94ffc6f1d03ff4e6c8a7a590802abb003b311cd0d56cc3e55` |\n| `live_l1/state/models.py` | 5000 | `b9bc3b9a598fefeef83a2905432daf924ccf54e9701f313e2af99a6a8e833f53` |\n| `live_l1/state/paper_artifacts.py` | 57620 | `3cd9a459e2856672bb7b318c9cdbf8f8bb52e633ee9529d74761d64928213946` |\n| `live_l1/state/paper_atomic_coordinator.py` | 262786 | `b8ce5ba89016cac8e34ee2646f3bf9746b2909fa3b7c9e1ef6c74557c3aaffcb` |\n| `live_l1/state/persist.py` | 618 | `cc4c5f7e98905ffe2631330a1f03005a0897fdb43ad46a0b92191cc1cac2c274` |\n| `live_l1/state/state_store.py` | 20999 | `b742131ba8af8e9c34157244de5cd743a045b7ae985dd4b502486e71fd2011c9` |\n| `live_l1/state/state_validation.py` | 8224 | `5f0b0dc637c79339cea23e7a5676f8925c2b8ece1fb5151ece24854170a73778` |\n| `live_l1/tools/reconcile_runtime_state.py` | 10799 | `8c9ecd43df1979e14af05640066a5a637690e0e3506106aeee3d17d504ab9222` |\n| `live_l1/tools/recover_runtime_state.py` | 2994 | `9d164920de9c8e7518e71689805ce4493e5fb6f5b00802694d8ad53fe98a0c2c` |\n| `live_l1/tools/replay_execution_state.py` | 3832 | `89284a7432aac82e6bb14a158c5a5b3c418fe8151a453b9fb684e90c82e9c874` |\n| `live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py` | 7502 | `af49126179eae0d7885d2ba07e0c342c1be9724a940457a8eb2f7a244b3a0292` |\n| `live_l1/tools/safe_launch.py` | 7164 | `cb90bd49b36de56e8ad95e9b24febb23baa0513b1ec51e7402f63a5efd6ec652` |\n| `live_l1/tools/startup_validator.py` | 3811 | `93f5cc2119887ae8dfa5a9ac5441a96de6dda4e0ac49ba4cce7dbe82cacd2017` |\n\n**Konsistenzhinweis.** Die in Abschnitt 18 des angenommenen Integrationsvertrags per SHA256 gebundenen Dateien, die in dieser Ergebnisliste enthalten sind — `live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py`, `live_l1/core/loop.py`, `live_l1/core/execution.py`, `live_l1/core/paper_economics.py`, `live_l1/state/paper_artifacts.py`, `live_l1/logs/logger.py`, `live_l1/io/market.py` — tragen hier dieselben Werte.\n\n**Ergänzende Ergebnisse der Graphbildung.** Die Ergebnisliste umfasst 21 Module mit mindestens einer ausgehenden `live_l1`-Importkante und 24 Module ohne eine solche Kante; `live_l1.tools` ist am gebundenen Commit ein Namespace-Paket ohne Initialisierungsdatei und erscheint deshalb nicht als Datei. Im gesamten Teilbaum `live_l1` wurde **kein** relativer Import gefunden. In der Ergebnisliste wurde **kein** dynamischer Importaufruf und **kein** Zugriff auf `sys.modules`, `sys.meta_path` oder `sys.path_hooks` gefunden; `sys.path`-Änderungen bestehen in `live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py:24`, `live_l1/tools/safe_launch.py:15,16`, `live_l1/tools/reconcile_runtime_state.py:16,17` und `live_l1/tools/recover_runtime_state.py:13,14`. Nicht-`live_l1`-Importe auf Funktionsebene bestehen in `live_l1/core/loop.py:676` (`import json`), `live_l1/core/loop.py:713` (`import pandas`) und `live_l1/core/timing_5m.py:46` (`import ast`). Die drei Einstiegspunkte `live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py:13`, `live_l1/tools/safe_launch.py:39` und `live_l1/tools/startup_validator.py:109` sind parameterlos (`def main() -> int:`).\n\n---\n\n## 5. Korrigierte, gegengeprüfte Zählung\n\n### 5.1 Definition der Zähleinheiten\n\nGezählt werden **syntaktische Referenzen** im AST der 45 Quelldateien aus Abschnitt 4 — nicht Schlüssel, nicht Zeilen, nicht Laufzeitereignisse. Eine Referenz ist ein einzelner AST-Knoten, der das Umgebungsobjekt benennt.\n\n| Einheit | Definition | Wert |\n| --- | --- | --- |\n| **Direkte Referenzen** | jeder AST-Knoten, der das Umgebungsobjekt unmittelbar über `os.environ` benennt | **39** |\n| davon **Lesezugriffe** | Leserolle: Methodenaufruf `get`, lesendes Subscript, Mitgliedschaftstest, Iteration | **35** |\n| davon **direkte Weitergaben** | Argumentübergabe an eine auflösbare Funktion | **3** |\n| davon **Schreibzugriffe** | Schreibrolle | **1** |\n| **Weitergaben aus Trägerparametern** | Argumentübergaben, die einen Trägerparameter benennen, nicht `os.environ` | **9** |\n| **Weitergabestellen insgesamt** | direkte Weitergaben plus Weitergaben aus Trägerparametern | **12** |\n| **Trägerbindungen** | Parameter, die das Umgebungsobjekt über die tatsächliche Argument-Parameter-Zuordnung empfangen; Einheit ist das Paar (Funktion, Parameter), nicht die Aufrufstelle | **5** |\n| **Nicht auflösbare Weitergabepfade** | — | **0** |\n\nPrüfidentität: 35 + 3 + 1 = 39. Prüfidentität: 3 + 9 = 12.\n\n### 5.2 Ausdrückliche Erklärung der Überschneidung\n\nDie **12 Weitergabestellen sind keine zusätzliche, von den 39 direkten Referenzen disjunkte Kategorie**. Die drei direkten Weitergaben sind bereits unter den 39 direkten Referenzen enthalten; lediglich die neun Weitergaben aus Trägerparametern liegen außerhalb der 39, weil sie einen Parameter und nicht `os.environ` benennen. Eine Addition von 39 und 12 wäre eine Doppelzählung.\n\nWeitere abgeleitete Summen — namentlich eine Gesamtzahl der Trägerreferenzen, eine Gesamtzahl der Lesezugriffsstellen oder eine Gesamtzahl aller umgebungstragenden Referenzen — sind **nicht unabhängig bestätigt** und werden in dieses Dokument **nicht übernommen**. Sie sind für die Aussage dieses Teilnachweises nicht erforderlich.\n\n### 5.3 Auflösung im Einzelnen\n\n**Die drei direkten Weitergaben** (in den 39 enthalten):\n\n| Stelle | Ziel | Zuordnung |\n| --- | --- | --- |\n| `live_l1/core/loop.py:876` | `load_runtime_shadow_settings` | Position 0 |\n| `live_l1/tools/safe_launch.py:138` | `evaluate_iu4_shadow_runtime_gate` | Schlüsselwort |\n| `live_l1/tools/safe_launch.py:164` | `evaluate_iu4_shadow_observation_gate` | Schlüsselwort |\n\n**Die neun Weitergaben aus Trägerparametern** (nicht in den 39 enthalten): drei an `load_shadow_settings` in `live_l1/core/paper_economics_shadow_runtime.py:49`, `live_l1/core/paper_iu4_shadow_runtime_gate.py:272` und `live_l1/core/paper_iu4_shadow_observation_gate.py:853`; sechs an `_text` in `live_l1/core/paper_iu4_shadow_runtime_gate.py:233, 248, 291, 298, 299, 300`.\n\n**Die fünf Trägerbindungen:** `load_runtime_shadow_settings.environment`, `evaluate_iu4_shadow_runtime_gate.environment`, `evaluate_iu4_shadow_observation_gate.environment`, `load_shadow_settings.environment`, `_text.environment`. Dass alle fünf Zielparameter `environment` heißen, ist ein Ergebnis der namensunabhängigen Zuordnung, nicht ihre Voraussetzung.\n\n**Der einzige Schreibzugriff:** `live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py:26`, `os.environ.update`.\n\n### 5.4 Enumerierte Null-Befunde je Rolle\n\nJede der folgenden Klassen ist ein Zweig der geschlossenen Rollenmenge aus Abschnitt 3.1. Keine Referenz fiel in diese Zweige: Zuweisung an einen Namen; Zuweisung an ein Objektattribut; Ablage in einem Dict-, List-, Tuple- oder Set-Literal; Rückgabe des Umgebungsobjekts aus einer Funktion; Verwendung als Parameter-Vorgabewert; Zugriff aus einer verschachtelten Funktion auf einen Umgebungsträger; Übergabe über `*args` oder `**kwargs`; Argumentübergabe an ein nicht auflösbares Ziel; Attributreferenz außerhalb der klassifizierten Lesemethoden. Ferner wurde kein `from os import environ | environb | getenv`-Alias, keine `os.environb`-Referenz und kein `os.getenv`-Aufruf gefunden.\n\nDiese Null-Befunde sind Ergebnisse einer Enumeration innerhalb der geprüften Rollenmenge. Sie sind **keine allgemeine Abwesenheitsbehauptung** (Abschnitt 3.2, Punkte 3, 4 und 6).\n\n---\n\n## 6. Vollständige Tabelle aller 39 Gruppe-B-Schlüssel\n\nDie Spalte **Vorgabewert** nennt den **exakten Code-Vorgabewert des gebundenen Quellstands**. Relative Pfade sind Code-Vorgabewerte und **keine historischen Laufpfade**; die tatsächlich verwendeten Pfade sind Gegenstand von BIND-1b und B2 und in diesem Dokument unbekannt. Die Spalte **Erreichbarkeit** gilt unter den Sollwerten der Gruppen A und B und unter dem Vorbehalt, dass kein früherer Abbruch eintrat; sie ist nach Abschnitt 3.2 Punkt 2 **kein Nachweis tatsächlicher historischer Ausführung**.\n\n| Nr. | Schlüssel | Quellstelle | Zugriffsweg | Erreichbarkeit | Vorgabewert | Nachgeschalteter Ersatz |\n| --- | --- | --- | --- | --- | --- | --- |\n| 1 | `L1_RESUME_AFTER_SNAPSHOT_ID` | `live_l1/io/market.py:181` | `os.environ.get` direkt, in `CSVMarketFeed.__init__` | erreicht; Konstruktion `live_l1/core/loop.py:972` | `\"\"` | keiner |\n| 2 | `L1_AUDIT_LOG_PATH` | `live_l1/tools/safe_launch.py:46` | `os.environ.get` direkt, `argparse`-Vorgabe | erreicht bei jedem Aufruf von `main()`, vor jeder Verzweigung | `\"live_logs/execution_audit.jsonl\"` | keiner |\n| 2 | `L1_AUDIT_LOG_PATH` | `live_l1/core/loop.py:174` | `os.environ.get` direkt | erreicht nur bei `L1_STARTUP_RECOVERY` **und** `L1_STARTUP_RECONCILIATION_GATE` wahr | `os.path.join(cfg.repo_root, \"live_logs\", \"execution_audit.jsonl\")` | keiner |\n| 2 | `L1_AUDIT_LOG_PATH` | `live_l1/core/loop.py:212` | `os.environ.get` direkt | erreicht nur bei `L1_STARTUP_RECOVERY` wahr | `os.path.join(cfg.repo_root, \"live_logs\", \"execution_audit.jsonl\")` | keiner |\n| 2 | `L1_AUDIT_LOG_PATH` | `live_l1/core/execution.py:300` | `os.environ.get` direkt, in `_resolve_audit_log_path` | erreicht auf dem Audit-Schreibpfad | `\"\"` | `\"live_logs/execution_audit.jsonl\"` bei leerem Wert (`live_l1/core/execution.py:303`) |\n| 3 | `L1_TRADE_LOG_PATH` | `live_l1/tools/safe_launch.py:48` | `os.environ.get` direkt, `argparse`-Vorgabe | erreicht wie Nr. 2 an `safe_launch.py:46` | `\"live_logs/trades_l1.jsonl\"` | keiner |\n| 3 | `L1_TRADE_LOG_PATH` | `live_l1/core/loop.py:186` | `os.environ.get` direkt | erreicht wie Nr. 2 an `loop.py:174` | `os.path.join(cfg.repo_root, \"live_logs\", \"trades_l1.jsonl\")` | keiner |\n| 3 | `L1_TRADE_LOG_PATH` | `live_l1/core/execution.py:319` | `os.environ.get` direkt, in `_resolve_trade_log_path` | erreicht **nur**, wenn kein Pfadargument übergeben wurde; die vorgelagerte Bedingung `live_l1/core/execution.py:316` prüft `trade_log_path` auf `None` beziehungsweise leeren Inhalt und kehrt andernfalls vor der Umgebungsabfrage zurück | `\"\"` | `\"live_logs/trades_l1.jsonl\"` bei leerem Wert (`live_l1/core/execution.py:323`) |\n| 4 | `L1_S2_POSITION_PATH` | `live_l1/tools/safe_launch.py:47` | `os.environ.get` direkt, `argparse`-Vorgabe | erreicht wie Nr. 2 an `safe_launch.py:46` | `\"live_state/s2_position.jsonl\"` | keiner |\n| 4 | `L1_S2_POSITION_PATH` | `live_l1/core/loop.py:182` | `os.environ.get` direkt | erreicht wie Nr. 2 an `loop.py:174` | `os.path.join(cfg.repo_root, \"live_state\", \"s2_position.jsonl\")` | keiner |\n| 5 | `L1_LOSS_CLUSTER_STATE_PATH` | `live_l1/tools/safe_launch.py:49` | `os.environ.get` direkt, `argparse`-Vorgabe | erreicht wie Nr. 2 an `safe_launch.py:46` | `\"live_state/loss_cluster_state.json\"` | keiner |\n| 5 | `L1_LOSS_CLUSTER_STATE_PATH` | `live_l1/core/loop.py:178` | `os.environ.get` direkt | erreicht wie Nr. 2 an `loop.py:174` | `os.path.join(cfg.repo_root, \"live_state\", \"loss_cluster_state.json\")` | keiner |\n| 5 | `L1_LOSS_CLUSTER_STATE_PATH` | `live_l1/core/loop.py:216` | `os.environ.get` direkt | erreicht wie Nr. 2 an `loop.py:212` | `os.path.join(cfg.repo_root, \"live_state\", \"loss_cluster_state.json\")` | keiner |\n| 5 | `L1_LOSS_CLUSTER_STATE_PATH` | `live_l1/core/execution.py:84` | `os.environ.get` direkt, in `_loss_gate_state_path` | erreicht | `\"live_state/loss_cluster_state.json\"` | derselbe Wert über den `or`-Ausdruck derselben Zeile |\n| 6 | `L1_LOG_PATH` | `live_l1/core/loop.py:268` | `os.environ.get` direkt, in `load_runtime_config`, gerufen `live_l1/core/loop.py:874` | erreicht | `os.path.join(repo_root, \"live_logs\", \"l1_paper.log\")` | keiner |\n| 7 | `L1_TRADES_WINDOW_HOURS` | `live_l1/core/loop.py:281` | `_env_int(key, default)` mit `os.environ.get` in `live_l1/core/loop.py:150` | erreicht wie Nr. 6 | `6` | keiner |\n| 8 | `L1_TEST_FORCE_BUY_EVERY` | `live_l1/core/loop.py:283` | `_env_int`, `live_l1/core/loop.py:150` | erreicht wie Nr. 6 | `10` | keiner |\n| 9 | `L1_TEST_FORCE_SELL_EVERY` | `live_l1/core/loop.py:284` | `_env_int`, `live_l1/core/loop.py:150` | erreicht wie Nr. 6 | `15` | keiner |\n| 10 | `L1_TEST_FORCE_WARMUP_TICKS` | `live_l1/core/loop.py:285` | `_env_int`, `live_l1/core/loop.py:150` | erreicht wie Nr. 6 | `0` | keiner |\n| 11 | `L1_REQUIRE_WSL` | `live_l1/core/loop.py:932` | `_env_bool(key, default)` mit `os.environ.get` in `live_l1/core/loop.py:143` | erreicht, sofern die IU4-Zweige `live_l1/core/loop.py:880-926` nicht vorher zurückspringen; bei `L1_IU4_MODE=OFF` und `L1_IU4_SHADOW_OBSERVATION_ENABLED=0` tritt kein Rücksprung ein | `True` | keiner |\n| 12 | `L1_SIGNAL_WEIGHTS_JSON` | `live_l1/core/intent.py:51` | `os.environ.get` direkt, in `_load_l1_signal_weights`, gerufen `live_l1/core/intent.py:72` aus `_normalize_score`, gerufen `live_l1/core/intent.py:247` | erreicht je Tick, sofern `tick_id > cfg.test_force_warmup_ticks` und `cfg.test_force_intents` falsch | `\"\"` | keiner |\n| 13 | `L1_INTENT_DEBUG` | `live_l1/core/intent.py:142` | `os.environ.get` direkt, in `_debug_enabled`, gerufen `live_l1/core/intent.py:155` aus `_debug_log_line`, gerufen an `live_l1/core/intent.py:197, 216, 227, 237, 287` | erreicht je Tick über `live_l1/core/intent.py:287`; die Aufrufe an `197, 216, 227, 237` liegen in unter den Sollwerten nicht genommenen Zweigen | `\"\"` | keiner |\n| 14 | `L1_IU4_APPROVED_THROTTLE_PROFILE` | Konstante `live_l1/core/paper_iu4_shadow_runtime_gate.py:29`; Lesestelle `live_l1/core/paper_iu4_shadow_runtime_gate.py:147`; Aufruf `live_l1/core/paper_iu4_shadow_runtime_gate.py:248` | `_text(environment, name)` über die Trägerkette ab `live_l1/tools/safe_launch.py:138` | **nicht erreicht**; Rücksprung `live_l1/core/paper_iu4_shadow_runtime_gate.py:233-234` bei `L1_IU4_MODE` gleich `MODE_OFF` | `\"\"` | keiner |\n| 15 | `L1_IU4_REPOSITORY_COMMIT` | Konstante `live_l1/core/paper_iu4_shadow_runtime_gate.py:32`; Lesestelle `:147`; Aufruf `:291` | wie Nr. 14 | **nicht erreicht** wie Nr. 14 | `\"\"` | keiner |\n| 16 | `L1_IU4_ATOMIC_STATE_DIRECTORY` | Konstante `live_l1/core/paper_iu4_shadow_runtime_gate.py:28`; Lesestelle `:147`; Aufruf `:298` | wie Nr. 14 | **nicht erreicht** wie Nr. 14 | `\"\"` | keiner |\n| 17 | `L1_IU4_COORDINATOR_ID` | Konstante `live_l1/core/paper_iu4_shadow_runtime_gate.py:30`; Lesestelle `:147`; Aufruf `:299` | wie Nr. 14 | **nicht erreicht** wie Nr. 14 | `\"\"` | keiner |\n| 18 | `L1_IU4_SYMBOL` | Konstante `live_l1/core/paper_iu4_shadow_runtime_gate.py:31`; Lesestelle `:147`; Aufruf `:300` | wie Nr. 14 | **nicht erreicht** wie Nr. 14 | `\"\"` | keiner |\n| 19 | `L1_IU4_SHADOW_OBSERVATION_MAX_RECORDS` | Konstante `live_l1/core/paper_iu4_shadow_observation_gate.py:37`; Lesestelle `live_l1/core/paper_iu4_shadow_observation_gate.py:792` | `environment.get` über die Trägerkette ab `live_l1/tools/safe_launch.py:164` | **nicht erreicht**; Rücksprung `live_l1/core/paper_iu4_shadow_observation_gate.py:784-785` bei Wert `\"0\"` | `\"\"` | keiner |\n| 20 | `L1_IU4_SHADOW_OBSERVATION_EVIDENCE_PATH` | Konstante `live_l1/core/paper_iu4_shadow_observation_gate.py:36`; Lesestelle `:806` | wie Nr. 19 | **nicht erreicht** wie Nr. 19 | `\"\"` | keiner |\n| 21 | `L1_IU4_SHADOW_OBSERVATION_WORK_DIRECTORY` | Konstante `live_l1/core/paper_iu4_shadow_observation_gate.py:38`; Lesestelle `:836` | wie Nr. 19 | **nicht erreicht** wie Nr. 19 | `\"\"` | keiner |\n| 22 | `PEE_SCHEMA_VERSION` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:49`; Lesestellen `live_l1/core/paper_economics_shadow.py:187` und `:199` | Trägerkette zu `load_shadow_settings` über drei Wege: `live_l1/core/loop.py:876` nach `live_l1/core/paper_economics_shadow_runtime.py:49`; `live_l1/tools/safe_launch.py:138` nach `live_l1/core/paper_iu4_shadow_runtime_gate.py:272`; `live_l1/tools/safe_launch.py:164` nach `live_l1/core/paper_iu4_shadow_observation_gate.py:853` | **nicht erreicht**; Rücksprung `live_l1/core/paper_economics_shadow.py:166-173` bei `PEE_MODE` gleich `MODE_OFF`; die Wege zwei und drei sind zusätzlich bereits durch `L1_IU4_MODE=OFF` beziehungsweise `L1_IU4_SHADOW_OBSERVATION_ENABLED=0` vorher abgeschnitten | an `:187` `\"\"`; an `:199` **kein Vorgabewert** (Subscript) | keiner |\n| 23 | `PEE_ECONOMICS_MODEL_VERSION` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:50`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 24 | `PEE_ECONOMICS_PROFILE_ID` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:51`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 25 | `PEE_QUOTE_CURRENCY` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:52`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 26 | `PEE_STARTING_EQUITY_QUOTE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:53`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 27 | `PEE_RISK_PER_TRADE_RATE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:54`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 28 | `PEE_MAX_POSITION_NOTIONAL_RATE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:55`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 29 | `PEE_ENTRY_FEE_RATE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:56`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 30 | `PEE_EXIT_FEE_RATE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:57`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 31 | `PEE_ENTRY_SLIPPAGE_BPS` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:58`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 32 | `PEE_EXIT_SLIPPAGE_BPS` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:59`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 33 | `PEE_QUANTITY_STEP` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:60`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 34 | `PEE_MIN_QUANTITY` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:61`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 35 | `PEE_MIN_NOTIONAL_QUOTE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:62`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 36 | `PEE_MAX_DAILY_LOSS_RATE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:63`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 37 | `PEE_MAX_DAILY_FEE_RATE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:64`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 38 | `PEE_MAX_REALIZED_DRAWDOWN_RATE` | Dict-Schlüssel `live_l1/core/paper_economics_shadow.py:65`; Lesestellen `:187`, `:199` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:199` kein Vorgabewert | keiner |\n| 39 | `PEE_REFERENCE_STOP_RATE` | Konstante `live_l1/core/paper_economics_shadow.py:67`; Lesestellen `:187` und `:206` | wie Nr. 22 | **nicht erreicht** wie Nr. 22 | an `:187` `\"\"`; an `:206` **kein Vorgabewert** (Subscript) | keiner |\n\n**Zum Fehlen eines Vorgabewerts bei Subscript-Zugriffen.** Die Zugriffe `environment[source]` (`live_l1/core/paper_economics_shadow.py:199`) und `environment[REFERENCE_STOP_RATE_ENV]` (`:206`) besitzen keinen Vorgabewert, weil sie als Subscript geschrieben sind. **Daraus folgt nicht, dass der jeweilige Schlüssel tatsächlich fehlt** und auch nicht, dass ein Fehlen zu einem Ausnahmefall führen müsste: die vorgelagerte Fehlendprüfung `live_l1/core/paper_economics_shadow.py:184-196` bricht die Verarbeitung vor diesen Zugriffen mit einem eigenen Grundcode ab, wenn ein erforderlicher Schlüssel leer oder ungesetzt ist. Die Angabe „kein Vorgabewert\" ist eine Aussage über die Schreibweise des Zugriffs, nicht über den Zustand der Variablen.\n\n**Zählung.** Die Schlüssel Nr. 1 bis 13 liegen auf dem Kontrollfluss unter den Sollwerten; die Schlüssel Nr. 14 bis 39 sind unter den Sollwerten **nicht erreicht**. Beide Aussagen stehen unter Abschnitt 3.2 Punkt 2.\n\n---\n\n## 7. Randbefund zur Gruppe A\n\nVon den 23 Schlüsseln der Gruppe A werden 20 in den 45 Quelldateien gelesen. Die drei Schlüssel `PYTHONDONTWRITEBYTECODE`, `PYTHONHASHSEED` und `TZ` werden von keiner dieser Dateien **gelesen**; sie erscheinen ausschließlich im einzigen Schreibzugriff `live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py:26`. Diese drei Schlüssel sind **Bestandteil der Gruppe A** und richten sich an Interpreter und Standardbibliothek. Über ihre Wirkung wird hier nichts ausgesagt; die Wirkungsfrage gehört zu D1 und bleibt offen.\n\nRandbefund ohne Lesecharakter: `live_l1/core/paper_iu4_shadow_runtime_gate.py:164` und `:177` erzeugen mit `subprocess.run` einen Kindprozess ohne `env=`-Argument und würden damit die vollständige Prozessumgebung weitergeben. Beide Stellen liegen in `_git_head`, gerufen `live_l1/core/paper_iu4_shadow_runtime_gate.py:290`, also nach dem Rücksprung `:233-234`, und sind unter den Sollwerten nicht erreicht.\n\n---\n\n## 8. Review-Aufzeichnung\n\n### 8.1 Herkunft und Empfehlung\n\nEs liegen **zwei Gegenprüfungen** vor. Ihre Herkunft: **vom Nutzer übergebene Antigravity-Berichte**. Beide empfehlen **`ACCEPTABLE_AS_SCOPED_EVIDENCE`** — jeweils **für ihren eigenen Prüfungsumfang**. Eine stärkere, weitergehende oder zusätzliche Prüfung wird hiermit **nicht** behauptet. Beide Gegenprüfungen benennen eigene Analysegrenzen.\n\n**Zuordnung nach tatsächlichem Prüfungsinhalt, ergänzt durch den Korrekturvermerk in Abschnitt 17.** Die beiden Gegenprüfungen sind nach ihrem Inhalt eindeutig unterscheidbar:\n\n| Kennung | Prüfungsinhalt | Ergebnis | Aufzeichnung |\n| --- | --- | --- | --- |\n| **GP-1** | Gegenprüfung der statischen Analyse einschließlich der Zählkorrekturen; Bestätigung der Dateimenge und der Trägerbindungen | keine offenen Findings; `ACCEPTABLE_AS_SCOPED_EVIDENCE` für diesen Umfang | Abschnitt 8.2 |\n| **GP-2** | **gezielte** Gegenprüfung der Vorgabewerte und der Erreichbarkeitsbedingungen der Tabelle in Abschnitt 6 | **keine Findings**; `ACCEPTABLE_AS_SCOPED_EVIDENCE` für diesen Umfang | Abschnitt 8.3 |\n\nGetrennt davon und **nicht** als weitere Gegenprüfung zu zählen: die **anschließende unabhängige Dokumentprüfung** mit **keinen Findings** und der Empfehlung **`APPROVE_FOR_FORMAL_ADOPTION`**; sie ist in Abschnitt 16.3 aufgezeichnet. Insgesamt sind damit drei Prüfungen dokumentiert: zwei Gegenprüfungen in diesem Abschnitt und eine Dokumentprüfung in Abschnitt 16.3. Keine Prüfung wird doppelt aufgenommen, und es wird keine zusätzliche Prüfung angenommen.\n\n### 8.2 GP-1: Gegenprüfung der statischen Analyse, übernommene Korrekturen\n\n**Prüfungsinhalt von GP-1:** die statische Analyse einschließlich der Zählwerte, der Dateimenge und der Trägerbindungen.\n\nAus der ersten Gegenprüfung wurden zwei Zählkorrekturen übernommen: die Zahl der direkten Lesezugriffe (35 statt zuvor berichteter 33, wodurch die Prüfidentität 35 + 3 + 1 = 39 erfüllt ist) und die Zahl der Weitergabestellen (3 direkte plus 9 aus Trägerparametern gleich 12, statt zuvor berichteter 13). Ferner wurde die ausdrückliche Klarstellung übernommen, dass die Weitergabestellen keine von den 39 direkten Referenzen disjunkte Kategorie bilden (Abschnitt 5.2). Die 45-Dateien-Menge und die fünf Trägerbindungen wurden bestätigt.\n\n### 8.3 GP-2: Gezielte Gegenprüfung der Vorgabewerte und der Erreichbarkeit, übernommene Präzisierungen\n\n**Prüfungsinhalt von GP-2:** die exakten Code-Vorgabewerte je Quellstelle und die Erreichbarkeitsbedingungen der Tabelle in Abschnitt 6. **Ergebnis: keine Findings**, Empfehlung `ACCEPTABLE_AS_SCOPED_EVIDENCE` für diesen Umfang. Die nachstehenden Präzisierungen sind das Ergebnis dieser Prüfung; zwei von ihnen betreffen unmittelbar einen Vorgabewert (`environment[source]`) und eine Erreichbarkeitsbedingung (`live_l1/core/execution.py:319` über `:316`). Eine weitergehende unabhängige Prüfung wird damit **nicht** behauptet.\n\n- **Statische Erreichbarkeit unter Sollbedingungen ist kein Nachweis tatsächlicher historischer Ausführung.** Aufgenommen als Abschnitt 3.2 Punkt 2 und als Vorbehalt der Erreichbarkeitsspalte in Abschnitt 6.\n- **`live_l1/core/execution.py:319`** bleibt insbesondere vom **fehlenden übergebenen Pfadargument** abhängig; die vorgelagerte Bedingung `live_l1/core/execution.py:316` entscheidet darüber. Aufgenommen in die Zeile zu Schlüssel Nr. 3.\n- **`environment[source]` hat keinen Vorgabewert; daraus folgt nicht, dass der Schlüssel tatsächlich fehlt.** Aufgenommen als Erläuterung im Anschluss an die Tabelle in Abschnitt 6.\n- Allgemeine Aussagen der Art, die Prüfung belege „zweifelsfrei\" das Fehlen sämtlicher verdeckter oder unauflösbarer Zugriffe, werden **nicht übernommen**. Sie folgen aus einer statischen Analyse nicht.\n\n### 8.4 Nicht gegengeprüfte Teile — ÜBERHOLT, siehe Abschnitt 17\n\n**Dieser Unterabschnitt ist überholt.** Der nachstehende Vermerk beschrieb den Prüfungsinhalt von GP-2 **unzutreffend**: die exakten Code-Vorgabewerte je Quellstelle und die Erreichbarkeitsbedingungen der Tabelle in Abschnitt 6 **waren** Gegenstand von GP-2 und sind dort **ohne Findings** gegengeprüft. Es verbleibt insoweit **kein** offener Prüfteil. Der Wortlaut wird nach der Konvention dieses Dokuments nicht gelöscht, sondern durch diesen Vermerk und durch Abschnitt 17 berichtigt und zeitlich eingeordnet. Es wird **keine** weitergehende unabhängige Prüfung behauptet und **keine** zusätzliche Prüfung angenommen.\n\nÜberholter Wortlaut des Entwurfsstands: „Nicht Gegenstand der übergebenen Gegenprüfungen waren die exakten Code-Vorgabewerte je Quellstelle und die Erreichbarkeitsbedingungen der Tabelle in Abschnitt 6. Erforderlich hierfür wäre deren Nachlesung gegen den gebundenen Quellcommit. Dies ist ein benannter offener Prüfteil und **keine** allgemeine Wiederholungspflicht.\"\n\n---\n\n## 9. Abschließender begrenzter Teilbefund\n\n**In den konkret geprüften Quellen, Zugriffsformen und Weitergabepfaden wurde keine zusätzliche Gruppe-B-Schlüsselanforderung festgestellt.** Alle gefundenen Zugriffsschlüssel waren statisch auflösbar; es trat kein Schlüssel außerhalb der Gruppen A und B auf; es blieb kein nicht auflösbarer Weitergabepfad.\n\nDieser Teilbefund ist **keine allgemeine Abwesenheitsbehauptung**. Er gilt ausschließlich im Umfang nach Abschnitt 2, mit den Grenzen nach Abschnitt 3.2 und unter den Vorbehalten nach Abschnitt 8.3. Er ist **keine** Schließung von D2, **keine** formale Annahme und **keine** Qualifikation.\n\n**Statuszuordnung nach der Annahme, siehe Abschnitt 16.** Der vorstehende Absatz beschreibt den geprüften Entwurfsstand und wird zeitlich eingeordnet, nicht umgeschrieben. Der Teilbefund selbst ist durch Abschnitt 16 **als begrenzter statischer Teilnachweis formal angenommen**; der Befund ist damit angenommen, nicht selbst ein Annahmeakt. Unverändert gültig bleiben die drei Negativaussagen des Absatzes in ihrer Sache: der Teilbefund bleibt **keine allgemeine Abwesenheitsbehauptung**, er bleibt **keine Schließung von D2** und er bleibt **keine Qualifikation**.\n\n---\n\n## 10. Geltungsbereich von D2 — durch Abschnitt 16 ANGENOMMEN\n\n**Statuszuordnung nach der Annahme, siehe Abschnitt 16.** Die Abschnittsüberschrift trug im geprüften Entwurfsstand den Vermerk `VORSCHLAG_NICHT_ANGENOMMEN`, und der nachfolgende Einleitungssatz bezeichnete den Blocktext als nicht angenommenen Vorschlag. Beide Vermerke beschreiben den **Entwurfsstand vor der Annahme** und werden hier zeitlich eingeordnet und erläutert, nicht sachlich umgeschrieben. Der **Wortlaut des Blocktextes selbst ist unverändert**. Der aktuelle Status dieses Geltungsbereichs ist **ANGENOMMEN**.\n\nHistorischer Einleitungssatz des Entwurfsstands, zeitlich eingeordnet: „Der folgende Text ist ein **nicht angenommener Vorschlag**\". Dieser Satz gilt ab der Annahme nach Abschnitt 16 nicht mehr für den Status, sondern beschreibt den Stand der Ausarbeitung.\n\nAngenommener Wortlaut, unverändert:\n\n> **Umfang.** D2 betrifft die Vollständigkeit der Menge derjenigen Konfigurationsschlüssel, die im gebundenen Repository-Code gelesen werden, einschließlich statisch auflösbarer indirekter Weitergaben des Umgebungsobjekts.\n> Der zu prüfende Umfang leitet sich aus dem Einstiegspunkt ab: vom gebundenen Runner `live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py` am Quellcommit `3c5927127a03de13d8c80a720f5c8b97a2a36789` über den statisch ermittelten transitiven Repository-Importgraphen — absolute, relative, mehrzeilige, aliasierte und Funktionsebenen-Kanten —, einschließlich der Paketinitialisierungsdateien und aller statisch auflösbaren Weitergabepfade über die tatsächliche Argument-Parameter-Zuordnung.\n> Die namentliche Datei- und Hashliste dokumentiert das Ergebnis dieser Ableitung; sie bestimmt nicht, welche Quellen zu prüfen sind. Eine bestimmte Dateizahl ist kein Bestehenskriterium.\n> **Werte.** Zustände und Werte dieser Schlüssel sind nicht Gegenstand von D2; sie bleiben B4 und die Sollzustände nach Abschnitt 9 des Integrationsvertrags.\n> **Nichtentlastung.** Einflüsse von Interpreter, Standardbibliothek und Drittanbieter-Abhängigkeiten werden durch diese Abgrenzung nicht entlastet. Sie sind dort nachzuweisen, wo die Abschnitte 10 und 11 des Integrationsvertrags, BIND-1b, BIND-2 sowie die Preregistration dies verlangen. Ein Nachweis gilt nur als erbracht, wenn er einer benannten Vertragsstelle und einem benannten Datensatz zugeordnet ist; „anderweitig abgedeckt\" ohne solche Zuordnung ist kein Nachweis.\n\nEs wird **keine** neue Verpflichtung zu formaler Verifikation eingeführt. Der angenommene Integrationsvertrag verlangt in Abschnitt 9 eine **statische Bestätigung**; dieses Dokument ist ein Beitrag dazu und selbst noch nicht als Nachweis gebunden.\n\n---\n\n## 11. Was zur dokumentierten Schließung von D2 noch fehlt\n\n**Statuszuordnung nach der Annahme, siehe Abschnitt 16.** Punkt 1 dieser Liste ist durch Abschnitt 16 **erfüllt**; die Punkte 2 bis 5 bleiben **offen**. Die Liste wird nicht umgeschrieben, sondern durch diesen Vermerk eingeordnet. **D2 insgesamt bleibt offen.**\n\n**Berichtigte Statuszuordnung, siehe Abschnitt 17.** Die vorstehende Zuordnung ist für die Punkte 3 und 4 **überholt**. Der berichtigte Stand:\n\n| Punkt | Berichtigter Status |\n| --- | --- |\n| 1 | **erfüllt** durch Abschnitt 16 |\n| 2 | **offen** — Bindung dieses Berichts als Nachweis und die erforderliche Entscheidung zur Abschlussklausel in Abschnitt 12 des Integrationsvertrags |\n| 3 | **dokumentationsseitig erfüllt** durch die Tabelle in Abschnitt 6, die je Schlüssel und je Quellstelle den exakten Code-Vorgabewert samt nachgeschaltetem Ersatz aufzählt. Die **Aufzählung** fehlt nicht. Offen bleibt allein die **Bindung** dieser Werte in einem gebundenen Datensatz; diese geht in Punkt 2 auf, soweit sie über diesen Bericht erfolgt |\n| 4 | **erfüllt** — die Vorgabewerte und Erreichbarkeitsbedingungen sind durch GP-2 ohne Findings gegengeprüft (Abschnitt 8.3); Abschnitt 8.4 ist insoweit überholt |\n| 5 | **offen** — Entscheidung über die in Abschnitt 12 geführten offenen Zuordnungen |\n\n**Erfüllungszeitpunkte, ausdrücklich getrennt und unverschoben.** Die Bindungspflicht aus Punkt 2 behält den vertraglich bestimmten Zeitpunkt: erforderliche Bindungen müssen **vor der Beobachtung historischer Selektionskennzahlen** erfüllt sein (Integrationsvertrag Abschnitte 15 und 20.6). Die zusätzliche Auflage der Preregistration, konfigurationsbezogene Werte einschließlich der expliziten Vorgabewerte im **Candidate-Freeze-Datensatz** festzuschreiben, ist zeitlich **nachgelagert** — nach `FINAL_CANDIDATE_SELECTED` und vor T0 — und **ersetzt oder verzögert die vorgenannte Bindungspflicht nicht**. Getrennt zu halten sind ferner: die **dokumentierten Code-Vorgaben** des gebundenen Quellstands nach Abschnitt 6, die **konkreten Laufwerte** der Umgebung (B4, unbekannt) und die jeweils dafür bestimmten Bindungszeitpunkte. Ein dokumentierter Code-Vorgabewert ist kein Laufwert und ersetzt keinen.\n\n**D2 insgesamt bleibt offen.** Verbleibend sind die Punkte 2 und 5.\n\n1. Annahme des Geltungsbereichs nach Abschnitt 10. — **erfüllt durch Abschnitt 16.**\n2. Bindung dieses Berichts als Nachweis mit Identität — Berichtskennung, Pfad, Bytes und SHA256 — und Prüfung dieser Bindung beim Start, entsprechend dem Vorgehen bei der Helper-Qualifikation nach Abschnitt 11 des Integrationsvertrags. Dies erfordert eine Entscheidung zur Abschlussklausel in Abschnitt 12 des Integrationsvertrags, die die Menge der Ergänzungen schließt.\n3. Aufzählung der expliziten Vorgabewerte je Schlüssel und je Quellstelle entsprechend der Anforderung „configuration files, environment allowlist, and explicit defaults\" der Preregistration.\n4. Nachlesung der in Abschnitt 8.4 benannten, noch nicht gegengeprüften Teile.\n5. Entscheidung über die in Abschnitt 12 geführten offenen Zuordnungen.\n\n---\n\n## 12. Getrennt weitergeführte offene Punkte\n\nDie folgenden Punkte werden durch dieses Dokument **nicht** berührt, nicht abgeschwächt und nicht als abgedeckt dargestellt.\n\n| Gegenstand | Vorhandene übergeordnete Pflicht | Fehlende konkrete Ausgestaltung beziehungsweise offener Wert |\n| --- | --- | --- |\n| Tatsächliche Zustände und Werte der Gruppe-B-Schlüssel | Integrationsvertrag Abschnitt 9 (Zustände `GESETZT` mit Wert, `LEER`, `UNGESETZT`; Sollzustände; „Launcher-Standardwerte sind zu keinem Zeitpunkt Belegquelle für historische Artefaktpfade\"); offene Bindung **B4** | Werte unbekannt; nicht erhoben und durch dieses Dokument nicht erhoben |\n| Drittanbieter-Abhängigkeit `pandas`, bedingt geladen in `live_l1/core/loop.py:713` | Preregistration: Kandidatenidentität bindet unter anderem „dependency lock\"; Candidate Freeze verlangt „Python and dependency identities\" und „Any missing or implicit value blocks Candidate Freeze\"; Integrationsvertrag Abschnitt 10 `dependency_lock.installed_distributions` mit `name`, `version` und `record_sha256` „je Distribution\" | Schema und zuständiger Datensatz für die Abhängigkeitsidentitäten **des Erzeugerlaufs**: BIND-1b nennt die „Python-Identität des Laufs\", nicht eine Distributionsliste; Abschnitt 10 ist auf die Evaluierungsumgebung bezogen. Tatsächliche Paket- und Laufidentitäten unbekannt (**B3**, **B10**). **Keine vollständige Regelungslücke.** |\n| Umgebungsvariablen von Interpreter und Standardbibliothek, etwa `PATH`, `PYTHONPATH`, `PYTHONHOME`, `PYTHONWARNINGS`, `PYTHONUTF8`, `PYTHONIOENCODING`, `PYTHONMALLOC`, `LANG` und `LC_*`, `HOME`, `TMPDIR` | Preregistration, Candidate Freeze: „configuration files, environment allowlist, and explicit defaults\" mit „Any missing or implicit value blocks Candidate Freeze\" | Die Allowlist in Abschnitt 9 des Integrationsvertrags enumeriert nur die Gruppen A und B; eine Zuordnung dieser Schlüssel fehlt. **Keine vollständige Regelungslücke.** |\n| Umwelteinflüsse, die ein Paket-Dateihash nicht erfasst und die nicht als Umgebungsvariable darstellbar sind | soweit als Umgebungsvariable darstellbar: Preregistration wie vorstehend | Für den nicht als Variable darstellbaren Anteil ist keine zuständige Stelle benennbar. Wird als **offene Zuordnungslücke** geführt und nicht durch eine erfundene Zuordnung geschlossen. |\n| **D1** — Nachweis des tatsächlich geladenen beziehungsweise ausgeführten Bytecodes und der tatsächlich geladenen dynamischen Abhängigkeiten | Integrationsvertrag Abschnitt 10 (operativer Satz), Abschnitt 14, Abschnitt 20.6 | unverändert **offen**; durch dieses Dokument nicht bearbeitet |\n| **D3** — Decimal-Signalflaggen unmittelbar vor einem getrappten Signal | Integrationsvertrag Abschnitt 3, Abschnitt 7.3, Abschnitt 14, Abschnitt 20.6 | unverändert **offen**; durch dieses Dokument nicht bearbeitet |\n| **B1 bis B14** | Integrationsvertrag Abschnitt 15 | unverändert **offen**; Werte bleiben `null` |\n| **V-19** | Field-/Helper-Contract Abschnitt 9.3; Integrationsvertrag Abschnitt 1.3 und Abschnitt 8 | unverändert **zurückgestellt** |\n\n---\n\n## 13. JSON-/Markdown-Bindung\n\nDie maschinenlesbare Begleitdatei `docs/review/evidence/BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15.json` enthält im Feld `contract_text` den **vollständigen** Text dieser Markdown-Datei einschließlich Titel, Quellenabschnitten und abschließendem Zeilenumbruch.\n\nGeltungsbereich der Text- und Hashfelder:\n\n- `markdown_bytes` ist die Bytezahl der **vollständigen Bytes dieser Markdown-Datei**.\n- `markdown_sha256` ist der SHA256 derselben vollständigen Bytes.\n- `contract_text_sha256` ist der SHA256 der **UTF-8-Kodierung von `contract_text`** und bezieht sich damit auf **dieselben** Bytes.\n- Beide Hashwerte sind daher identisch; ihre Gleichheit ist der Nachweis der vollständigen und unveränderten Einbettung.\n- Die JSON-Datei enthält **keinen Hash ihrer selbst** und keine zyklische Hashbindung.\n- Die JSON-Datei ist strikt gültiges JSON **ohne** `NaN`- und **ohne** `Infinity`-Literale, ohne doppelte Schlüssel.\n- Die Felder mit dem Präfix `reviewed_` im Annahmedatensatz halten die **geprüften Ausgangsidentitäten** des Entwurfsstands fest und beziehen sich ausdrücklich **nicht** auf den aktuellen Stand; maßgeblich für den aktuellen Stand sind `markdown_bytes`, `markdown_sha256` und `contract_text_sha256`.\n\nDiese Markdown-Datei wird als UTF-8 mit LF-Zeilenenden und abschließendem LF geführt.\n\n---\n\n## 14. Quellenidentitäten\n\n**Gebundener Quellcommit:** `3c5927127a03de13d8c80a720f5c8b97a2a36789`\n\nDie 45 geprüften Quelldateien mit Bytes und SHA256 sind in Abschnitt 4 aufgeführt.\n\n**Angenommene Vertragspaare, vor der Erstellung dieses Entwurfs auf unveränderte Bytes geprüft:**\n\n| Dokument | Markdown SHA256 | JSON SHA256 |\n| --- | --- | --- |\n| `BTC_L1_FINAL_PROTOCOL_PREREGISTRATION_V1_2026-09-07` | `628abdb89135f747dd24df624a416aeffa591d1486b8f8cce86779a627d5167e` | `21c5730a0f1a6134a826fd2ba34e8ff8c5ad8d7ff739ac6d8b45f6d7df57786a` |\n| `BTC_L1_G10B_EVALUATOR_CLARIFICATION_V1_2026-09-08` | `7962f6d9dbd66b9c6e3ea3a66b46b60ac765821deabd7f00ed8b1536daaa6b53` | `90b99bac40c7f640ba2df69e6f97a750e25b0762f83a8c6fc973184a3189e830` |\n| `BTC_L1_G10B_PARSER_NUMERIC_CONTRACT_V1_2026-09-08` | `c7776c3ceac5939e3936b429e562830af9f0e90667a65405a0ba5f44a44ab5ff` | `6d9dbd65a9e16042d95719016e9d0259b0b20eb2ca609674950012769918ef3c` |\n| `BTC_L1_G10B_OUTPUT_RUNTIME_CONTRACT_V1_2026-09-09` | `e57c1970c30982db3fb8de9dc21e4c24378ff2747c64f7c207ef181c9627e7a9` | `ae518b6a05a30651bd064a9d82c3141db62ddb4c299897d3f9224218bcbe7f26` |\n| `BTC_L1_G10B_FIELD_HELPER_CONTRACT_V1_2026-09-10` | `6f59d74ee7e2163f47ded5f6427114397ffe11e0db2a8dbc3c8a3dc3b64234cc` | `53a0928e6835480b1422b555313cd4b05f49608e627fde1a4ef33789bfe00828` |\n| `BTC_L1_G10B_EVALUATOR_INTEGRATION_CONTRACT_V1_2026-09-11` | `12e2284cb65ce9b31ea39e03391dc543b3fbc7f88ef681ebb7ddf958c7837024` | `b66cbfd5d794fc15c37f40cff2ab7fd5cfc6d454d57d1fd2ffa687d575fcc54c` |\n\n---\n\n## 15. Schlussvermerk\n\n**Zeitliche Einordnung.** Dieser Abschnitt beschreibt den geprüften Entwurfsstand und wird durch Abschnitt 16 zeitlich eingeordnet, nicht umgeschrieben. Der aktuelle Dokumentstatus ist **APPROVED_FOR_ADOPTION**; die formale Annahme und ihre Reichweite ergeben sich allein aus Abschnitt 16 und dem Statusvermerk im Dokumentkopf. Unverändert gültig bleiben in der Sache: **D2 ist nicht geschlossen**, **D1** und **D3** bleiben offen, **B1 bis B14** bleiben offen, **V-19** bleibt zurückgestellt, und aus diesem Dokument folgt keine Implementierungs-, Qualifikations-, Test- oder Ausführungsfreigabe.\n\nDieses Dokument ist **DRAFT_NOT_BINDING**. Der Teilbefund nach Abschnitt 9 ist begrenzt und im Umfang nach Abschnitt 2 mit den Grenzen nach Abschnitt 3.2 zu lesen. Der Geltungsbereichsvorschlag nach Abschnitt 10 ist **nicht angenommen**. **D2 ist nicht geschlossen.** **D1** und **D3** bleiben offen und wurden nicht bearbeitet. **B1 bis B14** bleiben offen. **V-19** bleibt zurückgestellt. **P01 bis P07**, **K01 bis K08**, **D4 bis D17**, sämtliche Berechnungsregeln und die Selektions-Gates bleiben unverändert und stehen nicht erneut zur Genehmigung.\n\nAutorisiert ist ausschließlich die Erstellung dieser beiden Entwurfsdateien. Aus ihr folgt **keine** formale Annahme und **keine** Implementierungs-, Qualifikations-, Test-, Kandidatenmanifest-, Selektions-, Staging-, Commit-, Push-, Synchronisierungs- oder Market-Run-Freigabe. Kein historischer Final-OOS-Anspruch, kein prospektiver Startzeitpunkt und keine Paper-Trading- oder Live-Kapital-Freigabe folgen aus diesem Entwurf.\n\n---\n\n## 16. Formale Annahmeaufzeichnung\n\nDatum der Annahme (UTC): **2026-09-15**, aufgezeichnet um `2026-09-15T18:32:01Z`.\n\n### 16.1 Annahmeautorität und Gegenstand\n\nDie Annahme beruht auf einer **ausdrücklichen Nutzerfreigabe in der laufenden Konversation**. Angenommen werden genau zwei Gegenstände:\n\n1. **Der dokumentierte statische Teilbefund** nach Abschnitt 9 einschließlich seiner Quellenbindungen nach Abschnitt 4 (45 Quelldateien mit Pfad, Bytes und SHA256) und Abschnitt 14, der korrigierten Zähleinheiten nach Abschnitt 5 einschließlich der Überschneidungserklärung nach Abschnitt 5.2 und der ausgeschlossenen abgeleiteten Summen, der vollständigen Schlüsseltabelle nach Abschnitt 6 einschließlich der Vorgabewerte, Erreichbarkeitsbedingungen und der Erläuterung zu Subscript-Zugriffen, sowie der **ausdrücklich beschriebenen methodischen Grenzen** nach Abschnitt 3.2.\n2. **Die ausformulierte Abgrenzung des D2-Geltungsbereichs** nach Abschnitt 10: Ableitung des Umfangs vom gebundenen Runner am gebundenen Quellcommit; die Datei- und Hashliste als **Ergebnis** und nicht als Bestehenskriterium; die **Trennung der tatsächlichen Werte** als B4 und Sollzustände nach Abschnitt 9 des Integrationsvertrags; die **Nichtentlastung** verbleibender Runtime-, Dependency- und Erzeugerlaufanforderungen einschließlich der Regel, dass ein Nachweis nur als erbracht gilt, wenn er einer benannten Vertragsstelle und einem benannten Datensatz zugeordnet ist.\n\nTechnische Aussagen, Quellenlisten, Zählwerte, Vorgabewerte, Erreichbarkeitsbedingungen und Methodengrenzen sind **unverändert**. Diese Aufzeichnung ergänzt ausschließlich den Annahmevermerk und die Statuszuordnung.\n\n### 16.2 Geprüft angenommene Ausgangsidentitäten\n\nAngenommen wurden genau die geprüften Bytes des Entwurfsstands:\n\n| Datei | Bytes | SHA256 |\n| --- | --- | --- |\n| `docs/review/BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15.md` | 46812 | `89710d52f4bfabab9e3f624ea4b1340a2081e1e8f9d6f806d3b1f270b01babf4` |\n| `docs/review/evidence/BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15.json` | 120814 | `d34acd465a1718fb83d889dba3e2c57151181bd7358542094557317810e4ea01` |\n\nBeide Werte wurden unmittelbar vor dieser Aufzeichnung erneut nachgerechnet und stimmten überein. Durch die Aufnahme dieses Abschnitts ändern sich die Bytes und Hashes beider Dateien; die in der JSON-Begleitdatei geführten Felder `markdown_sha256`, `contract_text_sha256` und `markdown_bytes` beziehen sich stets auf den **aktuellen** Markdown-Stand, während die Felder mit dem Präfix `reviewed_` die oben genannten **geprüften Ausgangsidentitäten** festhalten.\n\n### 16.3 Review-Grundlage\n\nDie vom Nutzer übergebene **unabhängige Dokumentprüfung** empfiehlt **`APPROVE_FOR_FORMAL_ADOPTION`** und meldet **keine Findings**. Sie bestätigt die unveränderten Ausgangsidentitäten nach Abschnitt 16.2 und die im Dokument bereits vorhandenen Werte.\n\n**Klarstellung zur Formulierung „Zählwerte wurden repariert\".** Diese Formulierung wird **nicht** als eine während der Leseprüfung erfolgte Dateiänderung übernommen. Es fand **keine** Änderung der Dateien während der Dokumentprüfung statt: der Review meldet **unveränderte Ausgangshashes** und **bestätigte vorhandene Werte**. Die Zählkorrekturen sind zuvor und außerhalb dieser Dokumentprüfung in den Entwurfsstand eingearbeitet worden und in Abschnitt 8.2 aufgezeichnet.\n\nDie beiden in Abschnitt 8 aufgezeichneten Gegenprüfungen mit der Empfehlung `ACCEPTABLE_AS_SCOPED_EVIDENCE` für ihren jeweiligen Prüfungsumfang bleiben unverändert aufgezeichnet. Eine stärkere oder zusätzliche Prüfung wird nicht behauptet; die in Abschnitt 8.4 benannten, nicht gegengeprüften Teile bleiben als solche geführt.\n\n### 16.4 Statuszuordnung gegenüber den historischen Vermerken\n\n| Gegenstand | Status nach dieser Annahme |\n| --- | --- |\n| Statischer Teilbefund nach Abschnitt 9 mit Abschnitten 3.2, 4, 5, 6, 14 | **ANGENOMMEN** als begrenzter statischer Teilnachweis |\n| Geltungsbereich von D2 nach Abschnitt 10 | **ANGENOMMEN** |\n| Punkt 1 der Liste in Abschnitt 11 | **ERFÜLLT** durch diesen Abschnitt |\n| Punkte 2 bis 5 der Liste in Abschnitt 11 | **OFFEN** |\n| **D2 insgesamt** | **OFFEN**, nicht geschlossen |\n| Manifestbindung dieses Berichts | **NICHT ERFOLGT**; kein Manifestfeld eingeführt |\n| Offene Zuordnungen nach Abschnitt 12 | **OFFEN**, unverändert |\n| D1, D3 | **OFFEN**, unverändert, nicht bearbeitet |\n| B1 bis B14 | **OFFEN**, Werte bleiben `null` |\n| V-19 | **ZURÜCKGESTELLT**, unverändert |\n| P01 bis P07, K01 bis K08, D4 bis D17, Berechnungsregeln, Selektions-Gates | **UNVERÄNDERT**, nicht erneut zur Genehmigung gestellt |\n| Entwurfs-, Vorschlags- und Offen-Vermerke in den Abschnitten 1.1, 9, 10, 11 und 15 | beschreiben den geprüften Entwurfsstand; zeitlich eingeordnet, nicht umgeschrieben |\n\n### 16.5 Verbleibende Auflagen\n\n**Berichtigung, siehe Abschnitt 17.** Die nachstehende Liste ist in zwei Punkten überholt: die „Aufzählung der expliziten Vorgabewerte je Schlüssel und je Quellstelle\" ist dokumentationsseitig durch Abschnitt 6 erfüllt, und die „Nachlesung der nicht gegengeprüften Teile nach Abschnitt 8.4\" ist durch GP-2 erledigt. Die Liste wird nicht umgeschrieben; die formale Annahme nach diesem Abschnitt 16 bleibt unverändert erhalten. Verbleibend sind die Bindung dieses Berichts einschließlich der Entscheidung zur Abschlussklausel in Abschnitt 12 des Integrationsvertrags sowie die offenen Zuordnungen nach Abschnitt 12 dieses Dokuments.\n\nAusdrücklich **nicht** geschlossen und **nicht** angenommen werden:\n\n- die **vollständige Schließung von D2**; hierfür fehlen die Punkte 2 bis 5 nach Abschnitt 11;\n- die **Manifestbindung dieses Berichts** sowie jede Einführung eines noch nicht angenommenen Manifestfelds; eine Entscheidung zur Abschlussklausel in Abschnitt 12 des Integrationsvertrags ist hierfür Voraussetzung;\n- die Aufzählung der **expliziten Vorgabewerte je Schlüssel und je Quellstelle** nach der Preregistration-Anforderung;\n- die **Nachlesung der nicht gegengeprüften Teile** nach Abschnitt 8.4;\n- sämtliche **offenen Zuordnungen** nach Abschnitt 12, namentlich B4, die Erzeugerlauf-Abhängigkeitsidentitäten einschließlich `pandas` (B3, B10), die Umgebungsvariablen von Interpreter und Standardbibliothek sowie die nicht als Umgebungsvariable darstellbaren Umwelteinflüsse;\n- **D1**, **D3** und **B1 bis B14**;\n- sämtliche Implementierungs-, Qualifikations-, Test-, Manifest-, Selektions-, Staging-, Commit-, Push-, Synchronisierungs- und Market-Run-Schritte.\n\nEs wird **keine neue Verpflichtung zu formaler Verifikation** eingeführt. Die vertraglich bestimmten Zeitpunkte bleiben unverändert: erforderliche Bindungen und Qualifikationen müssen jeweils **vor** dem Schritt erfüllt sein, den der Vertrag dafür bestimmt, insbesondere vor der Beobachtung historischer Selektionskennzahlen.\n\n### 16.6 Reichweite der Annahme\n\nDiese Annahme betrifft ausschließlich die beiden in Abschnitt 16.1 bezeichneten Gegenstände und deren Aufzeichnung in genau diesen beiden Dateien. Die zwölf Dateien der sechs angenommenen Vertragspaare bleiben **unverändert**; sie wurden vor und nach dieser Aufzeichnung geprüft. Es erfolgte **kein** Staging, **kein** Commit, **kein** Push und **keine** Synchronisierung; beide Dateien bleiben untracked.\n\n```json\n{\n  \"authority\": \"EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION\",\n  \"date_utc\": \"2026-09-15\",\n  \"recorded_at_utc\": \"2026-09-15T18:32:01Z\",\n  \"decision\": \"FORMALLY_ACCEPT_SCOPED_STATIC_D2_EVIDENCE_AND_D2_SCOPE_DEFINITION\",\n  \"document_status\": \"APPROVED_FOR_ADOPTION\",\n  \"accepted_objects\": [\n    \"statischer Teilbefund nach Abschnitt 9 mit Quellenbindungen, Zaehleinheiten, Schluesseltabelle und Methodengrenzen\",\n    \"Abgrenzung des D2-Geltungsbereichs nach Abschnitt 10\"\n  ],\n  \"review_recommendation\": \"APPROVE_FOR_FORMAL_ADOPTION\",\n  \"review_findings\": 0,\n  \"review_source\": \"INDEPENDENT_DOCUMENT_REVIEW_REPORTED_BY_USER\",\n  \"review_reported_unchanged_input_hashes\": true,\n  \"review_did_not_modify_files\": true,\n  \"count_repair_during_review_claim_rejected\": true,\n  \"scoped_evidence_reviews_recorded\": 2,\n  \"scoped_evidence_recommendation\": \"ACCEPTABLE_AS_SCOPED_EVIDENCE\",\n  \"reviewed_markdown_sha256\": \"89710d52f4bfabab9e3f624ea4b1340a2081e1e8f9d6f806d3b1f270b01babf4\",\n  \"reviewed_markdown_bytes\": 46812,\n  \"reviewed_json_sha256\": \"d34acd465a1718fb83d889dba3e2c57151181bd7358542094557317810e4ea01\",\n  \"reviewed_json_bytes\": 120814,\n  \"technical_content_changed\": false,\n  \"predecessor_documents_changed\": false,\n  \"d2_closed\": false,\n  \"manifest_binding_of_this_report\": false,\n  \"new_manifest_field_introduced\": false,\n  \"new_formal_verification_duty\": false,\n  \"not_closed\": [\n    \"vollstaendige Schliessung von D2\",\n    \"Manifestbindung dieses Berichts\",\n    \"explizite Vorgabewerte je Schluessel und Quellstelle nach Preregistration\",\n    \"Nachlesung der nicht gegengeprueften Teile nach Abschnitt 8.4\",\n    \"offene Zuordnungen nach Abschnitt 12 einschliesslich B4, B3, B10\",\n    \"D1\",\n    \"D3\",\n    \"B1 bis B14\"\n  ],\n  \"deferred_unchanged\": \"V-19\",\n  \"unchanged_accepted_rules\": [\n    \"P01 bis P07\",\n    \"K01 bis K08\",\n    \"D4 bis D17\",\n    \"Berechnungsregeln\",\n    \"Selektions-Gates\"\n  ],\n  \"implementation_authorized\": false,\n  \"qualification_authorized\": false,\n  \"test_execution_authorized\": false,\n  \"evaluation_authorized\": false,\n  \"candidate_manifest_authorized\": false,\n  \"selection_authorized\": false,\n  \"staging_authorized\": false,\n  \"commit_authorized\": false,\n  \"push_authorized\": false,\n  \"synchronization_authorized\": false,\n  \"market_run_authorized\": false\n}\n```\n\n---\n\n## 17. Governance-Korrekturvermerk\n\nDatum (UTC): **2026-09-15**, aufgezeichnet um `2026-09-15T18:44:46Z`, also **nach** der Annahmeaufzeichnung in Abschnitt 16 (`2026-09-15T18:32:01Z`).\n\n### 17.1 Gegenstand und Reichweite\n\nDiese Korrektur betrifft **ausschließlich** die Review- und Restpunktedokumentation. Sie ändert **keine** Quellenliste, **keine** fachliche Tabelle, **keinen** Vorgabewert, **keine** Erreichbarkeitsregel, **keinen** Zählwert und **keine** Methodengrenze. Sie ist **keine neue Annahme**; die formale Annahme nach Abschnitt 16 bleibt in Gegenstand und Reichweite **unverändert erhalten**. Die zwölf Dateien der sechs angenommenen Vertragspaare bleiben unverändert. **D2 bleibt insgesamt offen.** **D1**, **D3**, **B1 bis B14** und **V-19** behalten ihren bisherigen Status.\n\n### 17.2 Berichtigter Sachverhalt und Chronologie\n\nDer Fehler lag in der **Beschreibung** einer bereits vorhandenen Gegenprüfung, nicht in einer fehlenden Prüfung. **GP-2 lag bereits vor der Erstellung dieses Dokuments vor**: ihre Ergebnisse sind die in Abschnitt 8.3 aufgezeichneten Präzisierungen, und sie waren bei der Erstellung bereits in Abschnitt 3.2 Punkt 2, in die Zeile zu Schlüssel Nr. 3 und in die Erläuterung zu Subscript-Zugriffen im Anschluss an die Tabelle in Abschnitt 6 eingearbeitet. Abschnitt 8.4 beschrieb den Prüfungsinhalt von GP-2 gleichwohl als nicht gegengeprüft; das war eine **Fehlbeschreibung**.\n\nEs wird **keine** rückdatierte Aufzeichnung vorgenommen, **keine** veränderte Chronologie behauptet und **keine** zusätzliche oder dritte Gegenprüfung erfunden. Die Zählung der Gegenprüfungen bleibt bei **zwei**; die anschließende Dokumentprüfung ist davon getrennt in Abschnitt 16.3 geführt.\n\n### 17.3 Berichtigte Zuordnung der aufgezeichneten Prüfungen\n\n| Kennung | Prüfungsinhalt | Ergebnis | Aufzeichnung |\n| --- | --- | --- | --- |\n| **GP-1** | statische Analyse einschließlich Zählkorrekturen; Dateimenge und Trägerbindungen bestätigt | keine offenen Findings; `ACCEPTABLE_AS_SCOPED_EVIDENCE` | Abschnitt 8.2 |\n| **GP-2** | gezielt: Vorgabewerte je Quellstelle und Erreichbarkeitsbedingungen der Tabelle in Abschnitt 6 | **keine Findings**; `ACCEPTABLE_AS_SCOPED_EVIDENCE` | Abschnitt 8.3 |\n| **DP-1** | anschließende unabhängige Dokumentprüfung | **keine Findings**; `APPROVE_FOR_FORMAL_ADOPTION` | Abschnitt 16.3 |\n\nZwei Gegenprüfungen, eine Dokumentprüfung, insgesamt drei aufgezeichnete Prüfungen. Keine Prüfung ist doppelt aufgenommen.\n\n### 17.4 Berichtigte Stellen\n\n1. Abschnitt 8.1 — Zuordnung der beiden Gegenprüfungen nach tatsächlichem Prüfungsinhalt (GP-1, GP-2) und Abgrenzung zur Dokumentprüfung in Abschnitt 16.3.\n2. Abschnitt 8.2 — Überschrift und Vorsatz benennen den Prüfungsinhalt von GP-1.\n3. Abschnitt 8.3 — Überschrift und Vorsatz benennen den Prüfungsinhalt und das Ergebnis von GP-2.\n4. Abschnitt 8.4 — als **überholt** gekennzeichnet; der überholte Wortlaut bleibt zitiert und eingeordnet.\n5. Abschnitt 11 — berichtigte Statuszuordnung der Punkte 1 bis 5 und ausdrückliche Trennung der Erfüllungszeitpunkte.\n6. Abschnitt 16.5 — Berichtigungsvermerk zu zwei überholten Einträgen; die formale Annahme bleibt unverändert.\n7. Abschnitt 17 — dieser Vermerk.\n8. JSON-Begleitdatei — `review_record` nach GP-1/GP-2 zugeordnet, der überholte Vermerk als solcher gekennzeichnet, Restpunkteliste und Annahme-Restliste berichtigt, Korrekturvermerk aufgenommen, Einbettung und Hashfelder nachgeführt.\n\n### 17.5 Bereinigte Restpunkteliste zur dokumentierten Schließung von D2\n\n| Nr. | Restpunkt | Status |\n| --- | --- | --- |\n| 1 | Annahme des Geltungsbereichs nach Abschnitt 10 | **erfüllt** durch Abschnitt 16 |\n| 2 | Bindung dieses Berichts als Nachweis mit Identität und Prüfung dieser Bindung beim Start; erfordert die Entscheidung zur Abschlussklausel in Abschnitt 12 des Integrationsvertrags | **offen** |\n| 3 | Aufzählung der expliziten Vorgabewerte je Schlüssel und je Quellstelle | **dokumentationsseitig erfüllt** durch Abschnitt 6; die verbleibende Bindungspflicht geht in Punkt 2 auf |\n| 4 | Gegenprüfung der Vorgabewerte und Erreichbarkeitsbedingungen | **erfüllt** durch GP-2, ohne Findings |\n| 5 | Entscheidung über die offenen Zuordnungen nach Abschnitt 12 | **offen** |\n\n**Verbleibend sind die Punkte 2 und 5. D2 ist nicht geschlossen.**\n\n### 17.6 Identitäten des korrigierten Ausgangsstands\n\nDer durch diese Korrektur ersetzte Stand — der in Abschnitt 16 angenommene und anschließend um die Annahmeaufzeichnung ergänzte Stand — trug:\n\n| Datei | Bytes | SHA256 |\n| --- | --- | --- |\n| `docs/review/BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15.md` | 59710 | `e4d767ba1a6e62fdcc08525c16711f3239d935ba69b631de455f67c2cc94e288` |\n| `docs/review/evidence/BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15.json` | 139643 | `a53a78f816a8386925353b7e4c6cfac177ad42ec62b4fa43f00abcb2eeee56b9` |\n\nDie in Abschnitt 16.2 geführten `reviewed_`-Identitäten des geprüften Entwurfsstands bleiben unverändert und beziehen sich weiterhin auf den dort genannten Stand. Durch diese Korrektur ändern sich die Bytes und Hashes beider Dateien; maßgeblich für den aktuellen Stand bleiben `markdown_bytes`, `markdown_sha256` und `contract_text_sha256` der JSON-Begleitdatei.\n\n```json\n{\n  \"correction_type\": \"GOVERNANCE_REVIEW_AND_REMAINING_ITEMS_DOCUMENTATION_ONLY\",\n  \"date_utc\": \"2026-09-15\",\n  \"recorded_at_utc\": \"2026-09-15T18:44:46Z\",\n  \"after_adoption_recorded_at_utc\": \"2026-09-15T18:32:01Z\",\n  \"new_acceptance\": false,\n  \"existing_formal_adoption_preserved\": true,\n  \"technical_content_changed\": false,\n  \"predecessor_documents_changed\": false,\n  \"backdating\": false,\n  \"additional_review_invented\": false,\n  \"cross_checks_recorded\": 2,\n  \"document_reviews_recorded\": 1,\n  \"gp2_predates_document_creation\": true,\n  \"section_8_4_superseded\": true,\n  \"d2_closed\": false,\n  \"remaining_closure_items\": [\n    \"Bindung dieses Berichts als Nachweis einschliesslich der Entscheidung zur Abschlussklausel in Abschnitt 12 des Integrationsvertrags\",\n    \"Entscheidung ueber die offenen Zuordnungen nach Abschnitt 12 dieses Dokuments\"\n  ],\n  \"binding_timing_unchanged\": \"Erforderliche Bindungen muessen vor der Beobachtung historischer Selektionskennzahlen erfuellt sein; die nachgelagerte Candidate-Freeze-Auflage ersetzt oder verzoegert diese Pflicht nicht.\",\n  \"d1_d3_b1_b14_v19_status_unchanged\": true\n}\n```\n",
+ "contract_text_sha256": "8d2ea00fc127fa0e3d7197bb9064ee02e6beeaadb37d5fa7dc579b352f8d2394",
+ "creation_scope": "draft_file_creation_only",
+ "date_utc": "2026-09-15",
+ "direct_handoff_sites": [
+  {
+   "callee": "load_runtime_shadow_settings",
+   "mapping": "Position 0",
+   "site": "live_l1/core/loop.py:876"
+  },
+  {
+   "callee": "evaluate_iu4_shadow_runtime_gate",
+   "mapping": "Schluesselwort",
+   "site": "live_l1/tools/safe_launch.py:138"
+  },
+  {
+   "callee": "evaluate_iu4_shadow_observation_gate",
+   "mapping": "Schluesselwort",
+   "site": "live_l1/tools/safe_launch.py:164"
+  }
+ ],
+ "document_id": "BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15",
+ "document_status": "APPROVED_FOR_ADOPTION",
+ "enumerated_zero_roles": [
+  "Zuweisung an einen Namen",
+  "Zuweisung an ein Objektattribut",
+  "Ablage in Dict-, List-, Tuple- oder Set-Literal",
+  "Rueckgabe des Umgebungsobjekts",
+  "Parameter-Vorgabewert",
+  "Zugriff aus einer verschachtelten Funktion auf einen Umgebungstraeger",
+  "Uebergabe ueber *args oder **kwargs",
+  "Argumentuebergabe an ein nicht aufloesbares Ziel",
+  "Attributreferenz ausserhalb der klassifizierten Lesemethoden",
+  "from os import environ|environb|getenv-Alias",
+  "os.environb-Referenz",
+  "os.getenv-Aufruf"
+ ],
+ "enumerated_zero_roles_caveat": "Diese Null-Befunde sind Ergebnisse einer Enumeration innerhalb der geprueften Rollenmenge und keine allgemeine Abwesenheitsbehauptung.",
+ "governance_correction_record": {
+  "additional_review_invented": false,
+  "after_adoption_recorded_at_utc": "2026-09-15T18:32:01Z",
+  "backdating": false,
+  "corrected_places": [
+   "Abschnitt 8.1",
+   "Abschnitt 8.2",
+   "Abschnitt 8.3",
+   "Abschnitt 8.4",
+   "Abschnitt 11",
+   "Abschnitt 16.5",
+   "Abschnitt 17",
+   "JSON: review_record, remaining_for_documented_closure, remaining_for_documented_closure_note, closure_steps_completed, adoption_record Berichtigungsfelder, status_assignment, governance_correction_record, Einbettung und Hashfelder"
+  ],
+  "correction_type": "GOVERNANCE_REVIEW_AND_REMAINING_ITEMS_DOCUMENTATION_ONLY",
+  "cross_checks_recorded": 2,
+  "d1_d3_b1_b14_v19_status_unchanged": true,
+  "d2_closed": false,
+  "date_utc": "2026-09-15",
+  "document_reviews_recorded": 1,
+  "existing_formal_adoption_preserved": true,
+  "git_mutation": false,
+  "gp2_predates_document_creation": true,
+  "new_acceptance": false,
+  "new_file_created": false,
+  "predecessor_documents_changed": false,
+  "recorded_at_utc": "2026-09-15T18:44:46Z",
+  "remaining_closure_items": [
+   "Bindung dieses Berichts als Nachweis einschliesslich der Entscheidung zur Abschlussklausel in Abschnitt 12 des Integrationsvertrags",
+   "Entscheidung ueber die offenen Zuordnungen nach Abschnitt 12 dieses Dokuments"
+  ],
+  "root_cause": "Fehlbeschreibung des Pruefungsinhalts von GP-2 in Abschnitt 8.4; keine fehlende Pruefung",
+  "section_8_4_superseded": true,
+  "superseded_state": {
+   "json_bytes": 139643,
+   "json_sha256": "a53a78f816a8386925353b7e4c6cfac177ad42ec62b4fa43f00abcb2eeee56b9",
+   "markdown_bytes": 59710,
+   "markdown_sha256": "e4d767ba1a6e62fdcc08525c16711f3239d935ba69b631de455f67c2cc94e288"
+  },
+  "technical_content_changed": false
+ },
+ "graph_results": {
+  "dynamic_import_calls_in_result_set": 0,
+  "entry_points_parameterless": [
+   "live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py:13",
+   "live_l1/tools/safe_launch.py:39",
+   "live_l1/tools/startup_validator.py:109"
+  ],
+  "live_l1_tools_is_namespace_package_without_init": true,
+  "modules_with_outgoing_live_l1_edge": 21,
+  "modules_without_outgoing_live_l1_edge": 24,
+  "non_live_l1_function_level_imports": [
+   "live_l1/core/loop.py:676 import json",
+   "live_l1/core/loop.py:713 import pandas",
+   "live_l1/core/timing_5m.py:46 import ast"
+  ],
+  "relative_imports_in_live_l1": 0,
+  "sys_modules_meta_path_path_hooks_accesses_in_result_set": 0,
+  "sys_path_modifications": [
+   "live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py:24",
+   "live_l1/tools/safe_launch.py:15",
+   "live_l1/tools/safe_launch.py:16",
+   "live_l1/tools/reconcile_runtime_state.py:16",
+   "live_l1/tools/reconcile_runtime_state.py:17",
+   "live_l1/tools/recover_runtime_state.py:13",
+   "live_l1/tools/recover_runtime_state.py:14"
+  ]
+ },
+ "group_a_note": {
+  "classification": "Diese drei Schluessel sind Bestandteil der Gruppe A und richten sich an Interpreter und Standardbibliothek; ueber ihre Wirkung wird hier nichts ausgesagt (D1).",
+  "read_in_result_set": 20,
+  "subprocess_note": "live_l1/core/paper_iu4_shadow_runtime_gate.py:164 und :177 erzeugen mit subprocess.run einen Kindprozess ohne env=-Argument und wuerden die vollstaendige Prozessumgebung weitergeben; beide liegen in _git_head, gerufen :290, und sind unter den Sollwerten nicht erreicht.",
+  "write_site": "live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py:26",
+  "written_only": [
+   "PYTHONDONTWRITEBYTECODE",
+   "PYTHONHASHSEED",
+   "TZ"
+  ]
+ },
+ "group_b_keys": [
+  {
+   "key": "L1_RESUME_AFTER_SNAPSHOT_ID",
+   "nr": 1,
+   "sites": [
+    {
+     "access_path": "os.environ.get direkt in CSVMarketFeed.__init__",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; Konstruktion live_l1/core/loop.py:972",
+     "source_site": "live_l1/io/market.py:181"
+    }
+   ]
+  },
+  {
+   "key": "L1_AUDIT_LOG_PATH",
+   "nr": 2,
+   "sites": [
+    {
+     "access_path": "os.environ.get direkt, argparse-Vorgabe",
+     "code_default": "live_logs/execution_audit.jsonl",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; bei jedem main() vor jeder Verzweigung",
+     "source_site": "live_l1/tools/safe_launch.py:46"
+    },
+    {
+     "access_path": "os.environ.get direkt",
+     "code_default": "os.path.join(cfg.repo_root, \"live_logs\", \"execution_audit.jsonl\")",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten nur bei L1_STARTUP_RECOVERY und L1_STARTUP_RECONCILIATION_GATE wahr",
+     "source_site": "live_l1/core/loop.py:174"
+    },
+    {
+     "access_path": "os.environ.get direkt",
+     "code_default": "os.path.join(cfg.repo_root, \"live_logs\", \"execution_audit.jsonl\")",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten nur bei L1_STARTUP_RECOVERY wahr",
+     "source_site": "live_l1/core/loop.py:212"
+    },
+    {
+     "access_path": "os.environ.get direkt in _resolve_audit_log_path",
+     "code_default": "\"\"",
+     "downstream_fallback": "live_logs/execution_audit.jsonl bei leerem Wert (live_l1/core/execution.py:303)",
+     "reachability": "erreicht unter den Sollwerten auf dem Audit-Schreibpfad",
+     "source_site": "live_l1/core/execution.py:300"
+    }
+   ]
+  },
+  {
+   "key": "L1_TRADE_LOG_PATH",
+   "nr": 3,
+   "sites": [
+    {
+     "access_path": "os.environ.get direkt, argparse-Vorgabe",
+     "code_default": "live_logs/trades_l1.jsonl",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; bei jedem main() vor jeder Verzweigung",
+     "source_site": "live_l1/tools/safe_launch.py:48"
+    },
+    {
+     "access_path": "os.environ.get direkt",
+     "code_default": "os.path.join(cfg.repo_root, \"live_logs\", \"trades_l1.jsonl\")",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten nur bei L1_STARTUP_RECOVERY und L1_STARTUP_RECONCILIATION_GATE wahr",
+     "source_site": "live_l1/core/loop.py:186"
+    },
+    {
+     "access_path": "os.environ.get direkt in _resolve_trade_log_path",
+     "code_default": "\"\"",
+     "downstream_fallback": "live_logs/trades_l1.jsonl bei leerem Wert (live_l1/core/execution.py:323)",
+     "reachability": "erreicht unter den Sollwerten nur wenn kein Pfadargument uebergeben wurde; die vorgelagerte Bedingung live_l1/core/execution.py:316 prueft trade_log_path und kehrt andernfalls vor der Umgebungsabfrage zurueck",
+     "source_site": "live_l1/core/execution.py:319"
+    }
+   ]
+  },
+  {
+   "key": "L1_S2_POSITION_PATH",
+   "nr": 4,
+   "sites": [
+    {
+     "access_path": "os.environ.get direkt, argparse-Vorgabe",
+     "code_default": "live_state/s2_position.jsonl",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; bei jedem main() vor jeder Verzweigung",
+     "source_site": "live_l1/tools/safe_launch.py:47"
+    },
+    {
+     "access_path": "os.environ.get direkt",
+     "code_default": "os.path.join(cfg.repo_root, \"live_state\", \"s2_position.jsonl\")",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten nur bei L1_STARTUP_RECOVERY und L1_STARTUP_RECONCILIATION_GATE wahr",
+     "source_site": "live_l1/core/loop.py:182"
+    }
+   ]
+  },
+  {
+   "key": "L1_LOSS_CLUSTER_STATE_PATH",
+   "nr": 5,
+   "sites": [
+    {
+     "access_path": "os.environ.get direkt, argparse-Vorgabe",
+     "code_default": "live_state/loss_cluster_state.json",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; bei jedem main() vor jeder Verzweigung",
+     "source_site": "live_l1/tools/safe_launch.py:49"
+    },
+    {
+     "access_path": "os.environ.get direkt",
+     "code_default": "os.path.join(cfg.repo_root, \"live_state\", \"loss_cluster_state.json\")",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten nur bei L1_STARTUP_RECOVERY und L1_STARTUP_RECONCILIATION_GATE wahr",
+     "source_site": "live_l1/core/loop.py:178"
+    },
+    {
+     "access_path": "os.environ.get direkt",
+     "code_default": "os.path.join(cfg.repo_root, \"live_state\", \"loss_cluster_state.json\")",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten nur bei L1_STARTUP_RECOVERY wahr",
+     "source_site": "live_l1/core/loop.py:216"
+    },
+    {
+     "access_path": "os.environ.get direkt in _loss_gate_state_path",
+     "code_default": "live_state/loss_cluster_state.json",
+     "downstream_fallback": "derselbe Wert ueber den or-Ausdruck derselben Zeile",
+     "reachability": "erreicht unter den Sollwerten",
+     "source_site": "live_l1/core/execution.py:84"
+    }
+   ]
+  },
+  {
+   "key": "L1_LOG_PATH",
+   "nr": 6,
+   "sites": [
+    {
+     "access_path": "os.environ.get direkt in load_runtime_config, gerufen live_l1/core/loop.py:874",
+     "code_default": "os.path.join(repo_root, \"live_logs\", \"l1_paper.log\")",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten",
+     "source_site": "live_l1/core/loop.py:268"
+    }
+   ]
+  },
+  {
+   "key": "L1_TRADES_WINDOW_HOURS",
+   "nr": 7,
+   "sites": [
+    {
+     "access_path": "_env_int(key, default) mit os.environ.get in live_l1/core/loop.py:150",
+     "code_default": "6",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; wie live_l1/core/loop.py:268",
+     "source_site": "live_l1/core/loop.py:281"
+    }
+   ]
+  },
+  {
+   "key": "L1_TEST_FORCE_BUY_EVERY",
+   "nr": 8,
+   "sites": [
+    {
+     "access_path": "_env_int(key, default) mit os.environ.get in live_l1/core/loop.py:150",
+     "code_default": "10",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; wie live_l1/core/loop.py:268",
+     "source_site": "live_l1/core/loop.py:283"
+    }
+   ]
+  },
+  {
+   "key": "L1_TEST_FORCE_SELL_EVERY",
+   "nr": 9,
+   "sites": [
+    {
+     "access_path": "_env_int(key, default) mit os.environ.get in live_l1/core/loop.py:150",
+     "code_default": "15",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; wie live_l1/core/loop.py:268",
+     "source_site": "live_l1/core/loop.py:284"
+    }
+   ]
+  },
+  {
+   "key": "L1_TEST_FORCE_WARMUP_TICKS",
+   "nr": 10,
+   "sites": [
+    {
+     "access_path": "_env_int(key, default) mit os.environ.get in live_l1/core/loop.py:150",
+     "code_default": "0",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten; wie live_l1/core/loop.py:268",
+     "source_site": "live_l1/core/loop.py:285"
+    }
+   ]
+  },
+  {
+   "key": "L1_REQUIRE_WSL",
+   "nr": 11,
+   "sites": [
+    {
+     "access_path": "_env_bool(key, default) mit os.environ.get in live_l1/core/loop.py:143",
+     "code_default": "True",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten, sofern die IU4-Zweige live_l1/core/loop.py:880-926 nicht vorher zurueckspringen; bei L1_IU4_MODE=OFF und L1_IU4_SHADOW_OBSERVATION_ENABLED=0 tritt kein Ruecksprung ein",
+     "source_site": "live_l1/core/loop.py:932"
+    }
+   ]
+  },
+  {
+   "key": "L1_SIGNAL_WEIGHTS_JSON",
+   "nr": 12,
+   "sites": [
+    {
+     "access_path": "os.environ.get direkt in _load_l1_signal_weights, gerufen live_l1/core/intent.py:72 aus _normalize_score, gerufen live_l1/core/intent.py:247",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten je Tick, sofern tick_id > cfg.test_force_warmup_ticks und cfg.test_force_intents falsch",
+     "source_site": "live_l1/core/intent.py:51"
+    }
+   ]
+  },
+  {
+   "key": "L1_INTENT_DEBUG",
+   "nr": 13,
+   "sites": [
+    {
+     "access_path": "os.environ.get direkt in _debug_enabled, gerufen live_l1/core/intent.py:155 aus _debug_log_line (Aufrufe 197, 216, 227, 237, 287)",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "erreicht unter den Sollwerten je Tick ueber live_l1/core/intent.py:287; die Aufrufe 197, 216, 227, 237 liegen in nicht genommenen Zweigen",
+     "source_site": "live_l1/core/intent.py:142"
+    }
+   ]
+  },
+  {
+   "key": "L1_IU4_APPROVED_THROTTLE_PROFILE",
+   "nr": 14,
+   "sites": [
+    {
+     "access_path": "_text(environment, name) ueber die Traegerkette ab live_l1/tools/safe_launch.py:138",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_iu4_shadow_runtime_gate.py:233-234 bei L1_IU4_MODE gleich MODE_OFF",
+     "source_site": "Konstante live_l1/core/paper_iu4_shadow_runtime_gate.py:29; Lesestelle live_l1/core/paper_iu4_shadow_runtime_gate.py:147; Aufruf live_l1/core/paper_iu4_shadow_runtime_gate.py:248"
+    }
+   ]
+  },
+  {
+   "key": "L1_IU4_REPOSITORY_COMMIT",
+   "nr": 15,
+   "sites": [
+    {
+     "access_path": "_text(environment, name) ueber die Traegerkette ab live_l1/tools/safe_launch.py:138",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_iu4_shadow_runtime_gate.py:233-234 bei L1_IU4_MODE gleich MODE_OFF",
+     "source_site": "Konstante live_l1/core/paper_iu4_shadow_runtime_gate.py:32; Lesestelle live_l1/core/paper_iu4_shadow_runtime_gate.py:147; Aufruf live_l1/core/paper_iu4_shadow_runtime_gate.py:291"
+    }
+   ]
+  },
+  {
+   "key": "L1_IU4_ATOMIC_STATE_DIRECTORY",
+   "nr": 16,
+   "sites": [
+    {
+     "access_path": "_text(environment, name) ueber die Traegerkette ab live_l1/tools/safe_launch.py:138",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_iu4_shadow_runtime_gate.py:233-234 bei L1_IU4_MODE gleich MODE_OFF",
+     "source_site": "Konstante live_l1/core/paper_iu4_shadow_runtime_gate.py:28; Lesestelle live_l1/core/paper_iu4_shadow_runtime_gate.py:147; Aufruf live_l1/core/paper_iu4_shadow_runtime_gate.py:298"
+    }
+   ]
+  },
+  {
+   "key": "L1_IU4_COORDINATOR_ID",
+   "nr": 17,
+   "sites": [
+    {
+     "access_path": "_text(environment, name) ueber die Traegerkette ab live_l1/tools/safe_launch.py:138",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_iu4_shadow_runtime_gate.py:233-234 bei L1_IU4_MODE gleich MODE_OFF",
+     "source_site": "Konstante live_l1/core/paper_iu4_shadow_runtime_gate.py:30; Lesestelle live_l1/core/paper_iu4_shadow_runtime_gate.py:147; Aufruf live_l1/core/paper_iu4_shadow_runtime_gate.py:299"
+    }
+   ]
+  },
+  {
+   "key": "L1_IU4_SYMBOL",
+   "nr": 18,
+   "sites": [
+    {
+     "access_path": "_text(environment, name) ueber die Traegerkette ab live_l1/tools/safe_launch.py:138",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_iu4_shadow_runtime_gate.py:233-234 bei L1_IU4_MODE gleich MODE_OFF",
+     "source_site": "Konstante live_l1/core/paper_iu4_shadow_runtime_gate.py:31; Lesestelle live_l1/core/paper_iu4_shadow_runtime_gate.py:147; Aufruf live_l1/core/paper_iu4_shadow_runtime_gate.py:300"
+    }
+   ]
+  },
+  {
+   "key": "L1_IU4_SHADOW_OBSERVATION_MAX_RECORDS",
+   "nr": 19,
+   "sites": [
+    {
+     "access_path": "environment.get ueber die Traegerkette ab live_l1/tools/safe_launch.py:164",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_iu4_shadow_observation_gate.py:784-785 bei Wert \"0\"",
+     "source_site": "Konstante live_l1/core/paper_iu4_shadow_observation_gate.py:37; Lesestelle live_l1/core/paper_iu4_shadow_observation_gate.py:792"
+    }
+   ]
+  },
+  {
+   "key": "L1_IU4_SHADOW_OBSERVATION_EVIDENCE_PATH",
+   "nr": 20,
+   "sites": [
+    {
+     "access_path": "environment.get ueber die Traegerkette ab live_l1/tools/safe_launch.py:164",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_iu4_shadow_observation_gate.py:784-785 bei Wert \"0\"",
+     "source_site": "Konstante live_l1/core/paper_iu4_shadow_observation_gate.py:36; Lesestelle live_l1/core/paper_iu4_shadow_observation_gate.py:806"
+    }
+   ]
+  },
+  {
+   "key": "L1_IU4_SHADOW_OBSERVATION_WORK_DIRECTORY",
+   "nr": 21,
+   "sites": [
+    {
+     "access_path": "environment.get ueber die Traegerkette ab live_l1/tools/safe_launch.py:164",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_iu4_shadow_observation_gate.py:784-785 bei Wert \"0\"",
+     "source_site": "Konstante live_l1/core/paper_iu4_shadow_observation_gate.py:38; Lesestelle live_l1/core/paper_iu4_shadow_observation_gate.py:836"
+    }
+   ]
+  },
+  {
+   "key": "PEE_SCHEMA_VERSION",
+   "nr": 22,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:49; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:49; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_ECONOMICS_MODEL_VERSION",
+   "nr": 23,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:50; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:50; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_ECONOMICS_PROFILE_ID",
+   "nr": 24,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:51; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:51; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_QUOTE_CURRENCY",
+   "nr": 25,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:52; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:52; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_STARTING_EQUITY_QUOTE",
+   "nr": 26,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:53; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:53; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_RISK_PER_TRADE_RATE",
+   "nr": 27,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:54; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:54; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_MAX_POSITION_NOTIONAL_RATE",
+   "nr": 28,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:55; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:55; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_ENTRY_FEE_RATE",
+   "nr": 29,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:56; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:56; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_EXIT_FEE_RATE",
+   "nr": 30,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:57; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:57; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_ENTRY_SLIPPAGE_BPS",
+   "nr": 31,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:58; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:58; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_EXIT_SLIPPAGE_BPS",
+   "nr": 32,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:59; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:59; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_QUANTITY_STEP",
+   "nr": 33,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:60; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:60; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_MIN_QUANTITY",
+   "nr": 34,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:61; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:61; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_MIN_NOTIONAL_QUOTE",
+   "nr": 35,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:62; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:62; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_MAX_DAILY_LOSS_RATE",
+   "nr": 36,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:63; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:63; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_MAX_DAILY_FEE_RATE",
+   "nr": 37,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:64; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:64; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_MAX_REALIZED_DRAWDOWN_RATE",
+   "nr": 38,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:65; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[source])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Dict-Schluessel live_l1/core/paper_economics_shadow.py:65; Lesestelle live_l1/core/paper_economics_shadow.py:199"
+    }
+   ]
+  },
+  {
+   "key": "PEE_REFERENCE_STOP_RATE",
+   "nr": 39,
+   "sites": [
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853",
+     "code_default": "\"\"",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Konstante live_l1/core/paper_economics_shadow.py:67; Lesestelle live_l1/core/paper_economics_shadow.py:187"
+    },
+    {
+     "access_path": "Traegerkette zu load_shadow_settings ueber drei Wege: live_l1/core/loop.py:876 nach live_l1/core/paper_economics_shadow_runtime.py:49; live_l1/tools/safe_launch.py:138 nach live_l1/core/paper_iu4_shadow_runtime_gate.py:272; live_l1/tools/safe_launch.py:164 nach live_l1/core/paper_iu4_shadow_observation_gate.py:853 (Subscript environment[REFERENCE_STOP_RATE_ENV])",
+     "code_default": "kein Vorgabewert (Subscript)",
+     "downstream_fallback": null,
+     "reachability": "nicht erreicht unter den Sollwerten; Ruecksprung live_l1/core/paper_economics_shadow.py:166-173 bei PEE_MODE gleich MODE_OFF; die Wege zwei und drei sind zusaetzlich durch L1_IU4_MODE=OFF bzw. L1_IU4_SHADOW_OBSERVATION_ENABLED=0 vorher abgeschnitten",
+     "source_site": "Konstante live_l1/core/paper_economics_shadow.py:67; Lesestelle live_l1/core/paper_economics_shadow.py:206"
+    }
+   ]
+  }
+ ],
+ "group_b_keys_count": 39,
+ "group_b_reachability_summary": {
+  "caveat": "Beide Aussagen stehen unter dem Vorbehalt, dass statische Erreichbarkeit kein Nachweis tatsaechlicher historischer Ausfuehrung ist.",
+  "not_reached_under_target_values": 26,
+  "on_control_flow_under_target_values": 13
+ },
+ "json_field_scope": {
+  "contract_text": "Vollstaendiger Text der Markdown-Datei einschliesslich Titel, Quellenabschnitten und abschliessendem Zeilenumbruch.",
+  "contract_text_sha256": "SHA256 der UTF-8-Kodierung von contract_text; bezieht sich auf dieselben Bytes wie markdown_sha256; beide Werte sind identisch.",
+  "embedding_proof": "contract_text.encode(\"utf-8\") ist byteweise gleich den Markdown-Dateibytes; die Gleichheit von markdown_sha256 und contract_text_sha256 ist der Nachweis.",
+  "json_validity": "Strikt gueltiges JSON ohne NaN- und ohne Infinity-Literale und ohne doppelte Schluessel.",
+  "markdown_bytes": "Bytezahl der vollstaendigen Bytes der Markdown-Datei.",
+  "markdown_sha256": "SHA256 derselben vollstaendigen Bytes.",
+  "no_self_hash": "Diese JSON-Datei enthaelt keinen Hash ihrer selbst und keine zyklische Hashbindung.",
+  "reviewed_prefix": "Felder mit dem Praefix reviewed_ im Annahmedatensatz halten die geprueften Ausgangsidentitaeten des Entwurfsstands fest und beziehen sich nicht auf den aktuellen Stand."
+ },
+ "json_path": "docs/review/evidence/BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15.json",
+ "limited_finding": {
+  "adoption_note": "Der Befund ist durch adoption_record formal angenommen. Das Feld is_formal_acceptance beschreibt, dass der Befund selbst kein Annahmeakt ist; die Negativaussagen is_general_absence_claim, is_d2_closure und is_qualification bleiben sachlich unveraendert gueltig.",
+  "adoption_status": "ANGENOMMEN_ALS_BEGRENZTER_STATISCHER_TEILNACHWEIS",
+  "details": [
+   "alle gefundenen Zugriffsschluessel waren statisch aufloesbar",
+   "kein Schluessel ausserhalb der Gruppen A und B",
+   "kein nicht aufloesbarer Weitergabepfad"
+  ],
+  "is_d2_closure": false,
+  "is_formal_acceptance": false,
+  "is_general_absence_claim": false,
+  "is_qualification": false,
+  "statement": "In den konkret geprueften Quellen, Zugriffsformen und Weitergabepfaden wurde keine zusaetzliche Gruppe-B-Schluesselanforderung festgestellt."
+ },
+ "markdown_bytes": 71472,
+ "markdown_encoding": "UTF-8, LF, abschliessendes LF",
+ "markdown_path": "docs/review/BTC_L1_G10B_D2_STATIC_CONFIGURATION_EVIDENCE_V1_2026-09-15.md",
+ "markdown_sha256": "8d2ea00fc127fa0e3d7197bb9064ee02e6beeaadb37d5fa7dc579b352f8d2394",
+ "method": {
+  "dynamic_forms_scanned": [
+   "__import__",
+   "importlib",
+   "import_module",
+   "find_spec",
+   "module_from_spec",
+   "exec_module",
+   "reload",
+   "load_module",
+   "find_module",
+   "pkgutil.iter_modules",
+   "walk_packages",
+   "exec",
+   "eval",
+   "compile",
+   "sys.modules",
+   "sys.meta_path",
+   "sys.path_hooks",
+   "sys.path_importer_cache",
+   "sys.path"
+  ],
+  "env_origin_forms": [
+   "os.environ",
+   "os.environb",
+   "os.getenv",
+   "from os import environ|environb|getenv einschliesslich as-Alias"
+  ],
+  "handoff_mapping": "tatsaechliche Argument-Parameter-Zuordnung, namensunabhaengig; Position ueber posonlyargs und args, Schluesselwort ueber Namen, gesonderte Behandlung von *args und **kwargs; Fixpunkt-Iteration",
+  "import_forms": [
+   "absolute Importe",
+   "relative Importe mit Aufloesung ueber level und Paketkontext",
+   "mehrzeilige Klammerform",
+   "as-Alias",
+   "Importe auf Funktions- und Klassenebene"
+  ],
+  "parsing": "Standardbibliotheksmodul ast, ausschliesslich im Speicher; kein Import, keine Ausfuehrung, keine Uebersetzung in Codeobjekte, kein Funktionsaufruf des gelesenen Codes; keine Hilfs-, Temporaer- oder Bytecode-Datei",
+  "reachability_basis": "Kanten wurden ausschliesslich aus bereits erreichbaren Modulen verfolgt",
+  "role_set": [
+   "Methodenaufruf",
+   "Subscript lesend",
+   "Subscript schreibend",
+   "Mitgliedschaftstest",
+   "Iteration",
+   "Attributreferenz",
+   "Argumentuebergabe",
+   "Zuweisung an Namen",
+   "Zuweisung an Objektattribut",
+   "Ablage in Container-Literal",
+   "Rueckgabe",
+   "Parameter-Vorgabewert",
+   "Aufruf des Objekts"
+  ],
+  "source_reading": "ausschliesslich git show und git cat-file blob am gebundenen Quellcommit"
+ },
+ "method_limits": [
+  "Die Analyse ist statisch und deckt den Modulgraphen des festgelegten Quellbestands, nicht die Ausfuehrung.",
+  "Statische Erreichbarkeit unter Sollbedingungen ist kein Nachweis tatsaechlicher historischer Ausfuehrung.",
+  "Die Erkennung der Ursprunge ist namensbasiert.",
+  "Ein fehlender Werkzeugtreffer ist ein Negativbefund der Suche und kein Abwesenheitsbeweis.",
+  "Re-Exporte und __all__-Ketten wurden nicht verfolgt.",
+  "Laden ueber C-Ebene, ueber einen ausgetauschten Lader oder ueber Mechanismen jenseits der genannten Formen ist nicht erfasst.",
+  "sys.path-Aenderungen lassen die Modulmenge des analysierten Graphen unveraendert; eine Aussage ueber tatsaechlich aufgeloeste und geladene Module eines spaeteren Prozesses folgt daraus nicht (D1).",
+  "Der Befund ist ein Auswertungsergebnis; eine formale Verifikation verlangt kein angenommener Vertrag und wird hier nicht eingefuehrt."
+ ],
+ "open_items": [
+  {
+   "existing_duty": "Integrationsvertrag Abschnitt 9; offene Bindung B4",
+   "missing": "Werte unbekannt; nicht erhoben",
+   "subject": "tatsaechliche Zustaende und Werte der Gruppe-B-Schluessel"
+  },
+  {
+   "existing_duty": "Preregistration: Kandidatenidentitaet bindet dependency lock; Candidate Freeze verlangt Python and dependency identities sowie Any missing or implicit value blocks Candidate Freeze; Integrationsvertrag Abschnitt 10 dependency_lock.installed_distributions je Distribution",
+   "missing": "Schema und zustaendiger Datensatz fuer die Abhaengigkeitsidentitaeten des Erzeugerlaufs; BIND-1b nennt die Python-Identitaet des Laufs, nicht eine Distributionsliste; Abschnitt 10 ist auf die Evaluierungsumgebung bezogen; tatsaechliche Paket- und Laufidentitaeten unbekannt (B3, B10). Keine vollstaendige Regelungsluecke.",
+   "subject": "Drittanbieter-Abhaengigkeit pandas, bedingt geladen in live_l1/core/loop.py:713"
+  },
+  {
+   "existing_duty": "Preregistration, Candidate Freeze: configuration files, environment allowlist, and explicit defaults mit Any missing or implicit value blocks Candidate Freeze",
+   "missing": "Die Allowlist in Abschnitt 9 des Integrationsvertrags enumeriert nur die Gruppen A und B; eine Zuordnung dieser Schluessel fehlt. Keine vollstaendige Regelungsluecke.",
+   "subject": "Umgebungsvariablen von Interpreter und Standardbibliothek"
+  },
+  {
+   "existing_duty": "soweit als Umgebungsvariable darstellbar: Preregistration wie vorstehend",
+   "missing": "Fuer den nicht als Variable darstellbaren Anteil ist keine zustaendige Stelle benennbar; wird als offene Zuordnungsluecke gefuehrt und nicht durch eine erfundene Zuordnung geschlossen.",
+   "subject": "Umwelteinfluesse, die ein Paket-Dateihash nicht erfasst und die nicht als Umgebungsvariable darstellbar sind"
+  },
+  {
+   "existing_duty": "Integrationsvertrag Abschnitt 10 operativer Satz, Abschnitt 14, Abschnitt 20.6",
+   "missing": "unveraendert offen; durch dieses Dokument nicht bearbeitet",
+   "subject": "D1"
+  },
+  {
+   "existing_duty": "Integrationsvertrag Abschnitt 3, Abschnitt 7.3, Abschnitt 14, Abschnitt 20.6",
+   "missing": "unveraendert offen; durch dieses Dokument nicht bearbeitet",
+   "subject": "D3"
+  },
+  {
+   "existing_duty": "Integrationsvertrag Abschnitt 15",
+   "missing": "unveraendert offen; Werte bleiben null",
+   "subject": "B1 bis B14"
+  },
+  {
+   "existing_duty": "Field-/Helper-Contract Abschnitt 9.3; Integrationsvertrag Abschnitt 1.3 und Abschnitt 8",
+   "missing": "unveraendert zurueckgestellt",
+   "subject": "V-19"
+  }
+ ],
+ "proposed_d2_scope": {
+  "derivation": "Der zu pruefende Umfang leitet sich aus dem Einstiegspunkt ab: vom gebundenen Runner live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py am gebundenen Quellcommit ueber den statisch ermittelten transitiven Repository-Importgraphen einschliesslich Paketinitialisierungsdateien und aller statisch aufloesbaren Weitergabepfade ueber die tatsaechliche Argument-Parameter-Zuordnung.",
+  "file_list_role": "Die namentliche Datei- und Hashliste dokumentiert das Ergebnis dieser Ableitung; sie bestimmt nicht, welche Quellen zu pruefen sind. Eine bestimmte Dateizahl ist kein Bestehenskriterium.",
+  "no_new_formal_verification_duty": true,
+  "non_discharge": "Einfluesse von Interpreter, Standardbibliothek und Drittanbieter-Abhaengigkeiten werden nicht entlastet. Sie sind dort nachzuweisen, wo die Abschnitte 10 und 11 des Integrationsvertrags, BIND-1b, BIND-2 sowie die Preregistration dies verlangen. Ein Nachweis gilt nur als erbracht, wenn er einer benannten Vertragsstelle und einem benannten Datensatz zugeordnet ist.",
+  "scope": "D2 betrifft die Vollstaendigkeit der Menge derjenigen Konfigurationsschluessel, die im gebundenen Repository-Code gelesen werden, einschliesslich statisch aufloesbarer indirekter Weitergaben des Umgebungsobjekts.",
+  "status": "ANGENOMMEN",
+  "status_note": "Der Schluesselname proposed_d2_scope beschreibt den Entwurfsstand und wird nicht umgeschrieben. Der Wortlaut ist unveraendert; der Status ist durch adoption_record ANGENOMMEN.",
+  "values": "Zustaende und Werte dieser Schluessel sind nicht Gegenstand von D2; sie bleiben B4 und die Sollzustaende nach Abschnitt 9 des Integrationsvertrags."
+ },
+ "reference_counts": {
+  "carrier_bindings": 5,
+  "counting_unit_definition": "Gezaehlt werden syntaktische Referenzen im AST der aufgefuehrten Quelldateien, nicht Schluessel, nicht Zeilen, nicht Laufzeitereignisse.",
+  "direct_handoffs": 3,
+  "direct_reads": 35,
+  "direct_references_os_environ": 39,
+  "direct_writes": 1,
+  "excluded_derived_sums": "Weitere abgeleitete Summen (Gesamtzahl der Traegerreferenzen, Gesamtzahl aller Lesezugriffsstellen, Gesamtzahl aller umgebungstragenden Referenzen) sind nicht unabhaengig bestaetigt und werden nicht uebernommen; sie sind fuer diesen Teilnachweis nicht erforderlich.",
+  "handoff_sites_total": 12,
+  "handoffs_from_carrier_parameters": 9,
+  "identity_check_direct": "35 + 3 + 1 = 39",
+  "identity_check_handoffs": "3 + 9 = 12",
+  "overlap_statement": "Die 12 Weitergabestellen sind keine von den 39 direkten Referenzen disjunkte Kategorie. Die drei direkten Weitergaben sind bereits in den 39 enthalten; nur die neun Weitergaben aus Traegerparametern liegen ausserhalb. Eine Addition von 39 und 12 waere eine Doppelzaehlung.",
+  "unresolvable_handoff_paths": 0
+ },
+ "referenced_accepted_contracts": [
+  {
+   "document_id": "BTC_L1_FINAL_PROTOCOL_PREREGISTRATION_V1_2026-09-07",
+   "json_sha256": "21c5730a0f1a6134a826fd2ba34e8ff8c5ad8d7ff739ac6d8b45f6d7df57786a",
+   "markdown_sha256": "628abdb89135f747dd24df624a416aeffa591d1486b8f8cce86779a627d5167e"
+  },
+  {
+   "document_id": "BTC_L1_G10B_EVALUATOR_CLARIFICATION_V1_2026-09-08",
+   "json_sha256": "90b99bac40c7f640ba2df69e6f97a750e25b0762f83a8c6fc973184a3189e830",
+   "markdown_sha256": "7962f6d9dbd66b9c6e3ea3a66b46b60ac765821deabd7f00ed8b1536daaa6b53"
+  },
+  {
+   "document_id": "BTC_L1_G10B_PARSER_NUMERIC_CONTRACT_V1_2026-09-08",
+   "json_sha256": "6d9dbd65a9e16042d95719016e9d0259b0b20eb2ca609674950012769918ef3c",
+   "markdown_sha256": "c7776c3ceac5939e3936b429e562830af9f0e90667a65405a0ba5f44a44ab5ff"
+  },
+  {
+   "document_id": "BTC_L1_G10B_OUTPUT_RUNTIME_CONTRACT_V1_2026-09-09",
+   "json_sha256": "ae518b6a05a30651bd064a9d82c3141db62ddb4c299897d3f9224218bcbe7f26",
+   "markdown_sha256": "e57c1970c30982db3fb8de9dc21e4c24378ff2747c64f7c207ef181c9627e7a9"
+  },
+  {
+   "document_id": "BTC_L1_G10B_FIELD_HELPER_CONTRACT_V1_2026-09-10",
+   "json_sha256": "53a0928e6835480b1422b555313cd4b05f49608e627fde1a4ef33789bfe00828",
+   "markdown_sha256": "6f59d74ee7e2163f47ded5f6427114397ffe11e0db2a8dbc3c8a3dc3b64234cc"
+  },
+  {
+   "document_id": "BTC_L1_G10B_EVALUATOR_INTEGRATION_CONTRACT_V1_2026-09-11",
+   "json_sha256": "b66cbfd5d794fc15c37f40cff2ab7fd5cfc6d454d57d1fd2ffa687d575fcc54c",
+   "markdown_sha256": "12e2284cb65ce9b31ea39e03391dc543b3fbc7f88ef681ebb7ddf958c7837024"
+  }
+ ],
+ "remaining_for_documented_closure": [
+  "Bindung dieses Berichts als Nachweis mit Berichtskennung, Pfad, Bytes und SHA256 und Pruefung dieser Bindung beim Start, entsprechend dem Vorgehen bei der Helper-Qualifikation nach Abschnitt 11 des Integrationsvertrags; erfordert eine Entscheidung zur Abschlussklausel in Abschnitt 12",
+  "Entscheidung ueber die offenen Zuordnungen nach Abschnitt 12 dieses Dokuments"
+ ],
+ "remaining_for_documented_closure_note": "Berichtigt durch governance_correction_record: Die Aufzaehlung der expliziten Vorgabewerte je Schluessel und je Quellstelle ist dokumentationsseitig durch Abschnitt 6 erfuellt; die verbleibende Bindungspflicht geht im ersten Eintrag auf. Die Nachlesung der zuvor als nicht gegengeprueft bezeichneten Teile ist durch GP-2 erledigt. D2 bleibt insgesamt offen.",
+ "repository_branch_at_creation": "main",
+ "repository_head_at_creation": "81df16686349c8e920981298cddb3e3ca0c9adea",
+ "repository_publication_state": "UNTRACKED_NOT_STAGED_NOT_COMMITTED_NOT_PUSHED",
+ "repository_worktree_at_creation": "CLEAN_NO_UNTRACKED",
+ "review_record": {
+  "adopted_clarifications": [
+   "Statische Erreichbarkeit unter Sollbedingungen ist kein Nachweis tatsaechlicher historischer Ausfuehrung.",
+   "live_l1/core/execution.py:319 bleibt insbesondere vom fehlenden uebergebenen Pfadargument abhaengig; die vorgelagerte Bedingung live_l1/core/execution.py:316 entscheidet darueber.",
+   "environment[source] hat keinen Vorgabewert; daraus folgt nicht, dass der Schluessel tatsaechlich fehlt."
+  ],
+  "adopted_corrections": [
+   "direkte Lesezugriffe 35 statt zuvor berichteter 33; Pruefidentitaet 35 + 3 + 1 = 39",
+   "Weitergabestellen 3 direkte plus 9 aus Traegerparametern gleich 12 statt zuvor berichteter 13",
+   "ausdrueckliche Klarstellung, dass die Weitergabestellen keine von den 39 disjunkte Kategorie bilden"
+  ],
+  "confirmed": [
+   "45-Dateien-Menge",
+   "fuenf Traegerbindungen"
+  ],
+  "count": 2,
+  "count_scope": "zaehlt ausschliesslich die Gegenpruefungen dieses Datensatzes; die anschliessende Dokumentpruefung ist getrennt in adoption_record gefuehrt und wird hier nicht mitgezaehlt",
+  "cross_checks": [
+   {
+    "id": "GP-1",
+    "recommendation": "ACCEPTABLE_AS_SCOPED_EVIDENCE",
+    "recorded_in": "Abschnitt 8.2",
+    "result": "keine offenen Findings",
+    "scope": "statische Analyse einschliesslich Zaehlkorrekturen; Bestaetigung der Dateimenge und der Traegerbindungen"
+   },
+   {
+    "id": "GP-2",
+    "predates_document_creation": true,
+    "recommendation": "ACCEPTABLE_AS_SCOPED_EVIDENCE",
+    "recorded_in": "Abschnitt 8.3",
+    "result": "keine Findings",
+    "scope": "gezielt: exakte Code-Vorgabewerte je Quellstelle und Erreichbarkeitsbedingungen der Tabelle in Abschnitt 6"
+   }
+  ],
+  "document_review_recorded_in": "adoption_record (Abschnitt 16.3), Empfehlung APPROVE_FOR_FORMAL_ADOPTION, keine Findings",
+  "not_cross_checked": [],
+  "not_cross_checked_requirement": "ueberholt: durch GP-2 erledigt; keine Wiederholungspflicht und keine weitergehende unabhaengige Pruefung behauptet.",
+  "not_cross_checked_superseded": "Der frueher hier gefuehrte Eintrag - exakte Code-Vorgabewerte je Quellstelle und Erreichbarkeitsbedingungen der Gruppe-B-Tabelle - war eine Fehlbeschreibung des Pruefungsinhalts von GP-2. Diese Teile waren Gegenstand von GP-2 und sind dort ohne Findings gegengeprueft. Es verbleibt insoweit kein offener Pruefteil; siehe Abschnitt 17 und governance_correction_record.",
+  "origin": "vom Nutzer uebergebene Antigravity-Berichte",
+  "recommendation": "ACCEPTABLE_AS_SCOPED_EVIDENCE",
+  "recommendation_scope": "jeweils fuer den eigenen Pruefungsumfang der jeweiligen Gegenpruefung",
+  "rejected_formulation": "Allgemeine Aussagen der Art, die Pruefung belege zweifelsfrei das Fehlen saemtlicher verdeckter oder unaufloesbarer Zugriffe, werden nicht uebernommen.",
+  "reviews_state_own_limits": true,
+  "stronger_or_additional_review_claimed": false
+ },
+ "schema_version": 1,
+ "scope": {
+  "derivation": "Ausgangspunkt ist der gebundene Runner live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py am gebundenen Quellcommit; von dort der statisch ermittelte transitive Repository-Importgraph einschliesslich Paketinitialisierungsdateien und aller statisch aufloesbaren Weitergaben des Umgebungsobjekts.",
+  "file_set_status": "Die Dateimenge ist ein Ergebnis, kein vorgegebenes Bestehenskriterium. Die ermittelte Anzahl von 45 Quelldateien ist ein Ergebnis und kein Sollwert.",
+  "out_of_scope": [
+   "tatsaechliche Werte und Zustaende der Schluessel (B4)",
+   "Interpreter und Standardbibliothek",
+   "Drittanbieter-Abhaengigkeiten",
+   "welche Module und Dateien ein spaeterer Prozess tatsaechlich aufloest und laedt (D1)"
+  ],
+  "subject": "Repository-Konfiguration am gebundenen Quellcommit: Vollstaendigkeit der Menge der im gebundenen Repository-Code gelesenen Konfigurationsschluessel einschliesslich statisch aufloesbarer indirekter Weitergaben."
+ },
+ "single_write_site": "live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py:26 os.environ.update",
+ "source_files": [
+  {
+   "bytes": 0,
+   "path": "live_l1/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "bytes": 0,
+   "path": "live_l1/core/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "bytes": 2739,
+   "path": "live_l1/core/clock.py",
+   "sha256": "48b6a38936c1d624a41f25b1117ab64833d38fb44814fb6ff765712f9b074627"
+  },
+  {
+   "bytes": 31600,
+   "path": "live_l1/core/execution.py",
+   "sha256": "a76f600d27feef969665bcd695ce11bc4e3abae0f25e045f7416fc78cd2513e3"
+  },
+  {
+   "bytes": 3090,
+   "path": "live_l1/core/feature_snapshot.py",
+   "sha256": "a6b5438212506d44427da96aa29ed95afcfb43313ef982fcc8f0c349f15d8097"
+  },
+  {
+   "bytes": 8358,
+   "path": "live_l1/core/intent.py",
+   "sha256": "e052a11a04d1ae9b7d831e9d52175ee7fa8e212745ef43b22b94844a82ee4ece"
+  },
+  {
+   "bytes": 7079,
+   "path": "live_l1/core/intent_fusion.py",
+   "sha256": "2b04f91c2273b7a9db941396d36e93b719edf3536e5e4e2a331ba5d169327114"
+  },
+  {
+   "bytes": 50554,
+   "path": "live_l1/core/loop.py",
+   "sha256": "54e9e7bc0977a9c94f2e85a3279157678249a8569cff63f7d4f29131443fd058"
+  },
+  {
+   "bytes": 24974,
+   "path": "live_l1/core/paper_economics.py",
+   "sha256": "a302013134d1265ac85ad10b57a67ead9e2343043f7eb499fd965a44312525ae"
+  },
+  {
+   "bytes": 16049,
+   "path": "live_l1/core/paper_economics_shadow.py",
+   "sha256": "11efbde48db3026fb232c4f2a9e9b0aec347176c59293112d9fe68ddc8d4572c"
+  },
+  {
+   "bytes": 6101,
+   "path": "live_l1/core/paper_economics_shadow_runtime.py",
+   "sha256": "8dbdf1ec0190e96bdb75697d1ffb25bd87784194150f674bb7e3317df6073a45"
+  },
+  {
+   "bytes": 26549,
+   "path": "live_l1/core/paper_entry_throttle.py",
+   "sha256": "ad5447d88a2c35c9a71a5495c61c8f08fa844daf60e79d4a872234e88037df75"
+  },
+  {
+   "bytes": 6559,
+   "path": "live_l1/core/paper_entry_throttle_profile.py",
+   "sha256": "9c07c23dd559aaddad640f269dd6394590c16cfbb7df439112a5c0dc0d0d5d87"
+  },
+  {
+   "bytes": 24824,
+   "path": "live_l1/core/paper_iu4_adapter.py",
+   "sha256": "d65525f31746d1edf30bf1ffc7f84a845f97b3f4120904c9910b741bc8c76a7b"
+  },
+  {
+   "bytes": 36377,
+   "path": "live_l1/core/paper_iu4_shadow_observation_gate.py",
+   "sha256": "ed4e75fad664c68b91950e9c09e873823ebe3eb0b0062f85806daa09ce661350"
+  },
+  {
+   "bytes": 15298,
+   "path": "live_l1/core/paper_iu4_shadow_runtime_gate.py",
+   "sha256": "f81045347e82b981bd721bf1c4bbe0133feb8a36146f6440358983cac2ad6d4e"
+  },
+  {
+   "bytes": 37668,
+   "path": "live_l1/core/paper_iu4_startup_gate.py",
+   "sha256": "c4a1854f3b200525568a40205b39e9ce2e14c342bb860569ba7fcfe5e9c063cd"
+  },
+  {
+   "bytes": 1425,
+   "path": "live_l1/core/regime_detector.py",
+   "sha256": "278a7991bab6a7ecba030fb41d5d9122d9cb9417164da6d1bd91ac350c28ff54"
+  },
+  {
+   "bytes": 6761,
+   "path": "live_l1/core/timing_5m.py",
+   "sha256": "59fd03511b9eb39d21f85a8bdca9ed57763924ab761ccf14866388f0fbfcdbf5"
+  },
+  {
+   "bytes": 0,
+   "path": "live_l1/guards/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "bytes": 2872,
+   "path": "live_l1/guards/guards.py",
+   "sha256": "e849ae12c790c41a01f649b26591881fcd105fa617af079becd3081557a1131f"
+  },
+  {
+   "bytes": 0,
+   "path": "live_l1/io/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "bytes": 6118,
+   "path": "live_l1/io/market.py",
+   "sha256": "014bbf7328c4bd354fb8a254979ef463670e49557c5ed89e5628a3b35dc8cd0e"
+  },
+  {
+   "bytes": 3957,
+   "path": "live_l1/io/valid.py",
+   "sha256": "0f8c5af733269c76a93b112eff757c08f918676239196294c0bc7b02f2080d4b"
+  },
+  {
+   "bytes": 0,
+   "path": "live_l1/logs/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "bytes": 2628,
+   "path": "live_l1/logs/logger.py",
+   "sha256": "cbfb29708bc81bbf7f2d524abe10a21382213973f897038bc8c315bad1323cfd"
+  },
+  {
+   "bytes": 0,
+   "path": "live_l1/meta_state/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "bytes": 406,
+   "path": "live_l1/meta_state/meta_state_runtime.py",
+   "sha256": "da17467a9830464f70a508af8774be3acb1f644ca8423b97ff93300c9a0528b0"
+  },
+  {
+   "bytes": 1196,
+   "path": "live_l1/meta_state/meta_state_shadow.py",
+   "sha256": "c2133dea056d29bc8d639943a8a754e6f39b0c91e131dba0923e69faa60379fa"
+  },
+  {
+   "bytes": 1733,
+   "path": "live_l1/operational_profiles.py",
+   "sha256": "397080acebf83c2af4ecb4608183551665724fcb19e983442dcc15543b9d3704"
+  },
+  {
+   "bytes": 0,
+   "path": "live_l1/state/__init__.py",
+   "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "bytes": 18211,
+   "path": "live_l1/state/iu4_lifecycle_ledger.py",
+   "sha256": "d72134195f66b1d39c09a2ca6b9919d8a9acf17c4490ab52d9abc2aebcd71337"
+  },
+  {
+   "bytes": 18475,
+   "path": "live_l1/state/loss_cluster.py",
+   "sha256": "4ce7d59f64a67de94ffc6f1d03ff4e6c8a7a590802abb003b311cd0d56cc3e55"
+  },
+  {
+   "bytes": 5000,
+   "path": "live_l1/state/models.py",
+   "sha256": "b9bc3b9a598fefeef83a2905432daf924ccf54e9701f313e2af99a6a8e833f53"
+  },
+  {
+   "bytes": 57620,
+   "path": "live_l1/state/paper_artifacts.py",
+   "sha256": "3cd9a459e2856672bb7b318c9cdbf8f8bb52e633ee9529d74761d64928213946"
+  },
+  {
+   "bytes": 262786,
+   "path": "live_l1/state/paper_atomic_coordinator.py",
+   "sha256": "b8ce5ba89016cac8e34ee2646f3bf9746b2909fa3b7c9e1ef6c74557c3aaffcb"
+  },
+  {
+   "bytes": 618,
+   "path": "live_l1/state/persist.py",
+   "sha256": "cc4c5f7e98905ffe2631330a1f03005a0897fdb43ad46a0b92191cc1cac2c274"
+  },
+  {
+   "bytes": 20999,
+   "path": "live_l1/state/state_store.py",
+   "sha256": "b742131ba8af8e9c34157244de5cd743a045b7ae985dd4b502486e71fd2011c9"
+  },
+  {
+   "bytes": 8224,
+   "path": "live_l1/state/state_validation.py",
+   "sha256": "5f0b0dc637c79339cea23e7a5676f8925c2b8ece1fb5151ece24854170a73778"
+  },
+  {
+   "bytes": 10799,
+   "path": "live_l1/tools/reconcile_runtime_state.py",
+   "sha256": "8c9ecd43df1979e14af05640066a5a637690e0e3506106aeee3d17d504ab9222"
+  },
+  {
+   "bytes": 2994,
+   "path": "live_l1/tools/recover_runtime_state.py",
+   "sha256": "9d164920de9c8e7518e71689805ce4493e5fb6f5b00802694d8ad53fe98a0c2c"
+  },
+  {
+   "bytes": 3832,
+   "path": "live_l1/tools/replay_execution_state.py",
+   "sha256": "89284a7432aac82e6bb14a158c5a5b3c418fe8151a453b9fb684e90c82e9c874"
+  },
+  {
+   "bytes": 7502,
+   "path": "live_l1/tools/run_btc_l1_fast_replay_v4_a67b3da.py",
+   "sha256": "af49126179eae0d7885d2ba07e0c342c1be9724a940457a8eb2f7a244b3a0292"
+  },
+  {
+   "bytes": 7164,
+   "path": "live_l1/tools/safe_launch.py",
+   "sha256": "cb90bd49b36de56e8ad95e9b24febb23baa0513b1ec51e7402f63a5efd6ec652"
+  },
+  {
+   "bytes": 3811,
+   "path": "live_l1/tools/startup_validator.py",
+   "sha256": "93f5cc2119887ae8dfa5a9ac5441a96de6dda4e0ac49ba4cce7dbe82cacd2017"
+  }
+ ],
+ "source_files_count": 45,
+ "status_assignment": {
+  "accepted_objects": [
+   "statischer Teilbefund nach Abschnitt 9 einschliesslich Quellenbindungen (Abschnitte 4 und 14), korrigierter Zaehleinheiten (Abschnitt 5), Schluesseltabelle (Abschnitt 6) und methodischer Grenzen (Abschnitt 3.2)",
+   "Abgrenzung des D2-Geltungsbereichs nach Abschnitt 10"
+  ],
+  "binding_timing_unchanged": "Erforderliche Bindungen muessen vor der Beobachtung historischer Selektionskennzahlen erfuellt sein (Integrationsvertrag Abschnitte 15 und 20.6). Die nachgelagerte Candidate-Freeze-Auflage der Preregistration ersetzt oder verzoegert diese Pflicht nicht.",
+  "closure_list_item_1": "ERFUELLT durch Abschnitt 16",
+  "closure_list_items_2_to_5": "BERICHTIGT: Punkt 2 OFFEN; Punkt 3 dokumentationsseitig ERFUELLT durch Abschnitt 6, verbleibende Bindungspflicht in Punkt 2; Punkt 4 ERFUELLT durch GP-2; Punkt 5 OFFEN",
+  "correction_note_ref": "Abschnitt 17 und governance_correction_record",
+  "d2_overall": "OFFEN",
+  "deferred": [
+   "V-19"
+  ],
+  "historical_wording": "Entwurfs-, Vorschlags- und Offen-Vermerke in den Abschnitten 1.1, 9, 10, 11 und 15 beschreiben den geprueften Entwurfsstand; sie werden durch Abschnitt 16 zeitlich eingeordnet und nicht umgeschrieben.",
+  "manifest_binding_of_this_report": "NICHT ERFOLGT",
+  "open_unchanged": [
+   "offene Zuordnungen nach Abschnitt 12",
+   "D1",
+   "D3",
+   "B1 bis B14"
+  ],
+  "separation_of_value_classes": "Dokumentierte Code-Vorgaben nach Abschnitt 6, konkrete Laufwerte der Umgebung (B4, unbekannt) und die jeweils dafuer bestimmten Bindungszeitpunkte bleiben getrennt. Ein dokumentierter Code-Vorgabewert ist kein Laufwert und ersetzt keinen.",
+  "unchanged": [
+   "P01 bis P07",
+   "K01 bis K08",
+   "D4 bis D17",
+   "Berechnungsregeln",
+   "Selektions-Gates"
+  ]
+ },
+ "subscript_default_note": "Die Zugriffe environment[source] (live_l1/core/paper_economics_shadow.py:199) und environment[REFERENCE_STOP_RATE_ENV] (:206) besitzen keinen Vorgabewert, weil sie als Subscript geschrieben sind. Daraus folgt nicht, dass der jeweilige Schluessel tatsaechlich fehlt: die vorgelagerte Fehlendpruefung live_l1/core/paper_economics_shadow.py:184-196 bricht die Verarbeitung vor diesen Zugriffen mit einem eigenen Grundcode ab. Die Angabe betrifft die Schreibweise des Zugriffs, nicht den Zustand der Variablen.",
+ "title": "BTC-L1 G10-B D2 Static Configuration Evidence V1",
+ "unchanged_accepted_rules": [
+  "angenommene Vertragspaare",
+  "P01 bis P07",
+  "K01 bis K08",
+  "D4 bis D17",
+  "saemtliche Berechnungsregeln",
+  "Selektions-Gates",
+  "BIND-0 bis BIND-4",
+  "Variablengruppen A und B",
+  "Runtime-Datei- und Importbindung nach Abschnitt 10"
+ ]
+}
