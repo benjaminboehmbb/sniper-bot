@@ -1,0 +1,513 @@
+{
+  "document_id": "BTC_L1_G10B_D1_PARTIAL_DECISIONS_V1_2026-09-16",
+  "document_title": "BTC-L1 G10-B D1 Partial Decisions V1",
+  "document_status": "DRAFT_NOT_BINDING",
+  "document_kind": "DOCUMENTATION_CONSOLIDATION",
+  "markdown_path": "docs/review/BTC_L1_G10B_D1_PARTIAL_DECISIONS_V1_2026-09-16.md",
+  "json_path": "docs/review/evidence/BTC_L1_G10B_D1_PARTIAL_DECISIONS_V1_2026-09-16.json",
+  "authoring_date_utc": "2026-09-16",
+  "repository_commit_at_authoring": "fcc96713c9552731b940ca7aa67eabf381adc468",
+  "repository_branch_at_authoring": "main",
+  "repository_worktree_clean_at_authoring": true,
+  "purpose": "Konsolidierte Dokumentation bereits erteilter D1-Teilannahmen nebst Grenzen, nicht angenommenen technischen Vorschlaegen und offenen Aufgaben.",
+  "status_scope_note": "DRAFT_NOT_BINDING betrifft diese Konsolidierung und hebt die dokumentierten frueheren Teilannahmen nicht auf.",
+  "explicit_non_effects": [
+    "keine neue formale Annahme dieser Konsolidierung",
+    "D1 insgesamt bleibt offen",
+    "keine Erfuellung der Bindungen B1 bis B14",
+    "keine Manifestbindung dieses Dokuments",
+    "keine Implementierungs-, Test-, Qualifikations- oder Laufgenehmigung",
+    "keine Aenderung bestehender Vertragsdateien"
+  ],
+  "json_role": "Dokumentationsbegleitdatei. Kein Evaluator-Schema und kein Runtime-Schema.",
+  "source_evidence_model": {
+    "levels": {
+      "a_original_user_release": "Freigabenachricht des Nutzers, im Sitzungsverlauf im Wortlaut vorhanden",
+      "b_confirmation_reply": "darauf folgende Antwort, die den Annahmeumfang bestaetigt",
+      "c_independent_verification": "Pruefung der Stufe (a) durch eine von der Sitzung unabhaengige Instanz"
+    },
+    "level_c_status": "NOT_PERFORMED_FOR_ANY_PARTIAL_DECISION",
+    "independent_reviewer_limitation": "Der unabhaengigen Pruefinstanz lagen die Original-Freigaben nach Stufe (a) nicht direkt vor. Daraus folgt weder eine Widerlegung noch ein Beweis der Originaltreue.",
+    "versioning_note": "Versionierung ersetzt keine Quellenverifikation; das Fehlen einer versionierten Fassung ersetzt nicht die erteilte Freigabe.",
+    "quotation_rule": "Woertliche Zitate ausschliesslich aus tatsaechlich verfuegbaren Originalnachrichten. Keine erfundenen Zeitangaben oder Quellenkennungen."
+  },
+  "review_history": {
+    "prior_draft_review_outcome": "REVISE_BEFORE_DOCUMENTATION",
+    "prior_draft_review_scope": "bezieht sich ausschliesslich auf die vorhergehende, inhaltlich kuerzere Fassung dieser Konsolidierung",
+    "current_version_independent_recheck": "NOT_PERFORMED",
+    "current_version_positive_recheck_claimed": false,
+    "findings_addressed": [
+      {
+        "finding": "Annahmebelege unklar dargestellt",
+        "correction": "Abschnitt 2 mit dreistufiger Belegunterscheidung und dokumentierter Pruefgrenze"
+      },
+      {
+        "finding": "E3 verkuerzt wiedergegeben",
+        "correction": "Abschnitt 6 vollstaendig und eigenstaendig; unbestimmter Abschnittsverweis durch ausformulierte Fehlerregeltabelle ersetzt"
+      },
+      {
+        "finding": "Offene Aufgaben falsch kategorisiert",
+        "correction": "Abschnitt 10 neu gegliedert; Nachweisluecken nicht als Vertragsentscheidungen gefuehrt"
+      },
+      {
+        "finding": "Architekturabhaengige Qualifikation zu pauschal",
+        "correction": "Auditereignis-Qualifikation nur bedingt gefuehrt; getrennte Ansaetze erhalten"
+      },
+      {
+        "finding": "E2-Faelle nicht im Dokument definiert",
+        "correction": "Abschnitt 5 mit fuenf Falldefinitionen, Belegen und Folgen"
+      }
+    ]
+  },
+  "editorial_precisions_applied": [
+    {
+      "id": "a",
+      "target": "E2 Fall 4",
+      "change": "Beleg ausdruecklich formuliert als Nachweis der tatsaechlichen Cachenutzung und Vergleich des ausgefuehrten Codeobjekts mit dem gebundenen Sollobjekt, wobei eine Abweichung festgestellt wird; Rueckverweis 'wie Fall 3' ersetzt",
+      "new_error_code_assignment": false
+    },
+    {
+      "id": "b",
+      "target": "E3 Empfang",
+      "change": "Threads und asynchrone Laufzeiten ausdruecklich als zulaessige Alternativen zur gemeinsamen Bereitschaftsabfrage erhalten; weder implementiert noch qualifiziert; fortlaufender Empfang und Abschlussbedingungen bleiben verpflichtend"
+    },
+    {
+      "id": "c",
+      "target": "Aufgabenliste",
+      "change": "Dokumentarische Umsetzung der bereits angenommenen E3-Rollen- und Verantwortungsaenderungen als ausstehende Dokumentationsaufgabe gefuehrt, nicht als erneut zu treffende Architekturentscheidung; Schema- und Bindungsfelder bleiben gesondert offen"
+    }
+  ],
+  "partial_decisions": [
+    {
+      "id": "D1_SCOPE_PRECISION",
+      "title": "Begrenzte D1-Umfangspraezisierung",
+      "assumed": true,
+      "evidence_levels": {
+        "a": "PRESENT_VERBATIM",
+        "b": "PRESENT",
+        "c": "NOT_PERFORMED"
+      },
+      "content_summary": "Nachweis der Herkunft und Identitaet des tatsaechlich ausgefuehrten Python-Codes und der tatsaechlich geladenen dynamischen Abhaengigkeiten im bereits vertraglich erfassten Umfang; belastbare Verbindung der gemessenen Identitaeten mit den jeweiligen Ausfuehrungs- und Ladeereignissen; Bewertung vorhandener Cachedateien.",
+      "explicit_limits": [
+        "Dateipfad, Inode oder nachtraeglicher Dateihash ersetzen die Ereignisbindung nicht",
+        "keine allgemeine Zusicherung unveraenderlicher Prozessspeicherinhalte",
+        "keine Abwehr beliebiger privilegierter Systemeingriffe",
+        "kein bestimmtes technisches Verfahren vorgeschrieben",
+        "bestehende Modul-, Import-, Quellen- und Runtime-Bindungen unveraendert",
+        "fehlende Nachweise fuer bereits erfasste Bestandteile weder optional noch erfuellt",
+        "schliesst D1 nicht und erfuellt keine der Bindungen B1 bis B14"
+      ],
+      "clarifications_in_confirmation": [
+        "der Beschlusssatz 'nur zum Ladeereignis' ist nicht angenommen worden",
+        "der Wegfall der allgemeinen Speicherzusicherung entscheidet nicht vorab, womit die Bindung der gemessenen Bytes an das Ladeereignis hergestellt wird"
+      ],
+      "affected_contract_locations": [
+        "Integrationsvertrag Abschnitt 10, operativer Satz der Grenzen der Abdeckung",
+        "Integrationsvertrag Abschnitt 14, Eintrag D1",
+        "Integrationsvertrag Abschnitt 20.6"
+      ],
+      "required_documentation_change": "Eintrag der Praezisierung bei D1 in den Abschnitten 14 und 20.6 nach dem Verfahren der zeitlichen Einordnung, ohne Umschreiben des Entwurfswortlauts vor Abschnitt 20.",
+      "still_missing": [
+        "saemtliche Nachweise"
+      ]
+    },
+    {
+      "id": "E2_CACHE_EVALUATION",
+      "title": "E2 Cachebewertung im angenommenen Umfang",
+      "assumed": true,
+      "evidence_levels": {
+        "a": "PRESENT_VERBATIM",
+        "b": "PRESENT",
+        "c": "NOT_PERFORMED"
+      },
+      "content_summary": "Der Cacheeinfluss auf den tatsaechlich ausgefuehrten Code ist nachvollziehbar zu bewerten; zusaetzlich muss der ausgefuehrte Code mit dem vertrauenswuerdig abgeleiteten und gebundenen Sollobjekt uebereinstimmen. Cachezustand und Ausfuehrungsbefund bleiben getrennt.",
+      "cases": [
+        {
+          "case": 1,
+          "definition": "Cache fehlt; Ausfuehrung erfolgt aus der Quelle",
+          "required_evidence": "Belegte Feststellung, dass kein Cache gelesen wurde, und eigenstaendiger Vergleich des ausgefuehrten Codeobjekts mit dem gebundenen Sollobjekt",
+          "assumed_consequence": "Positiv nur bei beiden Belegen; fehlender Cache ist kein Nachweis eines korrekten Laufs"
+        },
+        {
+          "case": 2,
+          "definition": "Cache ist veraltet oder wird abgelehnt; Quellfallback erfolgt",
+          "required_evidence": "Zusaetzlich der Beleg, dass die Ablehnung tatsaechlich stattfand",
+          "assumed_consequence": "Positiv nur bei vollstaendigen Belegen; der Cachezustand ist fuer sich kein Befund"
+        },
+        {
+          "case": 3,
+          "definition": "Cache wird verwendet; ausgefuehrtes Codeobjekt entspricht dem Soll",
+          "required_evidence": "Nachweis der tatsaechlichen Cachenutzung und Uebereinstimmung des ausgefuehrten Codeobjekts mit dem gebundenen Sollobjekt",
+          "assumed_consequence": "Positiv nur bei beiden Belegen"
+        },
+        {
+          "case": 4,
+          "definition": "Cache wird verwendet; ausgefuehrtes Codeobjekt weicht vom Soll ab",
+          "required_evidence": "Nachweis der tatsaechlichen Cachenutzung und Vergleich des ausgefuehrten Codeobjekts mit dem gebundenen Sollobjekt, wobei eine Abweichung festgestellt wird",
+          "assumed_consequence": "Technischer Abbruch mit IDENTITY_MISMATCH; keine Ergebnisfreigabe"
+        },
+        {
+          "case": 5,
+          "definition": "Cacheeinfluss oder ausgefuehrtes Codeobjekt sind nicht ausreichend nachweisbar",
+          "required_evidence": null,
+          "assumed_consequence": "Keine Ergebnisfreigabe; konkrete Codezuordnung bleibt offen"
+        }
+      ],
+      "explicit_limits": [
+        "Existenz, Dateihash, passender Cache-Header oder fehlender Cache reichen je fuer sich nicht als positiver Ausfuehrungsnachweis",
+        "ein Code-Digest belegt weder Cachenutzung noch Cacheverursachung",
+        "fehlende Pflichtangabe, verletzte Bindung und gescheiterte Belegerhebung sind getrennte Sachverhalte",
+        "kein pauschales Zusammenfassen von fehlendem und unpassendem Sollwert unter MANIFEST_INCOMPLETE",
+        "die Aussage 'kein angenommener Code traegt Fall 5(b)' ist nicht verbindlich uebernommen",
+        "keine neuen Fehlercodes",
+        "keine Pflicht zum Loeschen, Neuerzeugen oder Verbieten von Caches",
+        "das Schema des getrennten Ausfuehrungsbefunds bleibt gesondert anzunehmen"
+      ],
+      "open_error_code_assignment": "CASE_5_UNRESOLVED",
+      "affected_contract_locations": [
+        "Integrationsvertrag Abschnitt 10, Importlisten-Felder cached_path, cached_exists, cached_sha256",
+        "Integrationsvertrag Abschnitt 7, Fehlercodemenge",
+        "Integrationsvertrag Abschnitt 12, Schemaergaenzungen"
+      ],
+      "required_documentation_change": "Aufnahme der Grundregel und der fuenf Faelle; Kennzeichnung der getrennten Ausweisung des Ausfuehrungsbefunds als noch nicht angenommene Schemaergaenzung; Vermerk der offenen Fall-5-Zuordnung.",
+      "still_missing": [
+        "Schema des Ausfuehrungsbefunds",
+        "Fall-5-Codezuordnung",
+        "saemtliche Belegerhebungsverfahren, nicht qualifiziert"
+      ]
+    },
+    {
+      "id": "E3_COMPLETION_PROCEDURE",
+      "title": "E3 Rollen, Empfang, Siegel, Abschluss, Status, Freigabe",
+      "assumed": true,
+      "evidence_levels": {
+        "a": "PRESENT_VERBATIM",
+        "b": "PRESENT_WITH_EDITORIAL_CORRECTION",
+        "c": "NOT_PERFORMED"
+      },
+      "editorial_correction": "'Vier Lesezustaende' an beiden Fundstellen durch 'Fuenf Lesezustaende' ersetzt",
+      "roles": {
+        "E": "fuehrt den Lauf durch, veroeffentlicht die fachlichen Ergebnisartefakte, sendet die Ereignisspur, schreibt keinen Abschlussnachweis",
+        "A": "wird vor E gestartet, besitzt den Empfangskanal, ueberwacht E, prueft Spur und Artefakte, veroeffentlicht als einzige Instanz completion.json"
+      },
+      "channel_and_descriptors": "A behaelt das Leseende; genau ein Schreibende wird fuer E auf eine vereinbarte Deskriptornummer abgebildet; Close-on-exec wirkt erst beim exec und verhindert die fork-Kopie nicht; das Kind schliesst vor dem exec das Leseende und alle uebrigen ererbten Deskriptoren; A schliesst seine eigene Kopie des Schreibendes unmittelbar nach dem Start von E.",
+      "continuous_receive": {
+        "rule": "A leert den Kanal fortlaufend, waehrend E laeuft; kein blockierendes Warten auf E bei unbeachtetem Empfangskanal.",
+        "read_end": "nichtblockierend gefuehrt; keine feste Kanalkapazitaet oder Puffergroesse vorausgesetzt",
+        "permitted_alternatives": "Threads oder asynchrone Laufzeiten sind zulaessige Alternativen zur gemeinsamen Bereitschaftsabfrage; keine davon wird hierdurch implementiert oder qualifiziert; fortlaufender Empfang und Abschlussbedingungen bleiben verpflichtend",
+        "read_states": [
+          {
+            "state": "Bytes gelesen",
+            "handling": "weiterverarbeiten"
+          },
+          {
+            "state": "tatsaechliches EOF",
+            "handling": "Empfangsende feststellen"
+          },
+          {
+            "state": "EAGAIN oder EWOULDBLOCK",
+            "handling": "erneut auf Bereitschaft warten, kein Empfangsende"
+          },
+          {
+            "state": "EINTR",
+            "handling": "Lesevorgang wiederholen; weder EOF noch gelesener Datensatz"
+          },
+          {
+            "state": "sonstiger Fehler",
+            "handling": "kein positiver Abschluss"
+          }
+        ],
+        "eof_note": "EOF ersetzt weder die Siegelpruefung noch die Pruefung des Prozessstatus."
+      },
+      "sequence_and_seal": {
+        "payload_records": "Folgenummern 1 bis n",
+        "seal_sequence_number": "n+1",
+        "seal_declared_count": "n",
+        "seal_hash_scope": "ausschliesslich ueber die Nutzdatensaetze 1 bis n; das Siegel geht nicht ein",
+        "exactly_one_seal": true,
+        "independent_recomputation_by_A": true,
+        "positive_close_excluded_on": [
+          "falsche deklarierte Anzahl",
+          "abweichender Aggregathash",
+          "fehlende, doppelte, ruecklaeufige oder anderweitig ungueltige Folgenummern",
+          "zweites Siegel",
+          "jeder Datensatz nach dem Siegel"
+        ],
+        "receive_completion_order": "A erfasst zuerst den Beendigungsstatus von E selbst, liest danach bis zum tatsaechlichen EOF und prueft anschliessend Folge, Siegel, Anzahl, Aggregathash und Abwesenheit von Nachsiegel-Datensaetzen.",
+        "n_zero_case": "transportseitig gueltig, erfuellt fuer sich keinen E1-Nachweis",
+        "transport_vs_events": "Transportkonsistenz ersetzt keine Ereignisvollstaendigkeit."
+      },
+      "termination_status_of_E": "Positiver Abschluss verlangt die regulaere Beendigung von E mit dem angenommenen Erfolgsrueckgabewert, von A selbst beobachtet. Signalbeendigung schliesst ihn aus. Der intern beobachtete Status wird getrennt aufgezeichnet.",
+      "technical_before_economic": "BIND-3 beim Start und bestandene Reconciliation vor den Kennzahlen bleiben an ihren Zeitpunkten. integrity.status ist keine wirtschaftliche Gate-Komponente, bleibt aber technische Voraussetzung.",
+      "economic_status_derivation": {
+        "step_1": "Vollstaendigkeitspruefung der erforderlichen Gate-Menge je Szenario; fehlende Gates duerfen nicht durch eine Konjunktion ueber die verbliebenen Eintraege verdeckt werden",
+        "step_2": "Konjunktion ueber alle Gate-Eintraege mit status PASS je Szenario und Vergleich mit scenarios.<S>.all_gates_pass; Wurzelkonjunktion aus NOMINAL und STRESS und Vergleich mit dem Wurzelwert; integrity.status geht nicht ein",
+        "step_3": "Pruefung von control_evidence.all_pass gegen seine drei Einzelstatus",
+        "step_4": "die als NOT_REQUIRED gefuehrten Stressobjekte cagr, calmar und bootstrap_lcb95 erhalten keine zusaetzlichen Gates und gehen nicht ein",
+        "mapping": {
+          "all_required_gates_pass": "COMPLETED_PASS",
+          "at_least_one_required_gate_fails": "COMPLETED_FAIL"
+        },
+        "incomplete_or_contradictory": "technischer Befund ohne wirtschaftlichen Status, kein COMPLETED_FAIL",
+        "new_decision_word_required": false
+      },
+      "publication_and_metrics_release": {
+        "publication_point": "erfolgreiche einmalige Umbenennung von completion.json.partial nach completion.json",
+        "metrics_released_true_requires": "saemtliche erforderlichen technischen Pruefungen: Integritaet, Erfassung, Ladespur, Protokoll, Reconciliation und Artefaktpruefung",
+        "failed_economic_gate_blocks_metrics_release": false,
+        "both_economic_outcomes_may_carry_metrics_released_true": true,
+        "technical_errors_must_not_appear_as_completed_fail": true,
+        "result_files_alone_release": false,
+        "post_run_check_required": true
+      },
+      "external_return_values": {
+        "0": "beide wirtschaftlichen Ausgaenge, COMPLETED_PASS und COMPLETED_FAIL",
+        "2": "TECHNICAL_ERROR mit geschriebenem Abschlussnachweis",
+        "3": "unvollstaendiger Lauf ohne Abschlussnachweis",
+        "scope": "gesamter Evaluator-Aufruf, den A abschliesst",
+        "guarantee_on_forced_termination_of_A": false,
+        "economic_distinction_by_new_codes": false
+      },
+      "binding_vs_observation": "BIND-2 bindet Identitaet von A, Protokoll- und Pruefregeln sowie Pruefungsumfang. Die tatsaechlichen Bytes und Hashes der Ereignisspur entstehen erst im Lauf und werden wie beobachtete BIND-1b-Werte gefuehrt, nie als BIND-2-Sollwert.",
+      "error_rules": [
+        {
+          "case": "Signalbeendigung von E",
+          "consequence": "kein positiver Abschluss; TECHNICAL_ERROR-Abschluss nur bei tatsaechlich vorliegenden Fehler- und Abschlussartefakten; keine pauschale Zuordnung"
+        },
+        {
+          "case": "Fehlendes Siegel, zweites Siegel, Datensatz nach dem Siegel",
+          "consequence": "kein positiver Abschluss; keine pauschale TECHNICAL_ERROR-Zuordnung"
+        },
+        {
+          "case": "Falsche Anzahl, abweichender Aggregathash, ungueltige Folgenummer",
+          "consequence": "kein positiver Abschluss"
+        },
+        {
+          "case": "Lesefehler ausser EAGAIN, EWOULDBLOCK und EINTR",
+          "consequence": "kein positiver Abschluss"
+        },
+        {
+          "case": "Unvollstaendige Ereigniserfassung",
+          "consequence": "kein positiver Abschluss; gesonderte E1-Voraussetzung"
+        },
+        {
+          "case": "Unvollstaendige oder widerspruechliche Gate-Menge",
+          "consequence": "technischer Befund, kein COMPLETED_FAIL"
+        },
+        {
+          "case": "Fehler von A vor der Veroeffentlichung",
+          "consequence": "kein completion.json; liegengebliebene completion.json.partial macht den Lauf ungueltig; keine Freigabe"
+        },
+        {
+          "case": "Veroeffentlichung nachweislich gescheitert",
+          "consequence": "kein Ersatzname, nichts ueberschrieben, nichts entfernt; Lauf unvollstaendig"
+        },
+        {
+          "case": "Veroeffentlichung nachweislich erfolgreich, A faellt danach aus",
+          "consequence": "completion.json steht; weder automatisch gueltig noch automatisch ungueltig; vollstaendige Abschluss- und Integritaetsbedingungen gelten"
+        },
+        {
+          "case": "Ausgang der Veroeffentlichung ungewiss",
+          "consequence": "keine automatische Wiederholung, keine Aussage ueber die Dateiexistenz; Feststellung durch die nachgelagerte Pruefung des Verzeichnisinhalts"
+        }
+      ],
+      "new_error_codes_or_schema_defined": false,
+      "contract_conflicts": [
+        {
+          "subject": "geplante Komponente A",
+          "location": "Integrationsvertrag Abschnitt 2: Keine weiteren Module und keine weiteren Artefakte",
+          "required_change": "ausdrueckliche Vertragsaenderung"
+        },
+        {
+          "subject": "geplante Ereignisspur",
+          "location": "Integrationsvertrag Abschnitt 2, dieselbe Stelle",
+          "required_change": "ausdrueckliche Vertragsaenderung"
+        },
+        {
+          "subject": "Uebergang der Abschlussverantwortung",
+          "location": "Modultabelle Abschnitt 2 und Abschnitt 7 mit reservierten Abschlussnamen und Rueckgabewerten des Evaluators",
+          "required_change": "Schreiber von completion.json wechselt von E zu A; Rueckgabewerte als Werte des Gesamtaufrufs"
+        },
+        {
+          "subject": "Identitaet von A",
+          "location": "BIND-2; B1 bis B14 enthalten kein solches Feld",
+          "required_change": "zusaetzliches Bindungsfeld"
+        }
+      ]
+    },
+    {
+      "id": "E1_SET_AND_PATH_RULE",
+      "title": "E1 Mengenregel Z/R/O, Wegpflicht, Wiederholungen",
+      "assumed": true,
+      "evidence_levels": {
+        "a": "PRESENT_VERBATIM",
+        "b": "PRESENT",
+        "c": "NOT_PERFORMED"
+      },
+      "definitions": {
+        "Z": "vorab festgelegte zulaessige SOURCE-Modulmenge innerhalb des festgelegten Geltungsbereichs",
+        "R": "daraus abgeleitete, zwingend erwartete Modulmenge",
+        "O": "aus geprueften Ausfuehrungsnachweisen beobachtete Menge"
+      },
+      "relation_for_technically_valid_close": "R subset_or_equal O subset_or_equal Z",
+      "binding_requirement": "Z, R und ihre Herleitungsregeln sind vor dem Lauf in BIND-2 zu binden; keine nachtraegliche Anpassung von R an beobachtete Ergebnisse.",
+      "path_obligation": "Jede relevante SOURCE-Modulausfuehrung im festgelegten Geltungsbereich muss den vorgeschriebenen kontrollierten Ladeweg verwenden und einen gueltigen Nachweis besitzen; dies gilt auch fuer nur bedingt benoetigte zulaessige Module.",
+      "repetitions": "Wiederholungen sind einzelne Ausfuehrungsereignisse; die Mengenbildung darf fehlende Ereignisnachweise nicht verdecken.",
+      "explicit_limits": [
+        "eine Startpruefung der Importliste beweist O subset_or_equal Z nicht fuer den gesamten spaeteren Ablauf",
+        "andere Finder oder Loader muessen nicht generell abwesend sein; nachzuweisen ist nur, dass relevante Ausfuehrungen im festgelegten SOURCE-Geltungsbereich keinen unzulaessigen Ersatzweg nehmen",
+        "daraus folgt keine neue Regel fuer andere Modularten",
+        "die Regeln beweisen weder die Vollstaendigkeit von O noch die durchgehende Wirksamkeit der Erfassung",
+        "die Durchsetzung bleibt offener Bestandteil von E1"
+      ],
+      "retracted_earlier_statements": [
+        "O subset_or_equal Z ist bereits durchgesetzt",
+        "Forderung nach genereller Abwesenheit weiterer Finder oder Loader"
+      ],
+      "affected_contract_locations": [
+        "Integrationsvertrag Abschnitt 10, Import-Allowlist und Importliste",
+        "BIND-2",
+        "BIND-3 Startpruefung"
+      ],
+      "required_documentation_change": "Aufnahme von Z, R und O mit Herleitungsregeln, der Relation als Bedingung technischer Gueltigkeit, der Wegpflicht und der Einzelnachweispflicht fuer Wiederholungen, nebst dem Vermerk, dass die angenommene Importliste eine Zustandsliste je Modulname ist.",
+      "still_missing": [
+        "Belegung von Z und R",
+        "Vollstaendigkeit von O",
+        "durchgehende Wirksamkeit",
+        "Durchsetzungsnachweis der Wegpflicht",
+        "Startzustand und Aktivierungszeitpunkt"
+      ]
+    }
+  ],
+  "explicitly_not_assumed_technical_proposals": [
+    {
+      "subject": "kontrollierter SOURCE-Loader",
+      "status": "VORSCHLAG_NICHT_ANGENOMMEN",
+      "note": "bevorzugter Entwurfsansatz"
+    },
+    {
+      "subject": "Aufrufdatensatz des Loaders und dessen Felder",
+      "status": "VORSCHLAG_NICHT_ANGENOMMEN",
+      "note": "Beginnvermerk bezeichnet den Aufrufversuch, nicht einen nachgewiesenen Beginn des Modulrumpfs"
+    },
+    {
+      "subject": "Nachweis ueber den eigenen kontrollierten Aufruf",
+      "status": "VORSCHLAG_NICHT_ANGENOMMEN",
+      "note": "belegt ausschliesslich Aufrufe dieses Loaders; erfordert kein Auditereignis"
+    },
+    {
+      "subject": "zusaetzliche Auditbeobachtung des exec-Ereignisses",
+      "status": "VORSCHLAG_NICHT_ANGENOMMEN",
+      "note": "getrennter Ansatz; nicht Voraussetzung des kontrollierten Loaders"
+    },
+    {
+      "subject": "threadlokale Stapelkorrelation von Ankuendigung und Ereignis",
+      "status": "VERWORFEN",
+      "note": "bleibt verworfen"
+    },
+    {
+      "subject": "Interpreter- und Startprofil des Evaluators",
+      "status": "VORSCHLAG_NICHT_ANGENOMMEN",
+      "note": "Aufloesung des Evaluatorpakets bei gleichzeitiger Isolation ungeklaert"
+    }
+  ],
+  "reported_environment_findings": {
+    "binding_effect": "NONE",
+    "is_compatibility_check": false,
+    "is_qualification": false,
+    "interpreter_found": {
+      "path": "/usr/bin/python3.12",
+      "symlink": "/usr/bin/python3",
+      "implementation": "cpython",
+      "version": "3.12.3",
+      "bytes": 8020928,
+      "sha256": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f"
+    },
+    "project_venv_found": false,
+    "pyvenv_cfg_found": false,
+    "binding_evaluator_version_selection_exists": false,
+    "requirements_file_classification": "Entwicklungsvorgabe, kein Lock",
+    "elf_findings": {
+      "program_interpreter": "/lib64/ld-linux-x86-64.so.2",
+      "dt_needed": [
+        "libm.so.6",
+        "libz.so.1",
+        "libexpat.so.1",
+        "libc.so.6"
+      ],
+      "dt_rpath_present": false,
+      "dt_runpath_present": false,
+      "direct_libpython_dt_needed": false,
+      "limitation": "keine Aussage ueber transitive oder spaeter dynamisch geladene Bibliotheken"
+    }
+  },
+  "open_tasks": {
+    "design_decisions_required": [
+      "Befundzuordnung fuer E2-Fall 5, getrennt nach fehlender Pflichtangabe, verletzter Bindung und gescheiterter Belegerhebung",
+      "Schema des getrennten Ausfuehrungsbefunds sowie Schema der Ereignisspur und des Aufrufdatensatzes",
+      "Bindungsfeld fuer die Identitaet von A in BIND-2",
+      "Herleitungsregeln und Geltungsbereich fuer Z und R",
+      "Aufloesung des Evaluatorpakets beim Start sowie Interpreter- und Startprofil fuer E und fuer A",
+      "Wahl des Nachweisverfahrens fuer die Ereignisabdeckung; ob ueberhaupt ein Auditereignis verwendet wird, ist offen"
+    ],
+    "pending_documentation_tasks": [
+      "Aufnahme der bereits angenommenen E3-Rollen- und Verantwortungsaenderungen in die Vertragsunterlagen; dies ist eine Dokumentationsaufgabe und keine erneut zu treffende Architekturentscheidung"
+    ],
+    "independent_open_e1_d1_areas": [
+      "Bootstrap-Fenster vor Aktivierung des kontrollierten Ladewegs",
+      "EXTENSION-Module",
+      "native Bibliotheken einschliesslich der Trennung von Ladeereignis, gemeldetem Pfad und Identitaet der geladenen Bytes",
+      "vollstaendige Ereigniserfassung, also die Vollstaendigkeit von O",
+      "durchgehende Wirksamkeit des kontrollierten Ladewegs ueber ein Intervall statt ueber Zeitpunkte",
+      "Durchsetzung der Wegpflicht",
+      "fehlende Quellenbindungen fuer Standardbibliothek, Evaluator und Drittanbieter"
+    ],
+    "missing_concrete_bindings": {
+      "B3": "Python-Identitaet des Erzeugerlaufs",
+      "B5": "Interpreter",
+      "B6": "Decimal-Backend",
+      "B7": "NumPy",
+      "B8": "Evaluator-Quellen",
+      "B9": "Import-Abschluss",
+      "B10": "Dependency-Lock",
+      "B11_B14": "unveraendert offen",
+      "additional_gap": "Wurzelkennung fuer die Standardbibliothek fehlt im angenommenen Manifestschema",
+      "b5_b3_coupling_required": false,
+      "b5_b3_coupling_note": "Keine angenommene Vertragsstelle verlangt Identitaetsgleichheit oder Ableitung; BIND-3 vergleicht die Selbstauskunft der Evaluierungsumgebung gegen BIND-2."
+    },
+    "missing_implementation_and_qualification": [
+      "Evaluatorpaket, kontrollierter Loader und Komponente A sind nicht vorhanden",
+      "Reproduzierbarkeit der Sollwertableitung",
+      "Kanaleigenschaften, Deskriptorbehandlung sowie Verlaesslichkeit von Statuserfassung und EOF",
+      "Nummerierungs- und Siegeldisziplin unter Abbruch einschliesslich unabhaengiger Nachberechnung des Aggregathashes",
+      "Vollstaendigkeitspruefung der erforderlichen Gate-Menge",
+      "Qualifikation von A",
+      "Rueckwirkungsfreiheit gegen die BIND-0-Vergleichswerte",
+      "bedingt: Ausloesezeitpunkt und Abdeckung des exec-Auditereignisses, nur falls ein spaeter gewaehltes Nachweisverfahren dieses Ereignis verwendet"
+    ],
+    "not_reopened": [
+      "D1-Praezisierung",
+      "E2-Umfang",
+      "E3-Verfahren",
+      "E1-Mengen- und Wegregel"
+    ],
+    "not_reopened_note": "Die vier Umfangsentscheidungen selbst sind getroffen. Ihre Dokumentation, Umsetzung und Nachweise bleiben offen; eine angenommene Regel ist kein erbrachter Nachweis."
+  },
+  "source_and_evidence_gaps": [
+    "Stufe (c) fehlt fuer alle vier Teilannahmen",
+    "keine versionierte Fassung der Teilannahmen; Dokumentationsluecke, keine Annahmeluecke",
+    "Stufe (a) war bei Erstellung verfuegbar; ausserhalb jener Sitzung ist der Sitzungsverlauf die einzige Quelle der Stufe (a)",
+    "fuer die Umgebungsbefunde besteht keine Beleglucke; sie tragen jedoch keine Bindung"
+  ],
+  "unaffected": [
+    "D2",
+    "D3",
+    "B1_THROUGH_B14",
+    "X1",
+    "V-19"
+  ],
+  "contract_text": "# BTC-L1 G10-B D1 Partial Decisions V1\n\n**DOCUMENT_STATUS=DRAFT_NOT_BINDING**\n\nDatum der Ausarbeitung (UTC): 2026-09-16\n\nRepository-Stand der Ausarbeitung: `fcc96713c9552731b940ca7aa67eabf381adc468`, Branch `main`, Index und Arbeitsverzeichnis sauber, keine untracked Dateien vor dieser Ablage\n\nMaschinenlesbare Begleitdatei: `docs/review/evidence/BTC_L1_G10B_D1_PARTIAL_DECISIONS_V1_2026-09-16.json`\n\n---\n\n## 1. Status, Umfang und Abgrenzung\n\n### 1.1 Status\n\nDieses Dokument ist **DRAFT_NOT_BINDING**. Es konsolidiert vier bereits erteilte Teilannahmen zur offenen Definition **D1** des angenommenen Integrationsvertrags sowie die dazugehörigen Grenzen, ausdrücklich nicht angenommenen technischen Vorschläge und offenen Aufgaben.\n\nDer Status **DRAFT_NOT_BINDING** betrifft **diese Konsolidierung**. Er hebt die dokumentierten früheren Teilannahmen **nicht** auf; diese behalten den Status, den ihre jeweilige Freigabe ihnen gegeben hat.\n\nAusdrücklich gilt:\n\n- **keine** neue formale Annahme dieser Konsolidierung;\n- **D1 insgesamt bleibt offen**;\n- **keine** Erfüllung der Bindungen **B1 bis B14**;\n- **keine** Manifestbindung dieses Dokuments;\n- **keine** Implementierungs-, Test-, Qualifikations- oder Laufgenehmigung.\n\nBestehende Vertragsdateien werden durch dieses Dokument **nicht** geändert. Erforderliche spätere Vertragsänderungen werden hier ausschließlich **dokumentiert**, nicht vollzogen.\n\n### 1.2 Unverändert gültige angenommene Regeln\n\nUnverändert und hier **nicht erneut zur Genehmigung gestellt**: die Festlegungen **P01 bis P07** des Parser-/Numeric-Contracts; **K01 bis K08** sowie sämtliche Serialisierungs-, Schema-, Gate-, Pfad-, Fresh-State- und Abschlussregeln des Output-/Runtime-Contracts; sämtliche Berechnungs-, Kosten-, Sizing-, Settlement-, Metrik- und Bootstrap-Regeln der Evaluator-Klarstellung; die Abschnitte 2 bis 8 des Field-/Helper-Contracts; die Selektions-Gates der Preregistration; die Entscheidungen **D4 bis D17** des Integrationsvertrags einschliesslich der Bindungsstufen BIND-0 bis BIND-4 sowie der Runtime-Datei- und Importbindung nach dessen Abschnitt 10; der angenommene Teilbefund und Geltungsbereichsvorschlag des D2-Dokuments. **V-19 bleibt zurueckgestellt. B1 bis B14 bleiben offen. D2 und D3 bleiben offen** und werden durch dieses Dokument nicht bearbeitet.\n\n---\n\n## 2. Quellenlage und Belegverfahren\n\nAlle vier Teilannahmen wurden **ausschliesslich im Verlauf einer Arbeitssitzung** erteilt. In den versionierten Vertragsunterlagen des Repositoriums existiert fuer **keine** von ihnen ein Nachweis; der Integrationsvertrag fuehrt D1 unveraendert als offene Auflage. Versionierung ersetzt keine Quellenverifikation; umgekehrt ersetzt das Fehlen einer versionierten Fassung nicht die erteilte Freigabe.\n\nJe Teilannahme werden drei Stufen unterschieden:\n\n| Stufe | Bedeutung |\n| --- | --- |\n| **(a) Originale Nutzerfreigabe** | Die Freigabenachricht des Nutzers, im Sitzungsverlauf im Wortlaut vorhanden |\n| **(b) Bestaetigungsantwort** | Die darauf folgende Antwort, die den Annahmeumfang bestaetigt |\n| **(c) Unabhaengige Verifikation** | Pruefung der Stufe (a) durch eine von der Sitzung unabhaengige Instanz |\n\n**Prueffgrenze der unabhaengigen Instanz.** Der unabhaengigen Pruefinstanz lagen die Original-Freigaben nach Stufe (a) **nicht direkt vor**. Daraus folgt **weder** eine Widerlegung der Annahmen **noch** ein Beweis ihrer Originaltreue. **Stufe (c) ist fuer alle vier Teilannahmen nicht erbracht.**\n\nStufe (a) war bei der Erstellung dieses Dokuments verfuegbar; die nachstehenden Zitate sind exakte Uebernahmen aus den Freigabenachrichten und keine Rekonstruktionen. Es werden keine Zeitangaben und keine Quellenkennungen erfunden. Wird dieses Dokument spaeter ausserhalb jener Sitzung weiterverarbeitet, ist der Sitzungsverlauf die einzige Quelle der Stufe (a) und muesste mitgefuehrt werden.\n\n---\n\n## 3. Historische Bearbeitungsaufzeichnung\n\nEine vorhergehende, inhaltlich kuerzere Fassung dieser Konsolidierung wurde unabhaengig geprueft. Das Ergebnis jener Pruefung lautete **REVISE_BEFORE_DOCUMENTATION** und bezieht sich **ausschliesslich auf jenen frueheren Entwurf**.\n\n| Finding jener Pruefung | Vorgenommene Korrektur in dieser Fassung |\n| --- | --- |\n| Annahmebelege unklar dargestellt | Abschnitt 2 mit dreistufiger Unterscheidung je Teilannahme; Prueffgrenze der unabhaengigen Instanz ausdruecklich dokumentiert; woertliche Zitate nur aus tatsaechlich verfuegbaren Originalnachrichten |\n| E3 verkuerzt wiedergegeben | Abschnitt 6 vollstaendig und eigenstaendig ausformuliert; unbestimmter Verweis auf einen Abschnitt der Vorfassung durch die ausformulierte Fehlerregeltabelle ersetzt |\n| Offene Aufgaben falsch kategorisiert | Abschnitt 9 neu gegliedert; Bootstrap-Fenster, EXTENSION-Module und native Bibliotheken als eigenstaendige offene Bereiche; Nachweisluecken werden nicht zu Vertragsentscheidungen umetikettiert |\n| Architekturabhaengige Qualifikation zu pauschal | Qualifikation von Ausloesezeitpunkt und Abdeckung des `exec`-Auditereignisses nur noch **bedingt** gefuehrt; eigener kontrollierter Aufruf und zusaetzliche Auditbeobachtung bleiben getrennte Ansaetze |\n| E2-Faelle nicht im Dokument definiert | Abschnitt 5 enthaelt die fuenf Falldefinitionen mit erforderlichem Beleg und angenommener Folge |\n\n**Fuer die vorliegende korrigierte Fassung wird keine positive unabhaengige Nachpruefung behauptet.** Eine solche Nachpruefung ist nicht erfolgt.\n\n---\n\n## 4. Begrenzte D1-Umfangspraezisierung\n\n### 4.1 Angenommener Inhalt, woertlich aus der Originalfreigabe\n\n> „D1 verlangt einen nachvollziehbaren Nachweis der Herkunft und Identität des tatsächlich ausgeführten Python-Codes sowie der tatsächlich geladenen dynamischen Abhängigkeiten innerhalb des bereits vertraglich erfassten Umfangs.\n> Die Prüfung muss die gemessenen Identitäten belastbar mit den jeweiligen Ausführungs- und Ladeereignissen verbinden. Ein Dateipfad, eine Inode oder ein nachträglich erhobener Dateihash allein ersetzt diese Verbindung nicht.\n> Vorhandene Cachedateien sind hinsichtlich ihres Einflusses auf den tatsächlich ausgeführten Code zu bewerten. Bloße Dokumentation ihrer Existenz und Hashes genügt nicht.\n> Eine allgemeine Zusicherung unveränderlicher Prozessspeicherinhalte oder die Abwehr beliebiger privilegierter Systemeingriffe wird durch diese Präzisierung nicht zusätzlich verlangt.\n> Bestehende Modul-, Import-, Quellen- und Runtime-Bindungen bleiben unverändert. Fehlende Nachweise für bereits erfasste Bestandteile werden durch diese Präzisierung weder optional noch erfüllt.\n> Es wird kein bestimmtes technisches Verfahren vorgeschrieben: weder fs-verity noch ausschließlich C-basierte Sollwerteinlesung, Ladeverhinderung oder ein zusätzlicher Prüfprozess.\n> Die Ergebnisfreigabe bleibt vom vollständigen Abschluss aller erforderlichen Prüfungen abhängig. Das Verhältnis zwischen Ereignisfenster, späten Ladeereignissen und completion.json ist noch konkret auszuarbeiten. Ein vorhandener Abschlussdatensatz allein beweist keine bislang ungeprüfte Ereignisabdeckung.\n> Diese Entscheidung schließt D1 nicht. Sie erfüllt keine der Bindungen B1–B14 und erteilt keine Implementierungs-, Test-, Qualifikations-, Manifest-, Commit-, Push- oder Laufgenehmigung.\"\n\n### 4.2 Belegstufen\n\n**(a)** Originale Nutzerfreigabe vorhanden, oben woertlich wiedergegeben. **(b)** Bestaetigungsantwort vorhanden; sie enthaelt zwei Klarstellungen: der zuvor vorgeschlagene Beschlusssatz „nur zum Ladeereignis\" ist **nicht** angenommen worden, und der Wegfall der allgemeinen Speicherzusicherung entscheidet **nicht** vorab, womit die Bindung der gemessenen Bytes an das Ladeereignis hergestellt wird. **(c)** nicht erbracht.\n\n### 4.3 Betroffene Vertragsstelle und dokumentarische Ergaenzung\n\nBetroffen sind der operative Satz in Abschnitt 10 des Integrationsvertrags („Grenzen der Abdeckung\"), der Eintrag D1 in dessen Abschnitt 14 und dessen Abschnitt 20.6.\n\nErforderliche Ergaenzung: Eintrag der Praezisierung bei D1 in den Abschnitten 14 und 20.6, nach dem in jenen Dokumenten verwendeten Verfahren der zeitlichen Einordnung, ohne den Entwurfswortlaut der Abschnitte vor Abschnitt 20 umzuschreiben.\n\n**Weiterhin fehlend:** saemtliche Nachweise. Die Praezisierung ist eine Umfangsbestimmung.\n\n---\n\n## 5. E2 — Cachebewertung\n\n### 5.1 Angenommene Grundregel, woertlich aus der Originalfreigabe\n\n> „Der Einfluss vorhandener Cachedateien auf den tatsächlich ausgeführten Code muss nachvollziehbar bewertet werden. Zusätzlich muss der ausgeführte Code mit dem vertrauenswürdig abgeleiteten und gebundenen Sollobjekt übereinstimmen.\n> Cachezustand und Ausführungsbefund sind getrennt zu behandeln. Existenz, Dateihash, passender Cache-Header oder fehlender Cache reichen jeweils allein nicht als positiver Ausführungsnachweis.\n> Die Fälle 1–3 können bei vollständig erbrachten Nachweisen positiv bewertet werden. Eine festgestellte Abweichung des ausgeführten Codeobjekts vom gebundenen Sollobjekt nach Fall 4 führt zum technischen Abbruch mit IDENTITY_MISMATCH. Bei unzureichendem Nachweis nach Fall 5 erfolgt keine Ergebnisfreigabe.\"\n\nEbenfalls woertlich Bestandteil derselben Freigabe:\n\n> „‚Fehlender' und ‚unpassender' Sollwert dürfen nicht pauschal unter MANIFEST_INCOMPLETE zusammengefasst werden.\n> Fehlende Pflichtangabe, verletzte Bindung und gescheiterte Belegerhebung sind getrennte Sachverhalte.\n> Die konkrete Codezuordnung für Fall 5 bleibt offen. Die Aussage ‚kein angenommener Code trägt Fall 5(b)' wird durch diese Freigabe nicht verbindlich übernommen. Keine neuen Fehlercodes einführen.\n> Keine Pflicht zum Löschen, Neuerzeugen oder Verbieten von Caches. Das konkrete Schema für den getrennten Ausführungsbefund bleibt eine gesondert anzunehmende Ergänzung.\"\n\n### 5.2 Belegstufen\n\n**(a)** vorhanden. **(b)** Bestaetigungsantwort vorhanden. **(c)** nicht erbracht.\n\n### 5.3 Falldefinitionen, erforderlicher Beleg, angenommene Folge\n\n| Fall | Definition | Erforderlicher Beleg | Angenommene Folge |\n| --- | --- | --- | --- |\n| **1** | Cache fehlt; Ausfuehrung erfolgt aus der Quelle | Belegte Feststellung, dass kein Cache gelesen wurde, **und** eigenstaendiger Vergleich des ausgefuehrten Codeobjekts mit dem gebundenen Sollobjekt | Positiv nur bei beiden Belegen. „Kein Cacheeinfluss\" beantwortet die Ausfuehrungsfrage nicht; ein fehlender Cache ist kein Nachweis eines korrekten Laufs |\n| **2** | Cache ist veraltet oder wird abgelehnt; Quellfallback erfolgt | Zusaetzlich der Beleg, dass die Ablehnung tatsaechlich stattfand | Positiv nur bei vollstaendigen Belegen. Der Cachezustand wird ausgewiesen, ist fuer sich kein Befund |\n| **3** | Cache wird verwendet; ausgefuehrtes Codeobjekt entspricht dem Soll | Nachweis der tatsaechlichen Cachenutzung **und** Uebereinstimmung des ausgefuehrten Codeobjekts mit dem gebundenen Sollobjekt | Positiv nur bei beiden Belegen |\n| **4** | Cache wird verwendet; ausgefuehrtes Codeobjekt weicht vom Soll ab | Nachweis der tatsaechlichen Cachenutzung und Vergleich des ausgefuehrten Codeobjekts mit dem gebundenen Sollobjekt, wobei eine Abweichung festgestellt wird | **Technischer Abbruch mit `IDENTITY_MISMATCH`**, keine Ergebnisfreigabe |\n| **5** | Cacheeinfluss oder ausgefuehrtes Codeobjekt sind nicht ausreichend nachweisbar | — | **Keine Ergebnisfreigabe.** Die konkrete Codezuordnung bleibt **offen**; fehlende Pflichtangabe, verletzte Bindung und gescheiterte Belegerhebung bleiben getrennte Sachverhalte |\n\n**Ausdruecklich festgehalten.** Ein Code-Digest belegt eine Codeabweichung, **nicht** die Cachenutzung und **nicht** die Cacheverursachung. Cachezustand und Ausfuehrungsbefund bleiben getrennt. Es bestehen **keine** Pflichten zur Loeschung, Neuerzeugung oder zum Verbot von Caches. **Keine neuen Fehlercodes.**\n\n### 5.4 Betroffene Vertragsstelle und dokumentarische Ergaenzung\n\nBetroffen sind die Importlisten-Felder `cached_path`, `cached_exists` und `cached_sha256` aus Abschnitt 10 des Integrationsvertrags, wo sie bisher als reine Dokumentationsfelder gefuehrt werden, ferner die Fehlercodemenge und die Schemaergaenzungen jenes Vertrags.\n\nErforderliche Ergaenzung: Aufnahme der Grundregel und der fuenf Faelle; Kennzeichnung der getrennten Ausweisung des Ausfuehrungsbefunds als **noch nicht angenommene** Schemaergaenzung; Vermerk der offenen Fall-5-Zuordnung.\n\n**Weiterhin fehlend:** Schema des Ausfuehrungsbefunds; Fall-5-Codezuordnung; saemtliche Belegerhebungsverfahren, die nicht qualifiziert sind.\n\n---\n\n## 6. E3 — Rollen, Empfang, Siegel, Abschluss, Status, Freigabe\n\n### 6.1 Umfang der Annahme, woertlich aus der Originalfreigabe\n\n> „Ich nehme den zuletzt vorgelegten ‚E3 — Konsolidierter Entwurf, korrigierte Fassung' als E3-Verfahrensfestlegung im folgenden begrenzten Umfang an.\"\n\nDie Freigabe zaehlt die angenommenen Bestandteile einzeln auf: Rollenaufteilung zwischen Evaluator E und Abschlussprozess A; fortlaufender Empfang und Prozessueberwachung; Sequenz-, Siegel-, Lese- und Abschlussregeln; Trennung technischer Gueltigkeit vom wirtschaftlichen Ergebnis; Statusableitung und Metrikfreigabe; Veroeffentlichungspunkt von `completion.json`; vorgesehene aeussere Rueckgabewertzuordnung; Trennung vorab gebundener Regeln von spaeterer Ist-Evidenz. Ferner woertlich:\n\n> „Damit sind A als geplante Komponente, die Ereignisspur als geplantes Artefakt und die Übertragung der Abschlussverantwortung auf A grundsätzlich angenommen. Die erforderliche Dokumentation dieser Änderungen in den Vertragsunterlagen steht noch aus.\"\n\n**(a)** vorhanden. **(b)** Bestaetigungsantwort vorhanden, ergaenzt um eine redaktionelle Berichtigung: „Vier Lesezustaende\" wurde an beiden Fundstellen durch „Fuenf Lesezustaende\" ersetzt. **(c)** nicht erbracht.\n\n### 6.2 Rollen\n\n**E** fuehrt den Lauf durch — BIND-3-Startpruefungen, Strom, Ledger, Reconciliation, Kennzahlen, Gates, `.partial`-Schreiben, Veroeffentlichung der fachlichen Ergebnisartefakte in der angenommenen Umbenennungsreihenfolge — und sendet fortlaufend die Ereignisspur. **E schreibt keinen Abschlussnachweis.**\n\n**A** wird vor E gestartet, besitzt den Empfangskanal, ueberwacht E, prueft Spur und Artefakte, leitet den Abschlussstatus ab und veroeffentlicht **als einzige Instanz** `completion.json`.\n\n### 6.3 Kanal und Deskriptoren\n\nA erzeugt den Kanal und behaelt das Leseende. Genau das Schreibende wird fuer E auf eine vereinbarte Deskriptornummer abgebildet; nur fuer diese eine Nummer wird das Close-on-exec-Flag aufgehoben. Close-on-exec wirkt erst beim `exec` und verhindert die Deskriptorkopie durch `fork` **nicht**; daher schliesst das Kind nach `fork` das Leseende und alle uebrigen ererbten Deskriptoren vor dem `exec`, und A schliesst seine eigene Kopie des Schreibendes unmittelbar nach dem Start von E. Erst dann kann ein Stromende eintreten.\n\n### 6.4 Fortlaufender Empfang und Lesezustaende\n\n**A leert den Kanal fortlaufend, waehrend E laeuft**, und erkennt die Beendigung im selben Warteschritt; **ein blockierendes Warten auf E bei unbeachtetem Empfangskanal findet nicht statt.** Leseende und Prozessdeskriptor liegen in derselben Bereitschaftsabfrage. Das **Leseende wird nichtblockierend gefuehrt**; eine feste Kanalkapazitaet oder Puffergroesse wird nicht vorausgesetzt.\n\n**Zugelassene Alternativen.** Threads oder asynchrone Laufzeiten sind zulaessige Alternativen zur beschriebenen gemeinsamen Bereitschaftsabfrage. Keine dieser Moeglichkeiten wird durch dieses Dokument implementiert oder qualifiziert. Der fortlaufende Empfang und die Abschlussbedingungen dieses Abschnitts bleiben in jedem Fall verpflichtend.\n\n**Fuenf getrennte Lesezustaende:**\n\n| Zustand | Behandlung |\n| --- | --- |\n| Bytes gelesen | weiterverarbeiten |\n| tatsaechliches EOF | Empfangsende feststellen |\n| `EAGAIN` beziehungsweise `EWOULDBLOCK` | erneut auf Bereitschaft warten, kein Empfangsende |\n| `EINTR` | Lesevorgang wiederholen; gilt **weder als EOF noch als gelesener Datensatz** |\n| sonstiger Fehler | kein positiver Abschluss |\n\n**EOF ersetzt weder die Siegelpruefung noch die Pruefung des Prozessstatus.**\n\n### 6.5 Sequenz, Siegel, Abschluss des Empfangs\n\nNutzdatensaetze tragen die Folgenummern **1 bis n**. Es gibt **genau ein Siegel**; es traegt die **Folgenummer n+1**, enthaelt die **deklarierte Anzahl n** und einen Aggregathash **ausschliesslich ueber die Nutzdatensaetze 1 bis n**; das Siegel selbst geht in diesen Hash **nicht** ein.\n\n**A berechnet den Aggregathash unabhaengig nach.** Ein positiver Abschluss ist ausgeschlossen bei: falscher deklarierter Anzahl; abweichendem Aggregathash; fehlenden, doppelten, ruecklaeufigen oder anderweitig ungueltigen Folgenummern; einem zweiten Siegel; **jedem Datensatz nach dem Siegel**.\n\n**Reihenfolge des Empfangsabschlusses.** A erfasst **zuerst den Beendigungsstatus von E selbst**, liest **danach** bis zum **tatsaechlichen EOF** und stellt fest, dass die Nutzfolge lueckenlos 1 bis n ist, genau ein Siegel mit Folgenummer n+1 vorliegt, dessen Anzahl gleich n ist, der nachberechnete Aggregathash uebereinstimmt und nach dem Siegel kein Datensatz eingetroffen ist.\n\n**Transportkonsistenz ersetzt keine Ereignisvollstaendigkeit.** Ein Siegel mit Folgenummer 1 und Anzahl 0 — der Fall **n = 0** — ist transportseitig gueltig, erfuellt aber **fuer sich keinen E1-Nachweis**: eine leere Spur kann ebenso bedeuten, dass der Erfassungsmechanismus nichts erzeugt hat. Die Bewertung gegen eine erwartete Mindestereignismenge gehoert zu E1 und bleibt offen.\n\n### 6.6 Beendigungsstatus von E\n\nEin positiver Abschluss verlangt die **regulaere Beendigung von E mit dem angenommenen Erfolgsrueckgabewert, von A selbst beobachtet**. Eine Signalbeendigung schliesst ihn aus, auch bei formal einwandfreiem Siegel. Der intern beobachtete Status von E wird getrennt aufgezeichnet und nicht in die Statuszuordnung von A ueberfuehrt.\n\n### 6.7 Technische Gueltigkeit vor wirtschaftlicher Aussage\n\nDie angenommenen Vorabpruefungen bleiben an ihren Zeitpunkten und werden weder ersetzt noch abgeschwaecht: **BIND-3 beim Start**, **bestandene Reconciliation vor den Kennzahlen**, saemtliche Integritaets- und Erfassungsnachweise. `integrity.status` ist **keine** wirtschaftliche Gate-Komponente, bleibt aber nach angenommener Definition technische Voraussetzung.\n\n### 6.8 Wirtschaftliche Statusableitung\n\nErst nach bestandenen technischen Pruefungen, allein aus dem angenommenen Schema, ohne Neuberechnung von Kennzahlen und ohne Aenderung von Gate-Regeln:\n\n1. **Zuerst Vollstaendigkeitspruefung der erforderlichen Gate-Menge je Szenario.** Fehlende Gates duerfen **nicht** durch eine Konjunktion ueber die verbliebenen Eintraege verdeckt werden.\n2. Konjunktion ueber alle Gate-Eintraege mit `status = PASS` je Szenario und Vergleich mit `scenarios.<S>.all_gates_pass`; Wurzelkonjunktion aus `NOMINAL` und `STRESS` und Vergleich mit dem Wurzelwert. `integrity.status` geht nicht ein.\n3. Pruefung von `control_evidence.all_pass` gegen seine drei Einzelstatus.\n4. Die als `NOT_REQUIRED` gefuehrten Stressobjekte `cagr`, `calmar` und `bootstrap_lcb95` **erhalten keine zusaetzlichen Gates** und gehen nicht ein.\n\n**Zuordnung:** alle erforderlichen Gates bestanden ergibt `COMPLETED_PASS`; mindestens eines verfehlt ergibt `COMPLETED_FAIL`. Ein **unvollstaendiges oder widerspruechliches** Ergebnis ist **kein** wirtschaftliches `COMPLETED_FAIL`, sondern ein technischer Befund ohne wirtschaftlichen Status. Ein neues Entscheidungswort in `result.json` ist nicht erforderlich.\n\n### 6.9 Veroeffentlichung und Metrikfreigabe\n\nMaßgeblicher Veroeffentlichungspunkt ist die **erfolgreiche einmalige Umbenennung von `completion.json.partial` nach `completion.json`**.\n\n`metrics_released=true` setzt **saemtliche** erforderlichen technischen Pruefungen voraus: Integritaet, Erfassung, Ladespur, Protokoll nach den Abschnitten 6.3 bis 6.6, Reconciliation und Artefaktpruefung. Ein wirtschaftlich verfehltes Gate verhindert die Metrikfreigabe bei technisch gueltigem Lauf **nicht**: **`COMPLETED_PASS` und `COMPLETED_FAIL` koennen beide `metrics_released=true` tragen.** Technische Fehler duerfen **nicht** als `COMPLETED_FAIL` erscheinen.\n\n**Ergebnisdateien allein bewirken keine Freigabe:** eine final benannte `result.json` ohne Abschlussnachweis ist nach angenommener Regel keine Freigabe. Die **nachgelagerte Pruefung des fertigen Laufs bleibt erforderlich**.\n\n### 6.10 Aeussere Rueckgabewerte\n\n| Wert | Bedeutung |\n| --- | --- |\n| `0` | **beide** wirtschaftlichen Ausgaenge, `COMPLETED_PASS` und `COMPLETED_FAIL` |\n| `2` | `TECHNICAL_ERROR` **mit geschriebenem Abschlussnachweis** |\n| `3` | unvollstaendiger Lauf **ohne Abschlussnachweis** |\n\nDiese Zuordnung gilt fuer den **gesamten Evaluator-Aufruf**, den A abschliesst, und beschreibt den vorgesehenen kontrollierten Abschluss. **Bei gewaltsamer Beendigung von A wird kein bestimmter Rueckgabewert garantiert.** Eine wirtschaftliche Unterscheidung durch neue Codes findet nicht statt.\n\n### 6.11 Vorabbindung gegenueber Ist-Evidenz\n\nBIND-2 bindet vorab: Identitaet von A, die Protokoll- und Pruefregeln nach den Abschnitten 6.3 bis 6.6 und 6.8 sowie den Pruefungsumfang von A. Die tatsaechlichen Bytes und Hashes der Ereignisspur entstehen erst im Lauf und werden wie beobachtete BIND-1b-Werte gefuehrt, **nie** als BIND-2-Sollwert. Damit besteht keine zyklische oder zeitlich unmoegliche Bindung.\n\n### 6.12 Fehlerregeln\n\n| Fall | Angenommene Folge |\n| --- | --- |\n| Signalbeendigung von E | Kein positiver Abschluss. Ein `TECHNICAL_ERROR`-Abschluss ist **nur** moeglich, wenn die dafuer erforderlichen Fehler- und Abschlussartefakte tatsaechlich vorliegen; sonst unvollstaendiger Lauf ohne gueltigen Abschlussnachweis. **Keine pauschale `TECHNICAL_ERROR`-Zuordnung** |\n| Fehlendes Siegel, zweites Siegel, Datensatz nach dem Siegel | Kein positiver Abschluss; keine pauschale `TECHNICAL_ERROR`-Zuordnung |\n| Falsche Anzahl, abweichender Aggregathash, ungueltige Folgenummer | Kein positiver Abschluss |\n| Lesefehler ausser `EAGAIN`, `EWOULDBLOCK` und `EINTR` | Kein positiver Abschluss |\n| Unvollstaendige Ereigniserfassung | Kein positiver Abschluss; gesonderte E1-Voraussetzung |\n| Unvollstaendige oder widerspruechliche Gate-Menge | Technischer Befund, **kein** `COMPLETED_FAIL` |\n| Fehler von A **vor** der Veroeffentlichung | Kein `completion.json`; eine liegengebliebene `completion.json.partial` zaehlt zum Verzeichnisinhalt und macht den Lauf nach angenommener Regel ungueltig; keine Freigabe |\n| Veroeffentlichung **nachweislich gescheitert** | Kein Ersatzname, nichts ueberschrieben, nichts entfernt; Lauf unvollstaendig; keine Freigabe |\n| Veroeffentlichung **nachweislich erfolgreich**, A faellt danach aus | `completion.json` steht; **weder automatisch gueltig noch automatisch ungueltig**; es gelten unveraendert saemtliche angenommenen Abschluss- und Integritaetsbedingungen des fertigen Laufs |\n| Ausgang der Veroeffentlichung **ungewiss** | **Keine** automatische Wiederholung, **keine** Aussage ueber die Dateiexistenz; Feststellung allein durch die nachgelagerte Pruefung des tatsaechlichen Verzeichnisinhalts |\n\nEs wird **keine** neue Fehlercodezuordnung und **keine** Schemafestlegung getroffen.\n\n### 6.13 Konflikte mit bestehenden Vertragsstellen\n\n| Gegenstand | Bestehende Stelle | Erforderliche Aenderung |\n| --- | --- | --- |\n| Geplante Komponente **A** | Abschnitt 2 des Integrationsvertrags: „Keine weiteren Module und keine weiteren Artefakte.\" | Ausdrueckliche Vertragsaenderung |\n| Geplante **Ereignisspur** | dieselbe Stelle | Ausdrueckliche Vertragsaenderung |\n| **Uebergang der Abschlussverantwortung** | Modultabelle in Abschnitt 2, wonach der Baustein `artifacts` den Abschlussnachweis verantwortet; reservierte Abschlussnamen und Rueckgabewerte „des Evaluators\" in Abschnitt 7 | Schreiber von `completion.json` wechselt von E zu A; Rueckgabewerte als Werte des Gesamtaufrufs zu lesen |\n| **Identitaet von A** | BIND-2; B1 bis B14 enthalten kein solches Feld | Zusaetzliches Bindungsfeld |\n\n---\n\n## 7. E1 — Mengenregel Z/R/O, Wegpflicht, Wiederholungen\n\n### 7.1 Angenommener Inhalt, woertlich aus der Originalfreigabe\n\n> „Z bezeichnet die vorab festgelegte zulässige SOURCE-Modulmenge innerhalb des festgelegten Geltungsbereichs. R bezeichnet die daraus abgeleitete, zwingend erwartete Modulmenge. O bezeichnet die aus geprüften Ausführungsnachweisen beobachtete Menge.\n> Z, R und ihre Herleitungsregeln sind vor dem Lauf in BIND-2 zu binden. Keine nachträgliche Anpassung von R an die beobachteten Ergebnisse. Für einen technisch gültigen Abschluss gilt R ⊆ O ⊆ Z.\n> Jede relevante SOURCE-Modulausführung im festgelegten Geltungsbereich muss den vorgeschriebenen kontrollierten Ladeweg verwenden und einen gültigen Nachweis besitzen. Dies gilt auch für nur bedingt benötigte zulässige Module. Wiederholungen sind einzelne Ausführungsereignisse; die Mengenbildung darf fehlende Ereignisnachweise nicht verdecken.\"\n\nEbenfalls woertlich Bestandteil derselben Freigabe:\n\n> „Eine Startprüfung der Importliste beweist nicht bereits O ⊆ Z für den gesamten späteren Ablauf. Dafür ist der entsprechende Laufnachweis weiterhin erforderlich.\n> Andere Finder oder Loader müssen nicht generell abwesend sein. Nachzuweisen ist, dass relevante Ausführungen innerhalb des festgelegten SOURCE-Geltungsbereichs keinen unzulässigen Ersatzweg nehmen. Daraus folgt keine neue Regel für andere Modularten.\n> Diese Regeln beweisen weder die Vollständigkeit von O noch die durchgehende Wirksamkeit der Erfassung. Ihre Durchsetzung bleibt offener Bestandteil von E1.\"\n\n### 7.2 Belegstufen\n\n**(a)** vorhanden. **(b)** Bestaetigungsantwort vorhanden, einschliesslich der dort uebernommenen Ruecknahme zweier frueherer Aussagen: „O ⊆ Z ist bereits durchgesetzt\" und der Forderung nach genereller Abwesenheit weiterer Finder oder Loader. **(c)** nicht erbracht.\n\n### 7.3 Betroffene Vertragsstelle und dokumentarische Ergaenzung\n\nBetroffen sind die Import-Allowlist und die Importliste aus Abschnitt 10 des Integrationsvertrags sowie BIND-2 und die BIND-3-Startpruefung.\n\nErforderliche Ergaenzung: Aufnahme der Begriffe Z, R und O mit ihren Herleitungsregeln; der Relation R ⊆ O ⊆ Z als Bedingung technischer Gueltigkeit; der Wegpflicht; der Einzelnachweispflicht fuer Wiederholungen, nebst dem Vermerk, dass die angenommene Importliste eine Zustandsliste **je Modulname** ist und Wiederholungen nicht fuehren kann.\n\n**Weiterhin fehlend:** Belegung von Z und R; Vollstaendigkeit von O; durchgehende Wirksamkeit; Durchsetzungsnachweis der Wegpflicht; Startzustand und Aktivierungszeitpunkt.\n\n---\n\n## 8. Ausdruecklich nicht angenommene technische Vorschlaege\n\n| Gegenstand | Status |\n| --- | --- |\n| Kontrollierter SOURCE-Loader | bevorzugter Entwurfsansatz, **VORSCHLAG_NICHT_ANGENOMMEN** |\n| Aufrufdatensatz des Loaders und dessen Felder | Schema-Vorschlaege, **nicht angenommen**. Ein Beginnvermerk bezeichnet den **Aufrufversuch**, nicht einen nachgewiesenen Beginn des Modulrumpfs |\n| Nachweis ueber den eigenen kontrollierten Aufruf | begrenzter Teilentwurf, **nicht angenommen**; belegt ausschliesslich Aufrufe dieses Loaders und erfordert **kein** Auditereignis |\n| Zusaetzliche Auditbeobachtung des `exec`-Ereignisses | **getrennter**, nicht angenommener Ansatz; **nicht** Voraussetzung des kontrollierten Loaders |\n| Threadlokale Stapelkorrelation von Ankuendigung und Ereignis | **verworfen**; bleibt verworfen |\n| Interpreter- und Startprofil des Evaluators | **nicht angenommen**; die Aufloesung des Evaluatorpakets bei gleichzeitiger Isolation ist ungeklaert |\n\n---\n\n## 9. Berichtete Umgebungsbefunde\n\nDie folgenden Befunde sind Bestandsaufnahmen. Sie sind **keine** Runtime-Bindung, **keine** Kompatibilitaetspruefung und **keine** Qualifikation.\n\n- Gefunden: CPython 3.12.3 unter `/usr/bin/python3.12`, 8020928 Bytes, SHA256 `e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f`; `/usr/bin/python3` ist ein symbolischer Link darauf.\n- Im untersuchten Umfang wurde **keine** Projekt-`.venv` und keine `pyvenv.cfg` vorgefunden.\n- Es existiert **keine** verbindliche evaluatorbezogene Versionsauswahl; die Anforderungsdatei des Repositoriums ist nach angenommener Vertragsregel eine Entwicklungsvorgabe und kein Lock.\n- In `/usr/bin/python3.12` wurde **kein direkter libpython-`DT_NEEDED`-Verweis** gefunden; die `DT_NEEDED`-Eintraege sind `libm.so.6`, `libz.so.1`, `libexpat.so.1` und `libc.so.6`; `DT_RPATH` und `DT_RUNPATH` fehlen. Daraus folgt keine Aussage ueber transitive oder spaeter dynamisch geladene Bibliotheken.\n\n---\n\n## 10. Offene Aufgaben\n\n### 10.1 Erforderliche Entwurfsentscheidungen\n\n1. Befundzuordnung fuer E2-Fall 5, getrennt nach fehlender Pflichtangabe, verletzter Bindung und gescheiterter Belegerhebung.\n2. Schema des getrennten Ausfuehrungsbefunds sowie Schema der Ereignisspur und des Aufrufdatensatzes.\n3. Bindungsfeld fuer die Identitaet von A in BIND-2.\n4. Herleitungsregeln und Geltungsbereich fuer Z und R.\n5. Aufloesung des Evaluatorpakets beim Start sowie Interpreter- und Startprofil fuer E und fuer A.\n6. Wahl des Nachweisverfahrens fuer die Ereignisabdeckung; ob ueberhaupt ein Auditereignis verwendet wird, ist offen.\n\n### 10.2 Ausstehende Dokumentationsaufgaben\n\nDie Rollen- und Verantwortungsaenderungen nach Abschnitt 6.13 sind **bereits angenommen**. Ihre Aufnahme in die Vertragsunterlagen ist eine **ausstehende Dokumentationsaufgabe** und **keine** erneut zu treffende Architekturentscheidung. Die konkreten Schema- und Bindungsfelder bleiben davon unberuehrt und gesondert offen; sie sind unter Abschnitt 10.1 gefuehrt.\n\n### 10.3 Eigenstaendige offene E1- und D1-Bereiche\n\nDie folgenden Punkte sind **Nachweisluecken**, keine Vertragsentscheidungen:\n\n- **Bootstrap-Fenster** vor Aktivierung des kontrollierten Ladewegs;\n- **EXTENSION-Module**;\n- **native Bibliotheken**, einschliesslich der Trennung von Ladeereignis, gemeldetem Pfad und Identitaet der geladenen Bytes;\n- **vollstaendige Ereigniserfassung**, also die Vollstaendigkeit von O;\n- **durchgehende Wirksamkeit** des kontrollierten Ladewegs ueber ein Intervall statt ueber Zeitpunkte;\n- **Durchsetzung der Wegpflicht**;\n- **fehlende Quellenbindungen** fuer Standardbibliothek, Evaluator und Drittanbieter.\n\n### 10.4 Fehlende konkrete Bindungen\n\n**B3** Python-Identitaet des Erzeugerlaufs, **B5** Interpreter, **B6** Decimal-Backend, **B7** NumPy, **B8** Evaluator-Quellen, **B9** Import-Abschluss, **B10** Dependency-Lock sowie **B11 bis B14** unveraendert. Zusaetzlich fehlt im angenommenen Manifestschema eine **Wurzelkennung fuer die Standardbibliothek**.\n\nFestgehalten: eine Kopplungsentscheidung zwischen B5 und B3 ist **nicht** erforderlich. Keine angenommene Vertragsstelle verlangt Identitaetsgleichheit oder eine Ableitung, und BIND-3 vergleicht die Selbstauskunft der Evaluierungsumgebung gegen **BIND-2**.\n\n### 10.5 Fehlende Implementierung und Qualifikationsnachweise\n\nEvaluatorpaket, kontrollierter Loader und Komponente A sind nicht vorhanden. Anschliessend zu qualifizieren waeren:\n\n- Reproduzierbarkeit der Sollwertableitung;\n- Kanaleigenschaften, Deskriptorbehandlung sowie Verlaesslichkeit von Statuserfassung und EOF;\n- Nummerierungs- und Siegeldisziplin unter Abbruch, einschliesslich der unabhaengigen Nachberechnung des Aggregathashes;\n- Vollstaendigkeitspruefung der erforderlichen Gate-Menge;\n- Qualifikation von A;\n- Rueckwirkungsfreiheit gegen die BIND-0-Vergleichswerte;\n- **bedingt:** Ausloesezeitpunkt und Abdeckung des `exec`-Auditereignisses, **nur** falls ein spaeter gewaehltes Nachweisverfahren dieses Ereignis verwendet. Der eigene kontrollierte Aufruf benoetigt es nicht.\n\n### 10.6 Nicht erneut als offen gefuehrt\n\nDie vier Umfangsentscheidungen selbst sind getroffen: D1-Praezisierung, E2-Umfang, E3-Verfahren sowie E1-Mengen- und Wegregel. Ihre **Dokumentation**, ihre **Umsetzung** und ihre **Nachweise** bleiben offen; eine angenommene Regel ist kein erbrachter Nachweis.\n\n---\n\n## 11. Quellen- und Beleggrenzen\n\n1. **Stufe (c) fehlt durchgehend.** Fuer alle vier Teilannahmen ist keine von der Arbeitssitzung unabhaengige Verifikation der Original-Freigaben erbracht. Der unabhaengigen Pruefinstanz lagen sie nicht direkt vor; daraus folgt weder Widerlegung noch Bestaetigung.\n2. **Keine versionierte Fassung der Teilannahmen.** Keine der vier Teilannahmen ist bislang in den Vertragsunterlagen dokumentiert; der Integrationsvertrag fuehrt D1 unveraendert als offene Auflage. Dies ist eine Dokumentationsluecke, keine Annahmeluecke.\n3. **Stufe (a) war bei Erstellung verfuegbar**, weshalb woertlich zitiert und nichts rekonstruiert wurde. Ausserhalb jener Sitzung ist der Sitzungsverlauf die einzige Quelle der Stufe (a).\n4. **Fuer die Umgebungsbefunde nach Abschnitt 9 besteht keine Beleglucke**; sie wurden erhoben und protokolliert, tragen jedoch ausdruecklich keine Bindung.\n\n---\n\n## 12. Abschluss\n\nDieses Dokument ist **DRAFT_NOT_BINDING**. Es begruendet keine neue Annahme. **D1 bleibt offen.** **E2, E3 und die E1-Mengen- und Wegregel behalten ihren bestaetigten Umfang.** **D2, D3, B1 bis B14 und X1 bleiben unberuehrt.** Aus diesem Dokument folgt keine Implementierungs-, Test-, Qualifikations-, Manifest-, Selektions-, Staging-, Commit-, Push- oder Ausfuehrungsfreigabe.\n",
+  "markdown_bytes": 33308,
+  "markdown_sha256": "d6d003e1e5224bed11fb0092150d7f96575f8c74b7f0e2d393b76e272ff57091",
+  "contract_text_sha256": "d6d003e1e5224bed11fb0092150d7f96575f8c74b7f0e2d393b76e272ff57091"
+}
